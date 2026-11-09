@@ -28,6 +28,7 @@ export function CeremonyCorridor() {
     let timer: ReturnType<typeof setTimeout> | undefined;
     return {
       id: 'ceremonies', element: section,
+      ready: prepareImageGroup(section, 'low'),
       enter: () => arches.forEach(arch => writeStyle(arch, 'willChange', 'transform')),
       layout(frame) {
         const mobile = frame.width < 900;
@@ -65,6 +66,8 @@ export function CeremonyCorridor() {
         const first = current === -1;
         current = next;
         if (frames[next]) prepareImageGroup(frames[next], 'high');
+        if (frames[next + 1]) prepareImageGroup(frames[next + 1], 'auto');
+        if (next > 0 && frames[next - 1]) prepareImageGroup(frames[next - 1], 'auto');
         clearTimeout(timer);
         panel.classList.add('swap');
         const show = () => {

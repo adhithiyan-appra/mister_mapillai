@@ -8,7 +8,7 @@ interface SourceImageProps extends Omit<ImgHTMLAttributes<HTMLImageElement>, 'sr
   responsive?: boolean;
 }
 
-export function SourceImage({ asset, loading = 'lazy', sizes = '100vw', decoding = 'async', responsive = false, ...props }: SourceImageProps) {
+export function SourceImage({ asset, loading = 'eager', sizes = '100vw', decoding = 'async', responsive = false, ...props }: SourceImageProps) {
   const source = imageSource(asset);
   const deferred = loading === 'lazy';
   return <img

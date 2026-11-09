@@ -20,6 +20,7 @@ export function Collection() {
     let wasAccelerated = false;
     return {
       id: 'collection', element: section,
+      ready: prepareImageGroup(section, 'low'),
       layout(frame) {
         const width = Math.round(frame.width < 900 ? Math.min(150, frame.width * 0.38, frame.height * 0.2) : Math.min(210, frame.height * 0.24));
         section.style.setProperty('--cw', `${width}px`);
@@ -39,7 +40,13 @@ export function Collection() {
           if (!accelerated) writeStyle(card, 'filter', `brightness(${0.4 + 0.6 * ((z + 1) / 2)})`);
           if (z > bestZ) { bestZ = z; best = i; }
         });
-        if (front !== best) { front = best; prepareImageGroup(cards[best], 'high'); setActive(best); }
+        if (front !== best) {
+          front = best;
+          prepareImageGroup(cards[best], 'high');
+          prepareImageGroup(cards[(best + 1) % count], 'auto');
+          prepareImageGroup(cards[(best - 1 + count) % count], 'auto');
+          setActive(best);
+        }
       },
       leave: () => gpu.suspend(),
       dispose: () => gpu.dispose(),

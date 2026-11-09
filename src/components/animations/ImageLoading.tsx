@@ -5,12 +5,18 @@ import { useAnimationController } from './AnimationProvider';
 export function ImageLoading() {
   const controller = useAnimationController();
   useLayoutEffect(() => {
+    let live = true;
+    const invalidateWhenReady = (readiness: Promise<unknown>) => {
+      void readiness.then(() => { if (live) controller.invalidate(); });
+    };
     function prepareSection(section: HTMLElement, current = false) {
+      const readiness: Promise<unknown>[] = [];
       if (section.id === 'journey') {
         const chapters = section.querySelectorAll('.ch');
-        if (chapters[0]) prepareImageGroup(chapters[0], 'high');
-        if (chapters[1]) prepareImageGroup(chapters[1], 'auto');
-      } else prepareImageGroup(section, current ? 'high' : 'low');
+        if (chapters[0]) readiness.push(prepareImageGroup(chapters[0], 'high'));
+        if (chapters[1]) readiness.push(prepareImageGroup(chapters[1], 'auto'));
+      } else readiness.push(prepareImageGroup(section, current ? 'high' : 'low'));
+      invalidateWhenReady(Promise.all(readiness));
     }
     const sections = document.querySelectorAll<HTMLElement>('main > section');
     let imageObserver: IntersectionObserver | undefined;
@@ -22,9 +28,8 @@ export function ImageLoading() {
         if (preparedHeight === frame.height) return;
         preparedHeight = frame.height;
         imageObserver?.disconnect();
-        // Percentage root margins are relative to viewport width, making mobile
-        // prefetch too late. Use measured viewport height and enough runway for
-        // the original files while the shared queue still limits work to two.
+        // Requests already started at bootstrap. This observer only promotes
+        // approaching groups inside the bounded decode queue.
         imageObserver = new IntersectionObserver(entries => {
           entries.forEach(entry => {
             if (!entry.isIntersecting) return;
@@ -48,7 +53,15 @@ export function ImageLoading() {
     document.addEventListener('click', onNavigate, { capture: true });
     const initial = document.getElementById(location.hash.slice(1) || 'journey');
     if (initial) prepareSection(initial, true);
+    if (!location.hash || location.hash === '#journey') {
+      const about = document.getElementById('about');
+      if (about) prepareSection(about);
+    }
+    // Attach every mounted image/background to the URL-level registry now;
+    // scrolling no longer controls whether a resource is requested or decoded.
+    invalidateWhenReady(prepareImageGroup(document, 'low'));
     return () => {
+      live = false;
       imageObserver?.disconnect();
       unregister();
       document.removeEventListener('click', onNavigate, { capture: true });

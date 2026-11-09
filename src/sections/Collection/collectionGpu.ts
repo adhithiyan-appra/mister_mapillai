@@ -1,4 +1,5 @@
 import { createGpuSurface } from '../../utils/gpuSurface';
+import { prepareImageElement } from '../../utils/imageLoading';
 
 const vertex = `#version 300 es
 layout(location=0) in vec2 aUV;
@@ -90,7 +91,8 @@ export function createCollectionGpu(canvas: HTMLCanvasElement, images: readonly 
       const upload = () => {
         if (uploading || textures[i] || disposed || unsupported || !surface.available) return;
         uploading = true;
-        void image.decode().then(() => {
+        void prepareImageElement(image, 'low').then(ready => {
+          if (!ready) { uploading = false; return; }
           if (disposed || unsupported || !surface.available) return;
           // Keep the native original image if a device cannot hold its full
           // dimensions. Never resize the source to fit a smaller GPU texture.
@@ -110,8 +112,8 @@ export function createCollectionGpu(canvas: HTMLCanvasElement, images: readonly 
           // levels softened embroidery compared with the native CSS image.
           gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
           if (anisotropic) gl.texParameterf(gl.TEXTURE_2D, anisotropic.TEXTURE_MAX_ANISOTROPY_EXT, gl.getParameter(anisotropic.MAX_TEXTURE_MAX_ANISOTROPY_EXT) as number);
-          // Allocation failures are reported through WebGL's error state rather
-          // than rejecting decode(). Never hide CSS behind an incomplete photo.
+          // Allocation failures are reported through WebGL's error state. Never
+          // hide the decoded CSS fallback behind an incomplete GPU texture.
           if (gl.getError() !== gl.NO_ERROR) {
             gl.deleteTexture(texture);
             fallback();

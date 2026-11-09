@@ -1,21 +1,31 @@
 import { useRef } from 'react';
 import { SourceImage } from '../../components/common/SourceImage';
 import { useSceneAnimation } from '../../components/animations/AnimationProvider';
-import { element, writeStyle } from '../../utils/animation';
+import { element, scrollSmoothing, writeStyle } from '../../utils/animation';
+import { prepareImageGroup } from '../../utils/imageLoading';
 
 export function Story() {
   const ref = useRef<HTMLElement>(null);
   useSceneAnimation(ref, story => {
     const image = element(story, '#storyImg');
     let top = 0, height = 0;
+    let currentT = -1;
     return {
       id: 'story', element: story, scrollDriven: true,
+      ready: prepareImageGroup(story, 'low'),
       enter: () => writeStyle(image, 'willChange', 'transform'),
       leave: () => writeStyle(image, 'willChange', 'auto'),
       layout(frame) { top = story.getBoundingClientRect().top + frame.scrollY; height = story.offsetHeight; },
       update(_, frame) {
-        const t = 1 - (top + height - frame.scrollY) / (frame.height + height);
-        writeStyle(image, 'transform', frame.reducedMotion ? '' : `scale(${1.18 - t * 0.18}) translateY(${(t - 0.5) * -4}%)`);
+        const targetT = 1 - (top + height - frame.scrollY) / (frame.height + height);
+        if (currentT < 0 || frame.reducedMotion) {
+          currentT = targetT;
+        } else {
+          currentT += (targetT - currentT) * scrollSmoothing(frame.deltaTime);
+          if (Math.abs(targetT - currentT) < 0.0002) currentT = targetT;
+        }
+        writeStyle(image, 'transform', frame.reducedMotion ? '' : `scale(${1.18 - currentT * 0.18}) translateY(${(currentT - 0.5) * -4}%)`);
+        return currentT !== targetT;
       },
     };
   });

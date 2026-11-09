@@ -361,6 +361,7 @@ footer a{font-family:var(--sans);font-size:13px;letter-spacing:.2em;text-transfo
   .pcard p{font-size:17px}
   .deck{height:min(540px,86%)}
   .flow .scene-head h2{font-size:30px}
+  .story img{object-position:22% 40%}
   .story::after{background:linear-gradient(to top,rgba(30,3,4,.9) 20%,transparent 65%)}
   .story blockquote{top:auto;bottom:40px;transform:none;left:var(--gutter)}
   .cs{grid-template-columns:1fr}
@@ -457,7 +458,7 @@ footer a{font-family:var(--sans);font-size:13px;letter-spacing:.2em;text-transfo
   .dock-wrap{gap:clamp(6px,1.2vh,10px)}
   #sealDock{width:clamp(96px,calc(80vh - 348px),170px)}
   .dock-wrap p{font-size:clamp(9px,2.6vw,11px);letter-spacing:.2em;line-height:1.5}
-  .story img{object-position:32% 50%}
+  .story img{object-position:28% 35%}
   .corr .world{left:50%;top:52%}
   .corr .sticky{perspective-origin:50% 52%}
   .dev .shirt{width:min(100%,calc(42svh * .7608))}

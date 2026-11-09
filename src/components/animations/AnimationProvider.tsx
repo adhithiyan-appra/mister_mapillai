@@ -1,6 +1,6 @@
 import { createContext, useContext, useLayoutEffect, useRef } from 'react';
 import type { ReactNode, RefObject } from 'react';
-import { clamp } from '../../utils/animation';
+import { clamp, scrollSmoothing } from '../../utils/animation';
 
 export interface AnimationFrame {
   now: number;
@@ -14,6 +14,7 @@ export interface AnimationFrame {
 export interface AnimationRegistration {
   id: string;
   element?: HTMLElement;
+  ready?: PromiseLike<unknown>;
   layout?: (frame: AnimationFrame) => void;
   // Reads for all registrations run before any animation writes.
   read?: (frame: AnimationFrame) => void;
@@ -33,11 +34,13 @@ interface Scene extends AnimationRegistration {
   continuous: boolean;
   changed: boolean;
   entering: boolean;
+  assetsReady: boolean;
 }
 
 interface AnimationController {
   register: (registration: AnimationRegistration) => () => void;
   progress: (id: string) => number;
+  isReady: (id: string) => boolean;
   invalidate: () => void;
 }
 
@@ -81,7 +84,7 @@ function createController(): AnimationController & { start: () => () => void } {
       });
       entries.forEach(scene => scene.layout?.(frame));
     }
-    const smoothing = 1 - Math.exp(-frame.deltaTime * 7.2);
+    const smoothing = scrollSmoothing(frame.deltaTime);
     let running = false;
     let progressChanged = false;
     const scrollChanged = frame.scrollY !== lastScrollY;
@@ -89,17 +92,21 @@ function createController(): AnimationController & { start: () => () => void } {
     updates.length = 0;
     exits.length = 0;
     for (const scene of entries) {
-      const visible = (!scene.element || (scene.top + scene.height >= frame.scrollY - 50 && scene.top <= frame.scrollY + frame.height + 50)) && (scene.active?.(frame) ?? true);
+      const inView = !scene.element || (scene.top + scene.height >= frame.scrollY - 50 && scene.top <= frame.scrollY + frame.height + 50);
+      const eligible = inView && (scene.active?.(frame) ?? true);
+      const visible = scene.assetsReady && eligible;
       scene.entering = visible && !scene.visible;
       scene.changed = false;
       if (scene.element) {
         const previous = scene.current;
         const target = clamp((frame.scrollY - scene.top) / Math.max(1, scene.height - frame.height));
         // Keep offscreen scenes synchronized. A direct navigation must not replay
-        // stale progress; visible scrolling retains the original exponential easing.
-        if (!initialized || reducedMotion || !visible || scene.entering) scene.current = target;
-        else scene.current += (target - scene.current) * smoothing;
-        if (Math.abs(target - scene.current) < 0.0005) scene.current = target;
+        // stale progress. If an in-view scene is still decoding, retain its safe
+        // initial state and ease from there once its image group becomes ready.
+        if (reducedMotion || (!eligible && !visible) || (!visible && scene.assetsReady)) scene.current = target;
+        else if (!initialized && scene.assetsReady) scene.current = target;
+        else if (visible) scene.current += (target - scene.current) * smoothing;
+        if (Math.abs(target - scene.current) < 0.0002) scene.current = target;
         scene.changed = previous !== scene.current;
         progressChanged ||= scene.changed;
         if (visible && target !== scene.current) running = true;
@@ -126,9 +133,16 @@ function createController(): AnimationController & { start: () => () => void } {
 
   return {
     register(registration) {
-      const scene: Scene = { ...registration, top: 0, height: 0, current: 0, visible: false, continuous: false, changed: false, entering: false };
+      const scene: Scene = { ...registration, top: 0, height: 0, current: 0, visible: false, continuous: false, changed: false, entering: false, assetsReady: !registration.ready };
       scenes.set(scene.id, scene);
       entries = [...scenes.values()];
+      if (registration.ready) {
+        void Promise.resolve(registration.ready).catch(() => undefined).then(() => {
+          if (scenes.get(scene.id) !== scene) return;
+          scene.assetsReady = true;
+          invalidate();
+        });
+      }
       invalidate();
       return () => {
         scene.leave?.();
@@ -138,6 +152,7 @@ function createController(): AnimationController & { start: () => () => void } {
       };
     },
     progress: id => scenes.get(id)?.current ?? 0,
+    isReady: id => scenes.get(id)?.assetsReady ?? false,
     invalidate,
     start() {
       started = true;

@@ -1,5 +1,6 @@
 export const clamp = (value: number, min = 0, max = 1): number => Math.min(max, Math.max(min, value));
 export const ease = (t: number): number => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+export const scrollSmoothing = (deltaTime: number): number => 1 - Math.exp(-deltaTime * 3.6);
 
 type AnimatedStyle = 'transform' | 'opacity' | 'visibility' | 'filter' | 'width' | 'height' | 'willChange';
 const writtenStyles = new WeakMap<HTMLElement | SVGElement, Map<string, string>>();

@@ -10,7 +10,7 @@ import { prepareImageGroup } from '../../utils/imageLoading';
 
 export function GroomJourney() {
   const ref = useRef<HTMLElement>(null);
-  useSceneAnimation(ref, journey => {
+  useSceneAnimation(ref, (journey, controller) => {
     const chapters = elements(journey, '.ch');
     const layers = chapters.map(chapter => element(chapter, '.jl'));
     const objects = chapters.map(chapter => elements(chapter, '.jo'));
@@ -26,9 +26,21 @@ export function GroomJourney() {
     const bubbleAt = bubbles.map(chapter => chapter.map(bubble => Number(bubble.dataset.at)));
     const hiddenObjects = journeyChapters.map(chapter => chapter.objects.map(() => false));
     const hiddenBubbles = bubbles.map(chapter => chapter.map(() => false));
+    let live = true;
+    const criticalReady = prepareImageGroup(chapters[0], 'high');
+    const allImagesReady = prepareImageGroup(journey, 'auto');
+    void criticalReady.then(() => {
+      if (!live || !journey.isConnected) return;
+      visibleChapters[0] = true;
+      writeStyle(chapters[0], 'opacity', '1');
+      writeStyle(chapters[0], 'visibility', 'visible');
+      controller.invalidate();
+    });
     let active = -1;
     return {
       id: 'journey', element: journey,
+      ready: allImagesReady,
+      dispose: () => { live = false; },
       leave: () => chapters.forEach(chapter => writeStyle(chapter, 'willChange', 'auto')),
       layout(frame) {
         const mobile = frame.width < 900;
@@ -75,6 +87,7 @@ export function GroomJourney() {
           active = next;
           // Hidden 3D chapters are loaded and decoded ahead of their original reveal.
           prepareImageGroup(chapters[next], 'high');
+          if (next > 0) prepareImageGroup(chapters[next - 1], 'auto');
           for (let ahead = 1; ahead <= 2; ahead++) {
             if (chapters[next + ahead]) prepareImageGroup(chapters[next + ahead], 'auto');
           }

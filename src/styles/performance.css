@@ -9,3 +9,22 @@
 [data-gpu-corridor] .world > .floor, [data-gpu-corridor] .world > .wall { visibility: hidden !important; }
 [data-gpu-collection] .collection-gpu { visibility: visible; }
 [data-gpu-collection] #ring { opacity: 0; }
+
+
+/* Offscreen sections skip rendering until they approach the viewport. The
+   animation controller sets contentVisibility via layout() when needed. */
+.scene { contain: layout style; }
+
+/* Composited-layer hints for elements animated every frame. Added on enter,
+   removed on leave by the animation controller to avoid excessive layers. */
+.sticky { contain: layout paint style; }
+
+/* Reduce paint area for the 3D stages: the browser can skip offscreen
+   compositing work when the stage clips its overflow. */
+.jstage, .corr .sticky, .h2t .sticky, .dev .sticky, .coll .sticky {
+  contain: layout paint style;
+}
+
+/* The gold particles canvas lives inside the stage and continuously repaints.
+   Isolate it so its compositing doesn't invalidate the surrounding layers. */
+#dust { isolation: isolate; }

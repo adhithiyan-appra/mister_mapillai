@@ -4,6 +4,7 @@ import { SourceImage } from '../../components/common/SourceImage';
 import { useSceneAnimation } from '../../components/animations/AnimationProvider';
 import { clamp, element, elements, writeStyle } from '../../utils/animation';
 import { scrollToDetail } from '../../utils/scrollToDetail';
+import { prepareImageGroup } from '../../utils/imageLoading';
 
 export function Devatan() {
   const ref = useRef<HTMLElement>(null);
@@ -14,11 +15,15 @@ export function Devatan() {
     let current = -1;
     return {
       id: 'devatan', element: section,
+      ready: prepareImageGroup(section, 'low'),
       update(p, frame) {
         const active = Math.min(embroideryDetails.length - 1, Math.floor(clamp((p - 0.04) / 0.9) * embroideryDetails.length));
         writeStyle(shirt, 'transform', frame.reducedMotion ? '' : `rotateY(${18 - p * 36}deg) rotateX(3deg)`);
         if (active === current) return;
         current = active;
+        if (cards[active]) prepareImageGroup(cards[active], 'high');
+        if (cards[active + 1]) prepareImageGroup(cards[active + 1], 'auto');
+        if (active > 0 && cards[active - 1]) prepareImageGroup(cards[active - 1], 'auto');
         hotspots.forEach((hotspot, i) => {
           hotspot.classList.toggle('on', i === active);
           hotspot.setAttribute('aria-pressed', String(i === active));

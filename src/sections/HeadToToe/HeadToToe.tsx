@@ -3,6 +3,7 @@ import { stylingDetails } from '../../data/styling';
 import { SourceImage } from '../../components/common/SourceImage';
 import { useSceneAnimation } from '../../components/animations/AnimationProvider';
 import { clamp, element, elements, writeStyle } from '../../utils/animation';
+import { prepareImageGroup } from '../../utils/imageLoading';
 import { scrollToDetail } from '../../utils/scrollToDetail';
 
 export function HeadToToe() {
@@ -16,6 +17,7 @@ export function HeadToToe() {
     let scanHeight = 0, lastRevealed = -2;
     return {
       id: 'headtotoe', element: section,
+      ready: prepareImageGroup(section, 'low'),
       layout: () => { if (section.style.contentVisibility !== 'hidden') scanHeight = parseFloat(getComputedStyle(inner).height); },
       enter: () => writeStyle(scan, 'willChange', 'transform'),
       leave: () => writeStyle(scan, 'willChange', 'auto'),
