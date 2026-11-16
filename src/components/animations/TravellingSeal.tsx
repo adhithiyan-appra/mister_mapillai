@@ -54,7 +54,8 @@ export function TravellingSeal() {
         if (smoothScrollY < 0 || frame.reducedMotion) {
           smoothScrollY = targetScrollY;
         } else {
-          smoothScrollY += (targetScrollY - smoothScrollY) * scrollSmoothing(frame.deltaTime);
+          const gap = targetScrollY - smoothScrollY;
+          smoothScrollY += gap * scrollSmoothing(frame.deltaTime, gap / Math.max(1, frame.height));
           if (Math.abs(targetScrollY - smoothScrollY) < 0.25) smoothScrollY = targetScrollY;
         }
         const f = controller.progress('journey') * (journeyChapters.length - 1 + 0.62) - 0.32;

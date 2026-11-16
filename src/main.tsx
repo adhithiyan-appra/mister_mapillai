@@ -7,6 +7,8 @@ import './styles/utilities.css';
 import './styles/original.css';
 import './styles/accessibility.css';
 import './styles/performance.css';
+import './styles/pages.css';
+import './styles/happy-grooms.css';
 
 startImageBootstrap(Object.values(images), [
   images['veshti-wide'],

@@ -105,7 +105,7 @@ export function GroomJourney() {
       },
     };
   });
-  return <section className="journey scene" id="journey" data-scene="journey" ref={ref} style={{ '--jn': journeyChapters.length + 1 } as CSSProperties} aria-label="How Mister Mapillai dresses a groom, step by step">
+  return <section className="journey scene" id="journey" data-scene="journey" ref={ref} style={{ '--jn': journeyChapters.length + 1 } as CSSProperties} aria-label="Happy Grooms: how Mister Mapillai dresses a groom, step by step">
     <div className="jstage" id="jstage">
       <div id="chapters">
         {journeyChapters.map(chapter => <div className="ch" key={chapter.key} aria-hidden="true">
@@ -120,11 +120,11 @@ export function GroomJourney() {
         {journeyChapters.map((chapter, i) => <div className={`cap${i === 0 ? ' on' : ''}`} key={chapter.key}>
           {chapter.end ? <span className="label">Mister Mapillai</span> : <div className="num gold-text">{i + 1}</div>}
           <h2>{chapter.title}</h2><p>{chapter.description}</p>
-          {chapter.end ? <div className="acts"><Button href="#consult">Book a fitting consultation</Button><Button variant="line" href="#ceremonies">Explore the ceremonies</Button></div> : null}
+          {chapter.end ? <div className="acts"><Button href="/contact">Book a fitting consultation</Button><Button variant="line" href="/collections#ceremonies">Explore the ceremonies</Button></div> : null}
         </div>)}
       </div>
       <ol className="jprog" id="jprog" aria-label="Journey chapters">{journeyChapters.map(chapter => <li key={chapter.key}><i />{chapter.key}</li>)}</ol>
-      <div className="jhint" id="jhint">Scroll to follow a groom’s journey</div>
+      <div className="jhint" id="jhint">Scroll to follow the Happy Grooms story</div>
     </div>
   </section>;
 }

@@ -42,6 +42,7 @@ interface AnimationController {
   progress: (id: string) => number;
   isReady: (id: string) => boolean;
   invalidate: () => void;
+  reset: () => void;
 }
 
 function createController(): AnimationController & { start: () => () => void } {
@@ -84,7 +85,6 @@ function createController(): AnimationController & { start: () => () => void } {
       });
       entries.forEach(scene => scene.layout?.(frame));
     }
-    const smoothing = scrollSmoothing(frame.deltaTime);
     let running = false;
     let progressChanged = false;
     const scrollChanged = frame.scrollY !== lastScrollY;
@@ -105,7 +105,10 @@ function createController(): AnimationController & { start: () => () => void } {
         // initial state and ease from there once its image group becomes ready.
         if (reducedMotion || (!eligible && !visible) || (!visible && scene.assetsReady)) scene.current = target;
         else if (!initialized && scene.assetsReady) scene.current = target;
-        else if (visible) scene.current += (target - scene.current) * smoothing;
+        else if (visible) {
+          const gap = target - scene.current;
+          scene.current += gap * scrollSmoothing(frame.deltaTime, gap);
+        }
         if (Math.abs(target - scene.current) < 0.0002) scene.current = target;
         scene.changed = previous !== scene.current;
         progressChanged ||= scene.changed;
@@ -154,6 +157,13 @@ function createController(): AnimationController & { start: () => () => void } {
     progress: id => scenes.get(id)?.current ?? 0,
     isReady: id => scenes.get(id)?.assetsReady ?? false,
     invalidate,
+    reset() {
+      initialized = false;
+      lastScrollY = Number.NaN;
+      lastTime = 0;
+      for (const scene of scenes.values()) scene.current = 0;
+      invalidate();
+    },
     start() {
       started = true;
       initialized = false;

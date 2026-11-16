@@ -50,7 +50,8 @@ src/
     layout/          Fixed header and footer
   data/              Typed image, ceremony, collection and embroidery data
   sections/
-    GroomJourney/    All nine chapters and their 3D objects
+    GroomJourney/    The home page's nine-chapter Happy Grooms 3D story
+    HappyGrooms/     Royal Procession detailing and embroidery story
     About/
     CeremonyCorridor/
     HeadToToe/

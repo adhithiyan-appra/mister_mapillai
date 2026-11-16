@@ -1,8 +1,18 @@
 export const clamp = (value: number, min = 0, max = 1): number => Math.min(max, Math.max(min, value));
 export const ease = (t: number): number => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-export const scrollSmoothing = (deltaTime: number): number => 1 - Math.exp(-deltaTime * 3.6);
 
-type AnimatedStyle = 'transform' | 'opacity' | 'visibility' | 'filter' | 'width' | 'height' | 'willChange';
+const baseScrollResponse = 4.8;
+const maxScrollResponse = 14;
+const catchUpDistance = 0.1;
+
+export function scrollSmoothing(deltaTime: number, normalizedDistance = 0): number {
+  const distance = clamp(Math.abs(normalizedDistance) / catchUpDistance);
+  const catchUp = distance * distance * (3 - 2 * distance);
+  const response = baseScrollResponse + (maxScrollResponse - baseScrollResponse) * catchUp;
+  return 1 - Math.exp(-deltaTime * response);
+}
+
+type AnimatedStyle = 'transform' | 'opacity' | 'visibility' | 'filter' | 'width' | 'height' | 'willChange' | 'zIndex' | 'pointerEvents';
 const writtenStyles = new WeakMap<HTMLElement | SVGElement, Map<string, string>>();
 
 export function writeStyle(node: HTMLElement | SVGElement, property: AnimatedStyle, value: string) {

@@ -2,18 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import { BrandLogo } from '../common/BrandLogo';
 import { Button } from '../common/Button';
 import { useSceneAnimation } from '../animations/AnimationProvider';
-
-const navigation = [
-  ['#journey', 'Our process'],
-  ['#ceremonies', 'Ceremonies'],
-  ['#headtotoe', 'Head to toe'],
-  ['#collection', 'Collection'],
-  ['#devatan', 'Signature'],
-] as const;
+import { fittingHref, siteNav } from '../../data/navigation';
+import { useRouter } from '../../router';
 
 export function Header() {
   const ref = useRef<HTMLElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const { path } = useRouter();
   const closeMenu = () => setMenuOpen(false);
   useSceneAnimation(ref, header => {
     let scrolled: boolean | undefined;
@@ -22,6 +17,7 @@ export function Header() {
       if (next !== scrolled) { scrolled = next; header.classList.toggle('scrolled', next); }
     } };
   });
+  useEffect(() => { setMenuOpen(false); }, [path]);
   useEffect(() => {
     if (!menuOpen) return;
     const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') setMenuOpen(false); };
@@ -34,22 +30,22 @@ export function Header() {
       desktop.removeEventListener('change', onDesktop);
     };
   }, [menuOpen]);
-  return <header className="top" id="top" ref={ref}>
+  return <header className={`top${path !== '/' ? ' solid' : ''}`} id="top" ref={ref}>
     <div className="wrap">
       <BrandLogo />
       <nav className="desk-nav" aria-label="Primary">
-        {navigation.map(([href, label]) => <a href={href} key={href}>{label}</a>)}
+        {siteNav.map(item => <a href={item.href} key={item.href} aria-current={path === item.href ? 'page' : undefined}>{item.label}</a>)}
       </nav>
       <button className={`menu-btn${menuOpen ? ' on' : ''}`} type="button" aria-label={menuOpen ? 'Close menu' : 'Open menu'} aria-expanded={menuOpen} aria-controls="mobile-nav" onClick={() => setMenuOpen(open => !open)}>
         <span /><span /><span />
       </button>
-      <Button className="top-cta" href="#consult">Book a fitting</Button>
+      <Button className="top-cta" href={fittingHref} aria-current={path === fittingHref ? 'page' : undefined}>Book a fitting</Button>
     </div>
     <div className={`mobile-nav${menuOpen ? ' open' : ''}`} id="mobile-nav" aria-hidden={!menuOpen}>
       <nav aria-label="Mobile primary">
-        {navigation.map(([href, label]) => <a href={href} key={href} onClick={closeMenu}>{label}</a>)}
+        {siteNav.map(item => <a href={item.href} key={item.href} aria-current={path === item.href ? 'page' : undefined} onClick={closeMenu}>{item.label}</a>)}
       </nav>
-      <Button href="#consult" onClick={closeMenu}>Book a fitting</Button>
+      <Button href={fittingHref} onClick={closeMenu}>Book a fitting</Button>
     </div>
   </header>;
 }

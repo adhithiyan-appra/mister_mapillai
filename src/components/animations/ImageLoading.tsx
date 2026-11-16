@@ -2,7 +2,7 @@ import { useLayoutEffect } from 'react';
 import { prepareImageGroup } from '../../utils/imageLoading';
 import { useAnimationController } from './AnimationProvider';
 
-export function ImageLoading() {
+export function ImageLoading({ routeKey }: { routeKey: string }) {
   const controller = useAnimationController();
   useLayoutEffect(() => {
     let live = true;
@@ -66,6 +66,6 @@ export function ImageLoading() {
       unregister();
       document.removeEventListener('click', onNavigate, { capture: true });
     };
-  }, [controller]);
+  }, [controller, routeKey]);
   return null;
 }

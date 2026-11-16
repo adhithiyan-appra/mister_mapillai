@@ -1,10 +1,124 @@
-import type { Ceremony } from '../types';
+import type { Ceremony, CeremonyTransformation } from '../types';
 
-export const ceremonies: readonly Ceremony[] = [
-  { title: 'Nichayathartham', subtitle: 'The engagement', image: 'bandhgala-navy', details: [['Outfit', 'Navy bandhgala with gold aari work'], ['Footwear', 'Polished brown oxfords'], ['Finish', 'Gold silk pocket square']] },
-  { title: 'Sangeet and Mehendi', subtitle: 'Music and colour', image: 'indowestern', details: [['Outfit', 'Blush jacquard Indo-western with a drape'], ['Footwear', 'Ivory mojaris'], ['Finish', 'Pearl-head buttons']] },
-  { title: 'Cocktail', subtitle: 'The night before', image: 'tuxedo', details: [['Outfit', 'Midnight navy tuxedo, satin lapel'], ['Footwear', 'Black patent oxfords'], ['Finish', 'Cufflinks and a lapel pin']] },
-  { title: 'Mapillai Azhaippu', subtitle: 'The groom’s welcome', image: 'sherwani', details: [['Outfit', 'Champagne gold jacquard sherwani'], ['Footwear', 'Embroidered ivory mojaris'], ['Finish', 'Silk stole and collar brooch']] },
-  { title: 'Muhurtham', subtitle: 'The wedding', image: 'silk-veshti', details: [['Outfit', 'Golden silk shirt and zari-border veshti'], ['Footwear', 'Tan leather sandals'], ['Finish', 'Angavastram and veshti belt']] },
-  { title: 'Reception', subtitle: 'The celebration', image: 'double-breasted', details: [['Outfit', 'Ivory double-breasted suit'], ['Footwear', 'Chestnut brown oxfords'], ['Finish', 'Champagne tie and lapel flower']] },
+export const ceremonyTransformations: readonly CeremonyTransformation[] = [
+  {
+    id: 'engagement',
+    outfitId: 'navy-bandhgala',
+    category: 'Engagement',
+    title: 'Nichayathartham',
+    subtitle: 'The engagement',
+    beforeImage: 'engagement-before',
+    afterImage: 'bandhgala-navy',
+    description: 'A refined ceremonial look designed for the first celebration, with gold aari work on deep navy.',
+    details: [
+      { label: 'Outfit', before: 'Plain formal shirt', after: 'Navy bandhgala with gold aari work' },
+      { label: 'Detail', before: 'No embroidery', after: 'Hand-worked gold aari florals' },
+      { label: 'Bottom', before: 'Regular navy trousers', after: 'Slim-cut tailored navy trousers' },
+      { label: 'Footwear', before: 'Everyday brown loafers', after: 'Polished brown oxfords' },
+      { label: 'Finish', before: 'Everyday belt, no pocket square', after: 'Gold silk pocket square' },
+    ],
+  },
+  {
+    id: 'wedding',
+    outfitId: 'silk-shirt-veshti',
+    category: 'Wedding',
+    title: 'Muhurtham',
+    subtitle: 'The wedding',
+    beforeImage: 'wedding-before',
+    afterImage: 'silk-veshti',
+    description: 'Golden pure silk paired with a broad zari-border veshti for the sacred wedding hour.',
+    details: [
+      { label: 'Outfit', before: 'Plain cream shirt', after: 'Golden silk shirt and zari-border veshti' },
+      { label: 'Detail', before: 'Plain woven cotton', after: 'Lustrous handloom pure silk with zari' },
+      { label: 'Bottom', before: 'Regular brown trousers', after: 'Ivory veshti with broad gold zari border' },
+      { label: 'Footwear', before: 'Everyday brown lace-ups', after: 'Tan leather sandals' },
+      { label: 'Finish', before: 'Standard leather belt', after: 'Angavastram and veshti belt' },
+    ],
+  },
+  {
+    id: 'reception',
+    outfitId: 'ivory-double-breasted',
+    category: 'Reception',
+    title: 'Reception',
+    subtitle: 'The celebration',
+    beforeImage: 'reception-before',
+    afterImage: 'double-breasted',
+    description: 'Sharp peak lapels and gold buttons in tailored ivory for the evening reception stage.',
+    details: [
+      { label: 'Outfit', before: 'Plain grey shirt', after: 'Ivory double-breasted suit' },
+      { label: 'Detail', before: 'Unstructured shirt front', after: 'Peak lapels and antique gold buttons' },
+      { label: 'Bottom', before: 'Charcoal office trousers', after: 'Matching tailored ivory trousers' },
+      { label: 'Footwear', before: 'Everyday black dress shoes', after: 'Chestnut brown oxfords' },
+      { label: 'Finish', before: 'No jacket or neckwear', after: 'Champagne tie and lapel flower' },
+    ],
+  },
+  {
+    id: 'sangeet',
+    outfitId: 'blush-indo-western',
+    category: 'Sangeet and Mehendi',
+    title: 'Sangeet and Mehendi',
+    subtitle: 'Music and colour',
+    beforeImage: 'sangeet-before',
+    afterImage: 'indowestern',
+    description: 'Blush jacquard with an asymmetric cut and pleated drape, tailored for music, movement and colour.',
+    details: [
+      { label: 'Outfit', before: 'Plain rose-toned shirt', after: 'Blush jacquard Indo-western with a drape' },
+      { label: 'Detail', before: 'Flat cotton weave', after: 'Woven floral jacquard with shoulder drape' },
+      { label: 'Bottom', before: 'Regular dark trousers', after: 'Tailored blush churidar trousers' },
+      { label: 'Footwear', before: 'Everyday brown derby shoes', after: 'Ivory mojaris' },
+      { label: 'Finish', before: 'Standard buttons', after: 'Pearl-head buttons' },
+    ],
+  },
+  {
+    id: 'family-functions',
+    outfitId: 'champagne-sherwani',
+    category: 'Family Functions',
+    title: 'Mapillai Azhaippu',
+    subtitle: 'The groom’s welcome',
+    beforeImage: 'family-functions-before',
+    afterImage: 'sherwani',
+    description: 'Champagne gold jacquard with zari-worked shoulders for the groom’s welcome and family rituals.',
+    details: [
+      { label: 'Outfit', before: 'Simple cream kurta', after: 'Champagne gold jacquard sherwani' },
+      { label: 'Detail', before: 'Unembellished shoulders', after: 'Hand-worked zari shoulder motifs' },
+      { label: 'Bottom', before: 'Plain white pyjama', after: 'Tailored ivory churidar' },
+      { label: 'Footwear', before: 'Casual open sandals', after: 'Embroidered ivory mojaris' },
+      { label: 'Finish', before: 'Unstyled collar', after: 'Silk stole and collar brooch' },
+    ],
+  },
+  {
+    id: 'cocktail',
+    outfitId: 'midnight-tuxedo',
+    category: 'Cocktail',
+    title: 'Cocktail',
+    subtitle: 'The night before',
+    beforeImage: 'cocktail-before',
+    afterImage: 'tuxedo',
+    description: 'Midnight navy tailoring with satin lapels and a matching waistcoat for the evening before.',
+    details: [
+      { label: 'Outfit', before: 'Light blue shirt, no jacket', after: 'Midnight navy tuxedo, satin lapel' },
+      { label: 'Detail', before: 'Single-layer shirt', after: 'Satin-trimmed lapels and tailored waistcoat' },
+      { label: 'Bottom', before: 'Regular charcoal trousers', after: 'Matching midnight navy trousers' },
+      { label: 'Footwear', before: 'Everyday black lace-ups', after: 'Black patent oxfords' },
+      { label: 'Finish', before: 'Plain cuffs and collar', after: 'Cufflinks and a lapel pin' },
+    ],
+  },
 ];
+
+const summaryLabels = new Set(['Outfit', 'Footwear', 'Finish']);
+
+export const ceremonies: readonly Ceremony[] = ceremonyTransformations.map(item => ({
+  id: item.id,
+  outfitId: item.outfitId,
+  category: item.category,
+  title: item.title,
+  subtitle: item.subtitle,
+  image: item.afterImage,
+  beforeImage: item.beforeImage,
+  afterImage: item.afterImage,
+  description: item.description,
+  transformationDetails: item.details,
+  details: item.details
+    .filter(detail => summaryLabels.has(detail.label))
+    .map(detail => [detail.label, detail.after] as const),
+}));

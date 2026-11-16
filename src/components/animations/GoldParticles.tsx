@@ -29,7 +29,7 @@ export function GoldParticles() {
         cleared = true;
         particles = Array.from({ length: 60 }, () => {
           const z = Math.random() * 0.9 + 0.1;
-          return { x: Math.random() * width, y: Math.random() * height, z, s: Math.random() * Math.PI * 2, a: `rgba(240,210,140,${0.12 + z * 0.45})`, r: z * 2 * ratio };
+          return { x: Math.random() * width, y: Math.random() * height, z, s: Math.random() * Math.PI * 2, a: `rgba(235,203,134,${0.12 + z * 0.45})`, r: z * 2 * ratio };
         });
       },
       leave() { if (!cleared) { context?.clearRect(0, 0, width, height); cleared = true; } },

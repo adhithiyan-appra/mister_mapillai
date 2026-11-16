@@ -29,6 +29,7 @@ uniform float uDepth;
 uniform float uWallHeight;
 uniform float uFloorY;
 uniform highp int uPlane;
+// Colours mirror the CSS tokens: --m-950, --m-800, --m-900, --m-600, --gold, --gold-lo.
 const vec3 dark=vec3(30.0,3.0,4.0)/255.0;
 const vec3 ground=vec3(58.0,6.0,7.0)/255.0;
 const vec3 wall=vec3(42.0,4.0,5.0)/255.0;

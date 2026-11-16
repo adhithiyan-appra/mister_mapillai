@@ -44,6 +44,34 @@ import image42 from '../assets/images/ceremonial-shirt-sm.webp';
 import image43 from '../assets/images/place-2.webp';
 import image44 from '../assets/images/jodhpuri.webp';
 import image45 from '../assets/images/double-breasted-sm.webp';
+import engagementBefore from '../assets/images/engagement-before.webp';
+import sangeetBefore from '../assets/images/sangeet-before.webp';
+import cocktailBefore from '../assets/images/cocktail-before.webp';
+import familyFunctionsBefore from '../assets/images/family-functions-before.webp';
+import weddingBefore from '../assets/images/wedding-before.webp';
+import receptionBefore from '../assets/images/reception-before.webp';
+import happyGroomsHero from '../assets/images/happy-grooms-hero.webp';
+import happyGroomsShirt from '../assets/images/happy-grooms-shirt.webp';
+import happyGroomsPlaceFront from '../assets/images/happy-grooms-place-front.webp';
+import happyGroomsPlaceSleeve from '../assets/images/happy-grooms-place-sleeve.webp';
+import happyGroomsPlaceBack from '../assets/images/happy-grooms-place-back.webp';
+import happyGroomsDetail0 from '../assets/images/happy-grooms-detail-0.webp';
+import happyGroomsDetail1 from '../assets/images/happy-grooms-detail-1.webp';
+import happyGroomsDetail2 from '../assets/images/happy-grooms-detail-2.webp';
+import happyGroomsDetail3 from '../assets/images/happy-grooms-detail-3.webp';
+import happyGroomsDetail4 from '../assets/images/happy-grooms-detail-4.webp';
+import happyGroomsSilk from '../assets/images/happy-grooms-material-silk.webp';
+import happyGroomsZari from '../assets/images/happy-grooms-material-zari.webp';
+import happyGroomsPearls from '../assets/images/happy-grooms-material-pearls.webp';
+import happyGroomsBeads from '../assets/images/happy-grooms-material-beads.webp';
+import happyGroomsThread from '../assets/images/happy-grooms-material-thread.webp';
+import happyGroomsMoodboard from '../assets/images/happy-grooms-moodboard.webp';
+import happyGroomsMotifs from '../assets/images/happy-grooms-motifs.webp';
+import groomProfile1 from '../assets/images/groom-profile-1.webp';
+import groomProfile2 from '../assets/images/groom-profile-2.webp';
+import groomProfile3 from '../assets/images/groom-profile-3.webp';
+import groomProfile4 from '../assets/images/groom-profile-4.webp';
+import groomProfile5 from '../assets/images/groom-profile-5.webp';
 
 export const images = {
   'db-wide': image0,
@@ -92,6 +120,34 @@ export const images = {
   'place-2': image43,
   'jodhpuri': image44,
   'double-breasted-sm': image45,
+  'engagement-before': engagementBefore,
+  'sangeet-before': sangeetBefore,
+  'cocktail-before': cocktailBefore,
+  'family-functions-before': familyFunctionsBefore,
+  'wedding-before': weddingBefore,
+  'reception-before': receptionBefore,
+  'happy-grooms-hero': happyGroomsHero,
+  'happy-grooms-shirt': happyGroomsShirt,
+  'happy-grooms-place-front': happyGroomsPlaceFront,
+  'happy-grooms-place-sleeve': happyGroomsPlaceSleeve,
+  'happy-grooms-place-back': happyGroomsPlaceBack,
+  'happy-grooms-detail-0': happyGroomsDetail0,
+  'happy-grooms-detail-1': happyGroomsDetail1,
+  'happy-grooms-detail-2': happyGroomsDetail2,
+  'happy-grooms-detail-3': happyGroomsDetail3,
+  'happy-grooms-detail-4': happyGroomsDetail4,
+  'happy-grooms-material-silk': happyGroomsSilk,
+  'happy-grooms-material-zari': happyGroomsZari,
+  'happy-grooms-material-pearls': happyGroomsPearls,
+  'happy-grooms-material-beads': happyGroomsBeads,
+  'happy-grooms-material-thread': happyGroomsThread,
+  'happy-grooms-moodboard': happyGroomsMoodboard,
+  'happy-grooms-motifs': happyGroomsMotifs,
+  'groom-profile-1': groomProfile1,
+  'groom-profile-2': groomProfile2,
+  'groom-profile-3': groomProfile3,
+  'groom-profile-4': groomProfile4,
+  'groom-profile-5': groomProfile5,
 } as const;
 
 export type ImageKey = keyof typeof images;

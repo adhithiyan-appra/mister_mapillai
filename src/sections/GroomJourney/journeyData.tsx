@@ -14,7 +14,7 @@ function chip(text: string, x: number, y: number, z: number, at: number, big = f
 function MeasuringTape() {
   return (
     <svg className="tapeo" viewBox="0 0 600 52" aria-hidden="true">
-      <defs><linearGradient id="tg" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stopColor="#F3D995" /><stop offset="1" stopColor="#B48C47" /></linearGradient></defs>
+      <defs><linearGradient id="tg" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stopColor="#F3D995" /><stop offset="1" stopColor="#C9A35B" /></linearGradient></defs>
       <rect width="600" height="52" rx="3" fill="url(#tg)" />
       {Array.from({ length: 61 }, (_, i) => <Fragment key={i}>
         <rect x={i * 10} y="0" width="1.2" height={i % 10 === 0 ? 22 : i % 5 === 0 ? 15 : 9} fill="#3A0607" />

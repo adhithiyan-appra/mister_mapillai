@@ -25,16 +25,22 @@ const mimeTypes = {
 
 const server = createServer((req, res) => {
   let url = req.url.split('?')[0];
-  if (url === '/') url = '/index.html';
-  const filePath = resolve(distDir, '.' + url);
-  if (existsSync(filePath)) {
-    const ext = extname(filePath);
+  if (url.length > 1 && url.endsWith('/')) url = url.slice(0, -1);
+  const relative = url === '/' ? '/index.html' : url;
+  const filePath = resolve(distDir, '.' + relative);
+  const ext = extname(filePath);
+  if (ext && existsSync(filePath)) {
     res.writeHead(200, { 'Content-Type': mimeTypes[ext] || 'application/octet-stream' });
     res.end(readFileSync(filePath));
-  } else {
-    res.writeHead(404);
-    res.end('Not Found');
+    return;
   }
+  if (!ext) {
+    res.writeHead(200, { 'Content-Type': 'text/html' });
+    res.end(readFileSync(resolve(distDir, 'index.html')));
+    return;
+  }
+  res.writeHead(404);
+  res.end('Not Found');
 });
 
 server.listen(4173, '127.0.0.1', async () => {
@@ -167,8 +173,8 @@ async function runTests() {
 
   // --- 2. Form Validation Checks ---
   console.log('\n--- Checking Form Validation & React State ---');
-  await evaluate(`document.getElementById('consult').scrollIntoView()`);
-  await new Promise(r => setTimeout(r, 400));
+  await send('Page.navigate', { url: 'http://127.0.0.1:4173/contact' });
+  await new Promise(r => setTimeout(r, 800));
 
   // Click submit with empty fields
   const emptyValidation = await evaluate(`
@@ -232,6 +238,9 @@ async function runTests() {
       const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
       nativeSetter.call(phoneInput, '9876543210');
       phoneInput.dispatchEvent(new Event('input', { bubbles: true }));
+      const emailInput = document.getElementById('em');
+      nativeSetter.call(emailInput, 'arun@example.com');
+      emailInput.dispatchEvent(new Event('input', { bubbles: true }));
 
       // Select two functions
       const checkboxes = Array.from(document.querySelectorAll('#chips input[type="checkbox"]'));
@@ -251,6 +260,9 @@ async function runTests() {
   `);
   console.log('Valid Form Submission Result:', validSubmit);
   await takeScreenshot('screenshot-desktop-form.png');
+
+  await send('Page.navigate', { url: 'http://127.0.0.1:4173/' });
+  await new Promise(r => setTimeout(r, 800));
 
   // --- 3. Viewport Tests (Tablet, Mobile, Small Mobile) ---
   console.log('\n--- Checking Responsive Breakpoints ---');
