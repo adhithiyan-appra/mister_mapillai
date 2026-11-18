@@ -4,6 +4,8 @@ export interface ConsultationValues {
   email: string;
   date: string;
   consultDate?: string;
+  /** Preferred part of the day for the consultation; the studio confirms the time. */
+  consultTime?: string;
   city?: string;
   functions: string[];
   notes: string;
@@ -37,8 +39,12 @@ export function consultationMessage(values: ConsultationValues, lookTitle?: stri
   lines.push(`Name: ${values.name.trim()}`);
   lines.push(`Phone: ${values.phone.trim()}`);
   lines.push(`Email: ${values.email.trim() || '-'}`);
+  if (values.city?.trim()) lines.push(`City: ${values.city.trim()}`);
   lines.push(`Date: ${values.date || 'Not fixed'}`);
   lines.push(`Functions: ${fns}`);
+  if (values.consultDate || values.consultTime) {
+    lines.push(`Preferred consultation: ${[values.consultDate, values.consultTime].filter(Boolean).join(', ')}`);
+  }
   lines.push(`Dream look: ${values.notes.trim() || '-'}`);
   return lines.join('\n');
 }

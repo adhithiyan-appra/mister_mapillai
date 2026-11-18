@@ -7,11 +7,17 @@ export type RoutePath = keyof typeof pageMeta;
 interface RouterLocation {
   pathname: string;
   path: RoutePath | null;
+  search: string;
   hash: string;
 }
 
+export interface NavigateOptions {
+  /** Replace the current history entry instead of adding one (filters, closing a dialog). */
+  replace?: boolean;
+}
+
 interface RouterValue extends RouterLocation {
-  navigate: (href: string) => void;
+  navigate: (href: string, options?: NavigateOptions) => void;
 }
 
 const RouterContext = createContext<RouterValue | null>(null);
@@ -21,14 +27,17 @@ function canonicalPath(pathname: string) {
 }
 
 const legacyRedirects: Record<string, RoutePath> = {
-  '/groom-journey': '/happy-grooms',
+  // Page names used by the design template.
+  '/book': '/contact',
+  '/order': '/contact',
+  '/track': '/track-order',
 };
 
 function readLocation(): RouterLocation {
   const pathname = canonicalPath(window.location.pathname);
   const resolved = legacyRedirects[pathname] ?? pathname;
   const path = Object.hasOwn(pageMeta, resolved) ? resolved as RoutePath : null;
-  return { pathname: resolved, path, hash: window.location.hash };
+  return { pathname: resolved, path, search: window.location.search, hash: window.location.hash };
 }
 
 export function scrollToHash(hash: string) {
@@ -38,7 +47,7 @@ export function scrollToHash(hash: string) {
   const id = hash.replace(/^#/, '');
   const node = id ? document.getElementById(id) : null;
   if (node) {
-    const bleed = node.classList.contains('scene') || node.classList.contains('journey');
+    const bleed = node.classList.contains('scene');
     const top = node.getBoundingClientRect().top + window.scrollY - (bleed ? 0 : 90);
     window.scrollTo(0, Math.max(0, top));
   } else window.scrollTo(0, 0);
@@ -61,7 +70,7 @@ export function RouterProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('popstate', onPop);
   }, []);
 
-  function navigate(href: string) {
+  function navigate(href: string, { replace = false }: NavigateOptions = {}) {
     const url = new URL(href, window.location.href);
     if (url.origin !== window.location.origin) {
       window.location.assign(url.href);
@@ -70,7 +79,10 @@ export function RouterProvider({ children }: { children: ReactNode }) {
     const requested = canonicalPath(url.pathname);
     const next = (legacyRedirects[requested] ?? requested) + url.search + url.hash;
     const current = canonicalPath(window.location.pathname) + window.location.search + window.location.hash;
-    if (next !== current) history.pushState(null, '', next);
+    if (next !== current) {
+      if (replace) history.replaceState(history.state, '', next);
+      else history.pushState(null, '', next);
+    }
     setLocation(readLocation());
     if (next === current) scrollToHash(url.hash);
   }

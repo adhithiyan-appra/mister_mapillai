@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="mm-loading">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -7,9 +7,17 @@
     <title>Mister Mapillai</title>
     <meta name="description" content="Mister Mapillai designs bespoke groom and occasion wear for men: sherwanis, bandhgalas, suits, silk shirts and veshtis, styled head to toe for every ceremony." />
     <link rel="icon" type="image/svg+xml" href="/src/assets/logo/seal.svg" />
+    <style>html,body{background:#3a0811}</style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Shown before any script runs; the React loader renders the same markup and takes over. -->
+      <div class="mm-loader" role="status" aria-label="Loading Mister Mapillai">
+        <div class="mm-loader__emblem" aria-hidden="true"><span class="mm-loader__ring"></span></div>
+        <div class="mm-loader__brand" aria-hidden="true"><span class="lock"><span class="mono gold-text">M</span><span class="bar"></span><span class="words"><span class="w1 gold-text">MISTER<sup>™</sup></span><span class="w2 gold-text">MAPILLAI</span></span></span></div>
+        <span class="mm-loader__tag" aria-hidden="true">Crafted for the Groom</span>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

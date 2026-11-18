@@ -1,9 +1,3 @@
-/* Only currently visible cinematic layers retain promotion hints. */
-.ch, #seal { will-change: auto; }
-
-/* The original gold progress uses the same length with a composited transform. */
-.jprog li i { width: 100%; transform: scaleX(0); transform-origin: left center; }
-
 .corridor-gpu { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; visibility: hidden; }
 [data-gpu-corridor] .corridor-gpu { visibility: visible; }
 [data-gpu-corridor] .world > .floor, [data-gpu-corridor] .world > .wall { visibility: hidden !important; }
@@ -19,10 +13,6 @@
 
 /* Reduce paint area for the 3D stages: the browser can skip offscreen
    compositing work when the stage clips its overflow. */
-.jstage, .corr .sticky, .h2t .sticky, .dev .sticky {
+.corr .sticky, .h2t .sticky, .dev .sticky {
   contain: layout paint style;
 }
-
-/* The gold particles canvas lives inside the stage and continuously repaints.
-   Isolate it so its compositing doesn't invalidate the surrounding layers. */
-#dust { isolation: isolate; }

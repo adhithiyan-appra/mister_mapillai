@@ -273,7 +273,8 @@ export async function prepareImageGroup(
 ): Promise<ImageGroupResult> {
   const tasks: Promise<boolean>[] = [];
   if (root instanceof HTMLImageElement) tasks.push(prepareImageElement(root, priority));
-  root.querySelectorAll<HTMLImageElement>('img').forEach(image => {
+  // The hero frame sequence and native-lazy real-grooms gallery manage their own loading.
+  root.querySelectorAll<HTMLImageElement>('img:not([data-frame-sequence]):not([data-gallery-lazy])').forEach(image => {
     tasks.push(prepareImageElement(image, priority));
   });
   if (root instanceof HTMLElement && root.hasAttribute('data-image-background')) {

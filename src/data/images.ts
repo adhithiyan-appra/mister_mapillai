@@ -6,9 +6,7 @@ import image4 from '../assets/images/indowestern.webp';
 import image5 from '../assets/images/threepiece-wide.webp';
 import image6 from '../assets/images/detail-0.webp';
 import image7 from '../assets/images/charcoal-suit-sm.webp';
-import image8 from '../assets/images/sherwani-sm.webp';
 import image9 from '../assets/images/detail-2.webp';
-import image10 from '../assets/images/silk-veshti.webp';
 import image11 from '../assets/images/motifs.webp';
 import image12 from '../assets/images/bandhgala-black-sm.webp';
 import image13 from '../assets/images/bandhgala-ivory-sm.webp';
@@ -35,14 +33,13 @@ import image33 from '../assets/images/threepiece-sm.webp';
 import image34 from '../assets/images/tuxedo-sm.webp';
 import image35 from '../assets/images/double-breasted.webp';
 import image36 from '../assets/images/devatan-shirt.webp';
-import image37 from '../assets/images/signature-wide.webp';
+import image37 from '../assets/images/shirt-wide.webp';
 import image38 from '../assets/images/moodboard.webp';
 import image39 from '../assets/images/charcoal-suit.webp';
 import image40 from '../assets/images/place-0.webp';
 import image41 from '../assets/images/signature-shirt.webp';
 import image42 from '../assets/images/ceremonial-shirt-sm.webp';
 import image43 from '../assets/images/place-2.webp';
-import image44 from '../assets/images/jodhpuri.webp';
 import image45 from '../assets/images/double-breasted-sm.webp';
 import engagementBefore from '../assets/images/engagement-before.webp';
 import sangeetBefore from '../assets/images/sangeet-before.webp';
@@ -72,6 +69,7 @@ import groomProfile2 from '../assets/images/groom-profile-2.webp';
 import groomProfile3 from '../assets/images/groom-profile-3.webp';
 import groomProfile4 from '../assets/images/groom-profile-4.webp';
 import groomProfile5 from '../assets/images/groom-profile-5.webp';
+import chairCoat from '../assets/images/chair_coat.webp';
 
 export const images = {
   'db-wide': image0,
@@ -82,9 +80,9 @@ export const images = {
   'threepiece-wide': image5,
   'detail-0': image6,
   'charcoal-suit-sm': image7,
-  'sherwani-sm': image8,
+  'sherwani-sm': image1,
   'detail-2': image9,
-  'silk-veshti': image10,
+  'silk-veshti': image22,
   'motifs': image11,
   'bandhgala-black-sm': image12,
   'bandhgala-ivory-sm': image13,
@@ -118,7 +116,7 @@ export const images = {
   'signature-shirt': image41,
   'ceremonial-shirt-sm': image42,
   'place-2': image43,
-  'jodhpuri': image44,
+  'jodhpuri': image32,
   'double-breasted-sm': image45,
   'engagement-before': engagementBefore,
   'sangeet-before': sangeetBefore,
@@ -148,6 +146,7 @@ export const images = {
   'groom-profile-3': groomProfile3,
   'groom-profile-4': groomProfile4,
   'groom-profile-5': groomProfile5,
+  'chair_coat': chairCoat,
 } as const;
 
 export type ImageKey = keyof typeof images;

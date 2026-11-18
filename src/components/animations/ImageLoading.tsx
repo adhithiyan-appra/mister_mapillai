@@ -1,22 +1,24 @@
 import { useLayoutEffect } from 'react';
 import { prepareImageGroup } from '../../utils/imageLoading';
 import { useAnimationController } from './AnimationProvider';
+import { onHeroReady } from '../../utils/heroReady';
 
 export function ImageLoading({ routeKey }: { routeKey: string }) {
   const controller = useAnimationController();
   useLayoutEffect(() => {
+    // On a first home visit, page images start once the hero's opening frames are ready.
+    let teardown = () => {};
+    const stop = onHeroReady(() => { teardown = start(); });
+    return () => { stop(); teardown(); };
+  }, [controller, routeKey]);
+
+  function start() {
     let live = true;
     const invalidateWhenReady = (readiness: Promise<unknown>) => {
       void readiness.then(() => { if (live) controller.invalidate(); });
     };
     function prepareSection(section: HTMLElement, current = false) {
-      const readiness: Promise<unknown>[] = [];
-      if (section.id === 'journey') {
-        const chapters = section.querySelectorAll('.ch');
-        if (chapters[0]) readiness.push(prepareImageGroup(chapters[0], 'high'));
-        if (chapters[1]) readiness.push(prepareImageGroup(chapters[1], 'auto'));
-      } else readiness.push(prepareImageGroup(section, current ? 'high' : 'low'));
-      invalidateWhenReady(Promise.all(readiness));
+      invalidateWhenReady(prepareImageGroup(section, current ? 'high' : 'low'));
     }
     const sections = document.querySelectorAll<HTMLElement>('main > section');
     let imageObserver: IntersectionObserver | undefined;
@@ -47,13 +49,13 @@ export function ImageLoading({ routeKey }: { routeKey: string }) {
       if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
       const anchor = event.target instanceof Element ? event.target.closest<HTMLAnchorElement>('a[href^="#"]') : null;
       if (!anchor) return;
-      const target = document.getElementById(anchor.hash.slice(1) || 'journey');
+      const target = anchor.hash ? document.getElementById(anchor.hash.slice(1)) : null;
       if (target) prepareSection(target, true);
     };
     document.addEventListener('click', onNavigate, { capture: true });
-    const initial = document.getElementById(location.hash.slice(1) || 'journey');
+    const initial = location.hash ? document.getElementById(location.hash.slice(1)) : null;
     if (initial) prepareSection(initial, true);
-    if (!location.hash || location.hash === '#journey') {
+    if (!location.hash) {
       const about = document.getElementById('about');
       if (about) prepareSection(about);
     }
@@ -66,6 +68,6 @@ export function ImageLoading({ routeKey }: { routeKey: string }) {
       unregister();
       document.removeEventListener('click', onNavigate, { capture: true });
     };
-  }, [controller, routeKey]);
+  }
   return null;
 }

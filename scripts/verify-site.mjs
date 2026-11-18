@@ -179,8 +179,7 @@ async function runTests() {
   // Click submit with empty fields
   const emptyValidation = await evaluate(`
     new Promise(res => {
-      const form = document.getElementById('form');
-      form.querySelector('button[type="submit"]').click();
+      document.querySelector('.mm-form-wrap button[type="submit"]').click();
       setTimeout(() => {
         res({
           nmErr: document.getElementById('nmErr')?.textContent,
@@ -200,7 +199,7 @@ async function runTests() {
       nativeSetter.call(nameInput, 'Arun Karthik');
       nameInput.dispatchEvent(new Event('input', { bubbles: true }));
 
-      document.getElementById('form').querySelector('button[type="submit"]').click();
+      document.querySelector('.mm-form-wrap button[type="submit"]').click();
       setTimeout(() => {
         res({
           nmErr: document.getElementById('nmErr')?.textContent,
@@ -220,7 +219,7 @@ async function runTests() {
       nativeSetter.call(phoneInput, '12345');
       phoneInput.dispatchEvent(new Event('input', { bubbles: true }));
 
-      document.getElementById('form').querySelector('button[type="submit"]').click();
+      document.querySelector('.mm-form-wrap button[type="submit"]').click();
       setTimeout(() => {
         res({
           nmErr: document.getElementById('nmErr')?.textContent,
@@ -242,18 +241,12 @@ async function runTests() {
       nativeSetter.call(emailInput, 'arun@example.com');
       emailInput.dispatchEvent(new Event('input', { bubbles: true }));
 
-      // Select two functions
-      const checkboxes = Array.from(document.querySelectorAll('#chips input[type="checkbox"]'));
-      checkboxes[0].click();
-      checkboxes[4].click();
-
-      document.getElementById('form').querySelector('button[type="submit"]').click();
+      document.querySelector('.mm-form-wrap button[type="submit"]').click();
       setTimeout(() => {
         res({
           nmErr: document.getElementById('nmErr')?.textContent,
           phErr: document.getElementById('phErr')?.textContent,
-          status: document.getElementById('status')?.textContent,
-          checkedChips: checkboxes.filter(c => c.checked).map(c => c.value)
+          nextStep: document.getElementById('booking-step-title')?.textContent
         });
       }, 150);
     })
@@ -274,7 +267,7 @@ async function runTests() {
   const laptopCheck = await evaluate(`
     ({
       hasOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
-      navVisible: getComputedStyle(document.querySelector('.top nav')).display !== 'none'
+      navVisible: getComputedStyle(document.getElementById('site-nav')).visibility !== 'hidden'
     })
   `);
   console.log('Laptop (1024px) check:', laptopCheck);
@@ -286,7 +279,7 @@ async function runTests() {
   const tabletCheck = await evaluate(`
     ({
       hasOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
-      navHidden: getComputedStyle(document.querySelector('.top nav')).display === 'none'
+      navHidden: getComputedStyle(document.getElementById('site-nav')).visibility === 'hidden'
     })
   `);
   console.log('Tablet (768px) check:', tabletCheck);
@@ -298,8 +291,7 @@ async function runTests() {
   const mobileCheck = await evaluate(`
     ({
       hasOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
-      navHidden: getComputedStyle(document.querySelector('.top nav')).display === 'none',
-      jhintHidden: getComputedStyle(document.getElementById('jhint')).display === 'none'
+      navHidden: getComputedStyle(document.getElementById('site-nav')).visibility === 'hidden'
     })
   `);
   console.log('Mobile (390px) check:', mobileCheck);
@@ -313,7 +305,7 @@ async function runTests() {
     ({
       hasOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
       lockMonoSize: getComputedStyle(document.querySelector('.lock .mono')).fontSize,
-      btnPadding: getComputedStyle(document.querySelector('.top .btn')).padding
+      menuButton: getComputedStyle(document.querySelector('.mm-menu-btn')).display
     })
   `);
   console.log('Small mobile (320px) check:', smallMobileCheck);

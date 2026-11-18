@@ -1,6 +1,7 @@
 import type { ImgHTMLAttributes } from 'react';
 import type { ImageKey } from '../../data/images';
 import { imageSource } from '../../data/imageSources';
+import { heroPending } from '../../utils/heroReady';
 
 interface SourceImageProps extends Omit<ImgHTMLAttributes<HTMLImageElement>, 'src'> {
   asset: ImageKey;
@@ -10,7 +11,9 @@ interface SourceImageProps extends Omit<ImgHTMLAttributes<HTMLImageElement>, 'sr
 
 export function SourceImage({ asset, loading = 'eager', sizes = '100vw', decoding = 'async', responsive = false, ...props }: SourceImageProps) {
   const source = imageSource(asset);
-  const deferred = loading === 'lazy';
+  // Deferred images get their source from the image loader. On a first home visit
+  // every image waits for the hero's opening frames (see utils/heroReady).
+  const deferred = loading === 'lazy' || heroPending();
   return <img
     width={source.width}
     height={source.height}

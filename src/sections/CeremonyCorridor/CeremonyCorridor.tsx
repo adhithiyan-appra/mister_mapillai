@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { ceremonyTransformations } from '../../data/ceremonies';
 import { Button } from '../../components/common/Button';
+import { bookingHref } from '../../data/navigation';
 import { useSceneAnimation } from '../../components/animations/AnimationProvider';
 import { clamp, element, elements, writeStyle, writeVariable } from '../../utils/animation';
 import { prepareImageGroup } from '../../utils/imageLoading';
@@ -257,7 +258,7 @@ export function CeremonyCorridor() {
 
                 <div className="corr-cta-row">
                   <Button
-                    href="/contact"
+                    href={bookingHref(item.outfitId)}
                     id={id('cCta')}
                   >
                     Book this look
