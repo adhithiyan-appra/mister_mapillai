@@ -1,0 +1,16 @@
+{
+  "name": "Mister Mapillai",
+  "short_name": "Mister Mapillai",
+  "description": "Bespoke Groom Wear · Since 2014. Crafted for the Groom. Styled Head to Toe.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#3A0811",
+  "theme_color": "#3A0607",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

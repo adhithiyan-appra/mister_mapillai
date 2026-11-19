@@ -1,141 +1,156 @@
-# Mister Mapillai
+# Mister Mapillai — Bespoke Groom Wear
 
-A complete React + strict TypeScript recreation of the original 3D website. The supplied design is preserved: original content, stylesheet, embedded fonts, images, SVG seal, scroll calculations and responsive breakpoints.
+A React 19 and strict TypeScript web application for **Mister Mapillai** (Est. 2014) — luxury South Indian bespoke groom wear, sherwanis, bandhgalas, suits, silk shirts, and pattu veshtis, styled head to toe for every ceremony from Muhurtham to Reception.
 
-## Run locally
+---
 
-Use Node.js 24 and npm.
+## 1. Quickstart & Local Development
 
-```sh
+### Prerequisites
+- **Node.js**: v20+ (Node.js 24 recommended)
+- **npm**: v10+
+
+### Installation & Run
+```bash
+# Install dependencies
 npm ci
+
+# Start development server
 npm run dev
 ```
 
-Open the local URL printed by Vite, normally `http://127.0.0.1:5173`.
+The application runs locally on `http://127.0.0.1:5173`.
 
-```sh
+### Production Build & Preview
+```bash
+# Run strict TypeScript check and Vite production build
 npm run build
+
+# Preview production build locally
 npm run preview
 ```
 
-`build` runs the strict TypeScript check and creates the production frontend in `dist/`. It can be served by any static host. There is no backend, account system, database or external API dependency.
+The compiled, minified production assets are emitted into `dist/`. The output is 100% static and can be served on any modern CDN or static web host (Vercel, Netlify, Cloudflare Pages, S3/CloudFront).
 
-## Consultation delivery
+---
 
-Copy `.env.example` to `.env.local` and optionally configure:
+## 2. Technology Stack
 
-```dotenv
-VITE_WHATSAPP_NUMBER=919876543210
+- **Framework**: React 19 (`react`, `react-dom`) with strict TypeScript 5.9.
+- **Build System**: Vite 7 with `@vitejs/plugin-react` and `@tailwindcss/vite` (Tailwind CSS 4).
+- **Motion & Animations**: GSAP 3 (ScrollTrigger, timelines), `lottie-web` (lightweight SVG preloader).
+- **Canvas Rendering**: Custom Web Worker (`frameRenderer.worker.ts`) and `OffscreenCanvas` with 2D fallback.
+- **Routing**: History-based client-side router (`src/router.tsx`) with hash-scroll and popstate synchronization.
+- **Styling**: Modular CSS design system with centralized `@font-face` typography (`src/styles/fonts.css`) and luxury palette tokens (maroon `#3a0811`, gold `#c9a24d`, cream `#f8f2e7`).
+
+---
+
+## 3. Project Structure
+
+```text
+mister_mappilai/
+├── public/                       # Static web assets (favicon, robots.txt, sitemap.xml, site.webmanifest)
+├── src/                          # Application source code
+│   ├── assets/                   # Raw & optimized media assets
+│   │   ├── fonts/                # Self-hosted WOFF2 fonts (serif/ and sans-serif/)
+│   │   ├── hero_frames/          # Master source PNG frames (reference)
+│   │   ├── hero_frames_web/      # Optimized 1920×1088 WebP frames for hero sequence
+│   │   ├── images/               # Collection & ceremony photography
+│   │   ├── about/                # Artisanal embroidery details & Devatan gold shirt
+│   │   ├── detail/               # Accessory cut-outs, swatches & orbit assets
+│   │   ├── our_works/            # Real groom lookbook photographs
+│   │   ├── logo/                 # Official vector seal emblem (seal.svg)
+│   │   └── lottie/               # Entrance loader motion graphic (mm-loader.json)
+│   ├── components/               # Modular presentation & layout components
+│   │   ├── common/               # Shared UI elements (BrandLogo, CountUp, Lightbox, etc.)
+│   │   ├── layout/               # Header/Navbar, Footer, SiteLoader, SiteEffects
+│   │   ├── navigation/           # Navigation bar wrappers
+│   │   ├── animations/           # AnimationProvider (GSAP context) & ImageLoading
+│   │   └── ui/                   # Reusable atom-level controls (Button, PageBanner, etc.)
+│   ├── pages/                    # Route pages (Home, Collections, About, Ceremonies, Contact, TrackOrder)
+│   ├── sections/                 # Domain-driven sections (Home, Collections, AboutPage, Booking, etc.)
+│   ├── data/                     # Content models & domain asset modules (assets/, images.ts, metadata)
+│   ├── styles/                   # Modular design system (fonts.css, template.css, original.css, etc.)
+│   ├── hooks/                    # Custom React hooks (useReveal)
+│   ├── constants/                # App routes, brand colors, timing constants
+│   ├── config/                   # Site metadata & studio contact configuration
+│   ├── types/                    # Domain TypeScript models
+│   ├── utils/                    # Animation, GPU rendering, image bootstrap & validation helpers
+│   ├── router.tsx                # History router implementation
+│   ├── App.tsx                   # Root application scaffold
+│   └── main.tsx                  # Application entry point
+├── docs/                         # Technical architecture documentation
+│   ├── PROJECT_STRUCTURE.md      # Detailed folder hierarchy & responsibilities
+│   ├── ASSET_GUIDE.md            # Image management & hero frame sequence guidelines
+│   ├── FONT_GUIDE.md             # Typography hierarchy, font files & loading strategy
+│   └── DEVELOPMENT_GUIDE.md      # Component conventions, styling rules & animations
+├── scripts/                      # Developer tooling & asset extraction
+├── index.html                    # Root HTML document with critical hero preloader
+├── vite.config.ts                # Vite build configuration & HTML transforms
+├── tsconfig.json                 # TypeScript strict compiler options
+└── package.json                  # Dependencies & scripts
 ```
 
-Use the studio's real number, with country code and digits only. Restart Vite after changing the value; rebuild for production changes. This frontend setting is public in the browser and is not a secret.
+For an in-depth breakdown of every folder, see [docs/PROJECT_STRUCTURE.md](docs/PROJECT_STRUCTURE.md).
 
-- Configured: opens a WhatsApp message containing the name, phone, date, city, selected functions and notes. The visitor must press Send in WhatsApp.
-- Empty: copies the same message to the clipboard and directs the visitor to paste it into Instagram messages.
-- Clipboard unavailable or denied: shows the original Instagram fallback message.
+---
 
-Nothing is submitted to a server. No status claims a message was sent.
+## 4. Documentation Guides
 
-Optional studio details fill the footer, About page, booking page and contact cards; anything left empty is simply not shown:
+- **[Project Structure](docs/PROJECT_STRUCTURE.md)**: Comprehensive responsibility map for all source directories.
+- **[Asset Management Guide](docs/ASSET_GUIDE.md)**: Rules for adding images, naming conventions, optimization standards, and hero sequence compilation.
+- **[Typography & Font Guide](docs/FONT_GUIDE.md)**: Self-hosted WOFF2 font setup, weights, styles, and CSS custom property architecture.
+- **[Development Guide](docs/DEVELOPMENT_GUIDE.md)**: Coding conventions, component creation, GSAP motion patterns, and build verification.
+
+---
+
+## 5. Consultation Delivery Configuration
+
+Copy `.env.example` to `.env.local` to configure studio messaging:
 
 ```dotenv
-VITE_CONTACT_PHONE=+91 98765 43210
-VITE_CONTACT_EMAIL=hello@example.com
-VITE_CONTACT_ADDRESS=Studio street, City, PIN
+# Studio WhatsApp number: country code and digits only (e.g. 919876543210).
+# Leave empty to copy the consultation request for Instagram instead.
+VITE_WHATSAPP_NUMBER=919940026888
+
+# Optional studio details
+VITE_CONTACT_PHONE=+91 99400 26888
+VITE_CONTACT_EMAIL=vanakkam@mistermapillai.com
+VITE_CONTACT_ADDRESS=Mister Mapillai Studio, Chennai, Tamil Nadu
 VITE_CONTACT_HOURS=Mon – Sun · 10 AM – 9 PM
 ```
 
-## Hero frame sequence
+- **Configured**: Generates and opens a pre-composed WhatsApp message detailing the groom's wedding date, city, selected ceremonies, and custom notes.
+- **Empty / Denied**: Automatically copies the structured booking message to the user's clipboard and provides a one-click redirect to Instagram DM.
 
-The home hero is a scroll-controlled frame sequence: the section pins full screen and the scroll position selects the frame (scrolling up plays it back).
+---
 
-- Source: the original PNG frames in `src/assets/hero_frames` (201 frames, 1920×1088). They are never modified or shipped (~348 MB).
-- Web frames: `python scripts/build-hero-frames.py` (Python 3 + Pillow) writes WebP copies at the full source resolution, in the same numeric order, to `src/assets/hero_frames_web` (quality 90, ~31.5 MB). It reports PSNR against the originals for every frame (minimum 41.7 dB, mean 43.8 dB). Re-run it after changing the frames.
-- Rendering (`src/sections/Home/frameRenderer.ts`): frames are decoded ahead of time with `createImageBitmap`, off the main thread and at exactly the drawn size, so each draw is a 1:1 copy. Where `OffscreenCanvas` is supported, the canvas is transferred to a worker (`frameRenderer.worker.ts`) that fetches, decodes, uploads and draws; the page's main thread only posts the frame number. Other browsers run the same renderer on the page.
-- Loading: frame 1 is the poster `<img>` (also the static fallback) and is handed to the renderer, never fetched twice. Then frames around the scroll position, then the rest coarse-to-fine (every 32nd frame … every frame), 4 downloads and 3 decodes at a time. Identical frames share one request.
-- Memory: every encoded frame is kept (~31 MB); only a window of decoded frames is (12 ahead, 4 behind, plus every 24th frame, about 26 on desktop); frames leaving it are released with `ImageBitmap.close()`. If a frame is not decoded yet, the nearest decoded one is shown, so the canvas is never blank.
-- Scroll: one scene on the shared animation scheduler (no GSAP, no extra scroll listener or rAF loop); the frame number changes only when the scroll position does.
-- Reduced motion: no pinning and no sequence download; the first frame is a static hero.
+## 6. Hero Frame Sequence System
 
-## Pages
+The home page hero features a high-performance scroll-driven sequence of 192 frames (1920×1088):
 
-The site uses the design of `mister-mapillai (2).html` (maroon, gold and cream; Cormorant Garamond and Inter), with all content taken from `src/data/`. See `docs/template-integration.md` for the section-by-section data mapping and the data still missing.
+1. **Source Frames**: 192 master PNG frames stored in `src/assets/hero_frames/`.
+2. **Web Encoding**: `python scripts/build-hero-frames.py` generates full-resolution WebP frames in `src/assets/hero_frames_web/` with verifiable PSNR (>41.5 dB).
+3. **OffscreenCanvas Worker**: `src/sections/Home/frameRenderer.worker.ts` handles fetching, off-thread `createImageBitmap` decoding, and 60fps canvas drawing without blocking the main React thread.
+4. **Vite HTML Transform**: `vite.config.ts` injects a dynamic `<link rel="preload" as="image" fetchpriority="high">` tag for `frame-001.webp` on the root route, eliminating render delays on initial visit.
+5. **Reduced Motion**: Respects `prefers-reduced-motion` by disabling pinning and sequence downloads, presenting a static hero poster.
 
-| Route | Contents |
-|---|---|
-| `/` | Hero, stats counted from the data, ceremony flip cards, before/after slider, journey, lookbook with lightbox, testimonials |
-| `/collections` | 3D carousel, filterable looks (`?occasion=`), look details dialog (`?look=`), head-to-toe orbit, craft |
-| `/about` | Brand story, Design/Craft/Style, making timeline, studio and contact |
-| `/contact` | Four-step booking (`?look=` preselects a look) |
-| `/track-order` | Prepares a status request for the stylist; there is no order backend |
-| `/ceremonies` | The 3D ceremony corridor and head-to-toe scenes |
+---
 
-`/book` and `/order` redirect to `/contact`; `/track` redirects to `/track-order`.
+## 7. Deployment Instructions
 
-## Source layout
+1. Run the production build:
+   ```bash
+   npm run build
+   ```
+2. Deploy the generated `dist/` directory to your static host:
+   - **Vercel**: `vercel deploy --prod`
+   - **Netlify**: `netlify deploy --prod --dir=dist`
+   - **Cloudflare Pages**: Set build output directory to `dist`
+   - **AWS S3 / CloudFront**: Upload contents of `dist/` and configure custom error responses to route `404` to `/index.html` (for client routing).
 
-```text
-src/
-  assets/
-    images/          46 exact extracted WebP assets
-    fonts/           7 exact embedded WOFF2 font faces
-    logo/            Original seal SVG
-  components/
-    animations/      Shared scheduler and particles
-    common/          Brand lockup, buttons, typed images, section heading,
-                     banner, CTA band, count-up and lightbox
-    layout/          Header, footer, page curtain, cursor glow, WhatsApp button
-  data/              Typed image, ceremony, outfit, brand, contact and
-                     showcase (derived stats, gallery, steps) data
-  hooks/             Scroll reveal
-  pages/             One component per route
-  sections/
-    Home/            Template home sections
-    Collections/     Carousel, look grid, details dialog, orbit, craft
-    AboutPage/       Story, pillars, making timeline, studio
-    Booking/         Multi-step booking form
-    Tracking/        Order status request
-    GroomJourney/    Journey chapter data used by the home and about timelines
-    HappyGrooms/     Royal Procession detailing and embroidery story
-    CeremonyCorridor/
-    HeadToToe/
-    Collection/
-    Devatan/
-  styles/            Original CSS (3D pages), template.css (mm- prefixed
-                     design system), Tailwind utilities and accessibility fixes
-  types/             Shared content types
-  utils/             Original math, detail navigation and validation
-  App.tsx
-  main.tsx
-scripts/
-  extract-assets.ts  Reproducible asset extraction
-reference/
-  source-analysis.html  Readable original source with externalized asset paths
-  asset-manifest.json   Original/source SHA-256 and image hashes
-```
+---
 
-`IMPLEMENTATION_CHECKLIST.md` records the source analysis, animation geometry, feature inventory and verification results.
+## 8. License
 
-## Fidelity and animation architecture
-
-The reference used is `C:/Users/Drago/Downloads/mister-mapillai-3d-preview 2.html`. It contains the expected 859 lines, 46 image mappings, seven font faces and all eight sections. The brief names the same file with an additional `(1)` suffix; no such second file was available locally.
-
-`src/styles/original.css` is extracted directly from the reference. Tailwind is configured without preflight so its reset does not change the original typography or geometry. No replacement images, generated artwork or substitute fonts are used.
-
-Images use the full original files by default, including on small displays. Intrinsic dimensions reserve their layout space. Later sections prepare their images with eight measured viewport heights of lookahead. A shared queue limits concurrent asynchronous decoding to two images. Distant preloads use one slot; current imagery has the highest priority. Already prepared images and shared URLs are reused. No additional animation loop is used. The original image files are unchanged; embroidery crops that are only about 150×168 pixels remain limited to that source detail.
-
-The original requestAnimationFrame math is preserved instead of adding GSAP: the source animations are already calculated directly from scroll progress. One shared scheduler drives scene damping, particles and the header. It caches geometry, pauses in hidden tabs and stops when animation has settled. Offscreen scene callbacks and particles stop; promotion hints are released on scene exit. React state changes only when a ceremony or collection item changes; scroll frames update refs and cached DOM styles. Progress bars and the styling scan use transforms rather than per-frame layout changes. Layout-skipping containment is intentionally excluded: Chrome could retain zero-size images after navigating into a skipped 3D scene.
-
-The approved localized WebGL2 renderers cover the corridor floor/walls and the collection cards/reflections. They share the existing scheduler, camera math and easing. Canvases render at the full physical device resolution and collection textures use the original image dimensions without re-encoding or lower-resolution texture levels. The corridor's original image arches, shadows, fog and information panel remain in CSS. Original CSS rendering takes over when WebGL2 is unavailable, a context is lost or the device cannot support the full framebuffer/texture dimensions. Offscreen framebuffers shrink to one pixel; fixed original textures remain reusable until component cleanup.
-
-The original source's decorative styling pins and embroidery markers are real keyboard-accessible buttons here. Activating one scrolls to its matching original animation state. The styling image keeps its original 3D rotation with a flat child compositing plane so Chrome correctly hit-tests its pins. Reduced-motion settings can change live; particles, 3D tilt and CSS motion stop while all content and navigation remain usable.
-
-## Original asset extraction
-
-The extracted assets are already included. To extract again from another local copy of the original:
-
-```sh
-npm run extract-assets -- "C:/path/to/mister-mapillai-3d-preview 2.html"
-```
-
-This writes the exact binary assets, stylesheet, typed image map and checksums. It also keeps an ignored `reference/original.html` locally for side-by-side browser comparison; that original HTML is not the application's implementation and is not included in `dist/`.
+Private proprietary codebase for **Mister Mapillai**. All rights reserved.

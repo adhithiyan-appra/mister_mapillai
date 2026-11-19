@@ -10,7 +10,8 @@ export type WorkerMessage =
   | { type: 'init'; canvas: OffscreenCanvas; urls: readonly string[]; profile: RenderProfile }
   | { type: 'first'; bitmap: ImageBitmap | null }
   | { type: 'layout'; layout: RenderLayout }
-  | { type: 'show'; target: number; direction: number }
+  | { type: 'seek'; goal: number }
+  | { type: 'rest' }
   | { type: 'dispose' };
 
 export type WorkerReply = { type: 'ready' } | { type: 'critical' } | { type: 'failed' };
@@ -20,7 +21,7 @@ interface WorkerScope {
   onmessage: ((event: MessageEvent<WorkerMessage>) => void) | null;
   postMessage(message: WorkerReply): void;
   close(): void;
-  requestAnimationFrame?: (callback: () => void) => number;
+  requestAnimationFrame?: (callback: (now: number) => void) => number;
   cancelAnimationFrame?: (handle: number) => void;
 }
 const scope = self as unknown as WorkerScope;
@@ -32,17 +33,19 @@ scope.onmessage = ({ data }) => {
     case 'init': {
       const context = data.canvas.getContext('2d', { alpha: false });
       if (!context) { scope.postMessage({ type: 'failed' }); return; }
-      // Worker rAF where available (Chrome, Firefox, Safari 16.4+); otherwise the next task.
+      // Worker rAF where available (Chrome, Firefox, Safari 16.4+), so the playhead steps once per display
+      // frame; otherwise a 60 Hz timer.
       const schedule = scope.requestAnimationFrame
-        ? (callback: () => void) => scope.requestAnimationFrame!(callback)
-        : (callback: () => void) => setTimeout(callback, 0) as unknown as number;
+        ? (callback: (now: number) => void) => scope.requestAnimationFrame!(callback)
+        : (callback: (now: number) => void) => setTimeout(() => callback(performance.now()), 16) as unknown as number;
       const cancel = scope.cancelAnimationFrame ? (handle: number) => scope.cancelAnimationFrame!(handle) : (handle: number) => clearTimeout(handle);
       renderer = new FrameRenderer(data.canvas, context, data.urls, data.profile, schedule, cancel, () => scope.postMessage({ type: 'ready' }), () => scope.postMessage({ type: 'critical' }));
       break;
     }
     case 'first': renderer?.provideFirst(data.bitmap); break;
     case 'layout': renderer?.resize(data.layout); break;
-    case 'show': renderer?.show(data.target, data.direction); break;
+    case 'seek': renderer?.seek(data.goal); break;
+    case 'rest': renderer?.rest(); break;
     case 'dispose':
       renderer?.dispose();
       renderer = null;

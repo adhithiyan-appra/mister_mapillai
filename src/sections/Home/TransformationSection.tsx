@@ -6,6 +6,7 @@ import { SectionHeading } from '../../components/common/SectionHeading';
 import { SourceImage } from '../../components/common/SourceImage';
 import { ceremonyTransformations } from '../../data/ceremonies';
 import { imageSource } from '../../data/imageSources';
+import { onHeroReady } from '../../utils/heroReady';
 import { comparisonPanels } from '../../data/showcase';
 
 gsap.registerPlugin(ScrollTrigger);
@@ -88,9 +89,13 @@ export function TransformationSection() {
 
   useEffect(() => {
     paint(0);
-    const timers = ceremonyTransformations.map((_, index) => window.setTimeout(() => {
-      void decodePair(index).then(() => loadedRef.current.add(index));
-    }, index === 0 ? 0 : 350 * index));
+    // On a first home visit these twelve images wait for the hero's opening frames.
+    let timers: number[] = [];
+    const stopWaiting = onHeroReady(() => {
+      timers = ceremonyTransformations.map((_, index) => window.setTimeout(() => {
+        void decodePair(index).then(() => loadedRef.current.add(index));
+      }, index === 0 ? 0 : 350 * index));
+    });
 
     const media = gsap.matchMedia();
     const build = (start: string, end: string) => {
@@ -136,6 +141,7 @@ export function TransformationSection() {
     return () => {
       window.removeEventListener('load', refresh);
       window.clearTimeout(refreshTimer);
+      stopWaiting();
       timers.forEach(window.clearTimeout);
       media.revert();
       syncTweenRef.current?.kill();

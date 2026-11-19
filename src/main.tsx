@@ -4,6 +4,7 @@ import App from './App';
 import { images } from './data/images';
 import { startImageBootstrap } from './utils/imageLoading';
 import { onHeroReady } from './utils/heroReady';
+import './styles/fonts.css';
 import './styles/utilities.css';
 import './styles/original.css';
 import './styles/accessibility.css';

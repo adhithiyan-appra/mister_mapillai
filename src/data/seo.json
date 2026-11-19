@@ -1,0 +1,42 @@
+{
+  "siteUrl": "https://mistermapillai.com",
+  "siteName": "Mister Mapillai",
+  "pages": {
+    "/": {
+      "title": "Bespoke Groom Wear & Wedding Styling | Mister Mapillai",
+      "description": "Mister Mapillai designs bespoke South Indian groom wear, from silk shirts and veshtis to sherwanis and suits, styled for every wedding ceremony.",
+      "breadcrumb": "Home",
+      "indexable": true
+    },
+    "/collections": {
+      "title": "Wedding Groom Wear Collections | Mister Mapillai",
+      "description": "Explore bespoke sherwanis, bandhgalas, Indo-western looks, suits, silk shirts and veshtis tailored for the South Indian groom.",
+      "breadcrumb": "Collections",
+      "indexable": true
+    },
+    "/about": {
+      "title": "About Our Bespoke Groom Wear House | Mister Mapillai",
+      "description": "Discover how Mister Mapillai designs, crafts and styles bespoke groom wear, from the first conversation to the final wedding look.",
+      "breadcrumb": "About Us",
+      "indexable": true
+    },
+    "/ceremonies": {
+      "title": "Groom Styling for Every Ceremony | Mister Mapillai",
+      "description": "Explore coordinated groom looks for Muhurtham, reception and every wedding celebration, styled head to toe by Mister Mapillai.",
+      "breadcrumb": "Ceremony Styling",
+      "indexable": true
+    },
+    "/contact": {
+      "title": "Book a Groom Wear Consultation | Mister Mapillai",
+      "description": "Book a fitting consultation with Mister Mapillai to plan bespoke groom wear and accessories for your wedding ceremonies.",
+      "breadcrumb": "Book Your Look",
+      "indexable": true
+    },
+    "/track-order": {
+      "title": "Track Your Groom Wear Order | Mister Mapillai",
+      "description": "Contact your Mister Mapillai stylist about the status of your groom wear order.",
+      "breadcrumb": "Track Order",
+      "indexable": false
+    }
+  }
+}

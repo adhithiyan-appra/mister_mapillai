@@ -1,10 +1,4 @@
-@font-face{font-family:"Josefin Sans";font-weight:300;font-display:swap;src:url(../assets/fonts/josefin-sans-300.woff2) format("woff2")}
-@font-face{font-family:"Josefin Sans";font-weight:400;font-display:swap;src:url(../assets/fonts/josefin-sans-400.woff2) format("woff2")}
-@font-face{font-family:"Josefin Sans";font-weight:600;font-display:swap;src:url(../assets/fonts/josefin-sans-600.woff2) format("woff2")}
-@font-face{font-family:"Cormorant Garamond";font-weight:300;font-display:swap;src:url(../assets/fonts/cormorant-garamond-300.woff2) format("woff2")}
-@font-face{font-family:"Cormorant Garamond";font-weight:400;font-display:swap;src:url(../assets/fonts/cormorant-garamond-400.woff2) format("woff2")}
-@font-face{font-family:"Cormorant Garamond";font-weight:500;font-display:swap;src:url(../assets/fonts/cormorant-garamond-500.woff2) format("woff2")}
-@font-face{font-family:"Cormorant Garamond";font-weight:400;font-style:italic;font-display:swap;src:url(../assets/fonts/cormorant-garamond-400-italic.woff2) format("woff2")}
+/* Web fonts are centrally managed in fonts.css */
 
 :root{
   /* taken from the Mister Mapillai seal */

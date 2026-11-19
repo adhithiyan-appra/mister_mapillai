@@ -6,15 +6,17 @@ import { Header } from './components/layout/Header';
 import { Footer } from './components/layout/Footer';
 import { CursorGlow, PageCurtain, WhatsAppButton } from './components/layout/SiteEffects';
 import { SiteLoader } from './components/layout/SiteLoader';
-import { pageMeta } from './data/navigation';
+import { applyPageSeo } from './utils/seo';
 import { useReveal } from './hooks/useReveal';
-import { AboutPage } from './pages/AboutPage';
-import { CeremoniesPage } from './pages/CeremoniesPage';
-import { CollectionsPage } from './pages/CollectionsPage';
-import { ContactPage } from './pages/ContactPage';
-import { HomePage } from './pages/HomePage';
-import { NotFoundPage } from './pages/NotFoundPage';
-import { TrackOrderPage } from './pages/TrackOrderPage';
+import {
+  AboutPage,
+  CeremoniesPage,
+  CollectionsPage,
+  ContactPage,
+  HomePage,
+  NotFoundPage,
+  TrackOrderPage,
+} from './pages';
 import { RouterProvider, scrollToHash, useRouter } from './router';
 import type { RoutePath } from './router';
 
@@ -40,14 +42,7 @@ function Site() {
     scrollToHash(hash);
     controller.reset();
   }, [path, hash, controller]);
-  useEffect(() => {
-    const entry = path ? pageMeta[path] : {
-      title: 'Page not found · Mister Mapillai',
-      description: 'This address is not part of the Mister Mapillai house.',
-    };
-    document.title = entry.title;
-    document.querySelector('meta[name="description"]')?.setAttribute('content', entry.description);
-  }, [path]);
+  useEffect(() => { applyPageSeo(path); }, [path]);
   return <>
     <Header />
     <CursorGlow />

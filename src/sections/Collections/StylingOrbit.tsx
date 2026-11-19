@@ -1,7 +1,19 @@
+import { useEffect, useRef } from 'react';
 import { SectionHeading } from '../../components/common/SectionHeading';
 import { SourceImage } from '../../components/common/SourceImage';
 import { accessoryAddons } from '../../data/showcase';
+import type { ImageKey } from '../../data/images';
 import { cssVars } from '../../utils/style';
+
+const accessoryImages: Partial<Record<string, ImageKey>> = {
+  brooch: 'orbit-brooch',
+  watch: 'orbit-watch',
+  'pocket-square': 'orbit-pocket-square',
+  cufflinks: 'orbit-cufflinks',
+  footwear: 'orbit-footwear',
+  stole: 'orbit-stole',
+  turban: 'orbit-turban',
+};
 
 function AccessoryIcon({ name }: { name: string }) {
   const common = {
@@ -38,6 +50,18 @@ function AccessoryIcon({ name }: { name: string }) {
 
 /** Eight accessories orbiting the finished look. */
 export function StylingOrbit() {
+  const orbitRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const orbit = orbitRef.current;
+    if (!orbit || !('IntersectionObserver' in window)) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      orbit.classList.toggle('is-orbiting', entry.isIntersecting);
+    }, { rootMargin: '80px' });
+    observer.observe(orbit);
+    return () => observer.disconnect();
+  }, []);
+
   return <section className="mm-sec mm-sec--white" id="head-to-toe-styling" style={{ overflow: 'hidden' }} aria-labelledby="orbit-title">
     <div className="mm-container">
       <SectionHeading
@@ -47,19 +71,25 @@ export function StylingOrbit() {
         lead="Every accessory chosen to complete your look."
       />
     </div>
-    <div className="mm-orbit mm-reveal mm-reveal--zoom">
+    <div className="mm-orbit mm-reveal mm-reveal--zoom" ref={orbitRef}>
       <div className="mm-orbit__path" aria-hidden="true" />
-      <div className="mm-orbit__center"><SourceImage asset="ceremonial-shirt" alt="Complete ceremonial look: embroidered shirt, gold-buckle belt, black trousers and oxfords" /></div>
+      <div className="mm-orbit__center"><SourceImage asset="orbit-groom" alt="Complete ceremonial look: embroidered shirt, gold-buckle belt, black trousers and oxfords" /></div>
       <ul className="mm-orbit__ring" aria-label="Head-to-toe accessories">
-        {accessoryAddons.map((item, i) => <li className="mm-orbit__item" style={cssVars({
+        {accessoryAddons.map((item, i) => {
+          const asset = accessoryImages[item.icon];
+          return <li className="mm-orbit__item" style={cssVars({
           '--a': `${-112.5 + (i / accessoryAddons.length) * 360}deg`,
           '--orbit-delay': `${180 + i * 75}ms`,
         })} key={item.name}>
           <div className="mm-orbit__chip">
-            <AccessoryIcon name={item.icon} />
-            <b>{item.name}</b>
+            <div className="mm-orbit__content">
+              {asset
+                ? <SourceImage asset={asset} alt="" loading="lazy" />
+                : <AccessoryIcon name={item.icon} />}
+              <b className={item.icon === 'stole' ? 'mm-orbit__label--long' : undefined}>{item.name}</b>
+            </div>
           </div>
-        </li>)}
+        </li>})}
       </ul>
     </div>
   </section>;

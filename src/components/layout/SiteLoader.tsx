@@ -60,7 +60,7 @@ export function SiteLoader({ waitForHero }: { waitForHero: boolean }) {
     if (phase === 'gone') return;
     let live = true;
     let destroy = () => {};
-    Promise.all([import('lottie-web/build/player/lottie_light'), import('../../assets/lottie/mm-loader.json')])
+    Promise.all([import('lottie-web/build/player/lottie_light'), import('../../assets/animations/lottie/mm-loader.json')])
       .then(([{ default: lottie }, { default: animationData }]) => {
         if (!live || !holder.current) return;
         const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;

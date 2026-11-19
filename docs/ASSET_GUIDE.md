@@ -1,0 +1,168 @@
+# Asset Guide — Mister Mapillai
+
+Where every image, frame sequence, logo, font and animation file lives, how it is named, and how to use it from code.
+
+Every asset is under `src/assets/`, organised by **where the website uses it** (not by file type). Nothing in this tree was resized, re-encoded, renamed or deleted when it was organised: files were only moved, and `docs/asset-inventory.csv` records the old path, new path, format, dimensions, hash and usage of all 526 of them.
+
+---
+
+## 1. Folder tree
+
+```text
+src/assets/                                   526 files
+│
+├── animations/
+│   ├── hero-frames/
+│   │   ├── web/                  201  frame-001.webp … frame-201.webp   Runtime hero sequence (1920×1088 WebP)
+│   │   └── source/               201  frames00001.png … frames00201.png Master PNG frames (read only by the build script)
+│   └── lottie/                     1  mm-loader.json                     Site loader emblem animation
+│
+├── brand/
+│   └── logos/                      1  seal.svg                           Brand seal emblem
+│
+├── fonts/                         20  self-hosted WOFF2 (see §7)
+│   ├── serif/                      6  Cormorant Garamond
+│   └── sans-serif/                 4  Inter Variable, Josefin Sans
+│
+└── images/
+    ├── collections/
+    │   ├── looks/                 23  the 13 signature looks + their -sm thumbnails
+    │   └── wide/                   6  wide editorial crops of the looks
+    ├── home/
+    │   └── before-after/           6  the "before" side of the Before & After slider
+    ├── about/
+    │   ├── our-story/              6  Our Story collage: 5 embroidery details + the golden shirt
+    │   └── how-we-make/            6  How We Make steps 2–4 (3 WebP in use + 3 PNG masters)
+    ├── real-grooms/
+    │   ├── gallery/                5  Real Grooms gallery photographs (PNG)
+    │   └── happy-groom-story/     18  the Mr. Gowtham case study: shirt, placements, details, materials, boards
+    ├── testimonials/               5  groom portraits (groom-profile-1 … 5)
+    ├── accessories/
+    │   ├── orbit/                  8  "Complete the Look" orbit: 5 cut-outs (256×256 WebP) + 3 PNG photos
+    │   └── originals/              7  original PNG masters the orbit cut-outs were made from
+    └── shared/
+        ├── devatan-shirt/         10  the Devatan embroidered shirt: details, placements, sketch (several sections)
+        └── design-boards/          2  design moodboard and motif studies (several sections)
+```
+
+There are no videos, standalone icon files or CSS background images in the project, so those folders do not exist. Favicon, manifest, `robots.txt` and the sitemap live in `public/` and are served from the site root (they are not imported by code).
+
+## 2. Which section uses which folder
+
+| Website section | Assets | Registry module |
+|---|---|---|
+| Home — hero | `animations/hero-frames/web/` | loaded by `sections/Home/heroFrames.ts` (glob), not the registry |
+| Home — Before & After | `images/home/before-after/` (+ looks as the "after" side) | `transformationAssets` |
+| Home — Real Grooms gallery, testimonial avatars | `images/real-grooms/gallery/` | loaded by `sections/Home/ourWorksGallery.ts` (glob) |
+| Collections — signature looks, carousel, grid | `images/collections/looks/` | `collectionAssets` |
+| Collections — Complete the Look orbit | `images/accessories/orbit/` | `accessoryAssets` |
+| About — Our Story collage | `images/about/our-story/` | `aboutAssets` |
+| About — How We Make | `images/about/how-we-make/` | `ceremonyAssets` |
+| Happy Groom story | `images/real-grooms/happy-groom-story/` | `happyGroomsAssets` |
+| Journey, styling, brand pillars, Devatan feature | `images/shared/` | `ceremonyAssets`, `collectionAssets` |
+| Testimonials portraits | `images/testimonials/` | `testimonialAssets` |
+| Loader, brand | `animations/lottie/`, `brand/logos/` | `brandAssets` |
+| Typography | `fonts/` | `src/styles/fonts.css` |
+
+### Assets shared by several sections
+`collections/looks/` images are reused by the looks data, the home showcase, the ceremonies page and the About studio cards (e.g. `sherwani.webp`, `tuxedo.webp`, `double-breasted.webp`, `bandhgala-ivory.webp`, `ceremonial-shirt.webp`, `silk-veshti-sm.webp`, `indowestern.webp`). `shared/design-boards/moodboard.webp` feeds the brand pillars, the showcase and the journey. `shared/devatan-shirt/` feeds the journey, styling and brand data. `happy-grooms-hero.webp` is also the social-preview image (see §6). Keep these where they are; do not copy them into a section folder.
+
+---
+
+## 3. Naming conventions
+
+- Lowercase kebab-case, no spaces: `bandhgala-black.webp`.
+- Responsive suffixes: `name.webp` (full), `name-sm.webp` (thumbnail, 440×660), `name-wide.webp` (wide crop).
+- Sequences are zero-padded: `frame-001.webp`.
+- Name by subject, not by camera or tool: `midnight-crystal-bandhgala.webp`, never `IMG_4821`, `image1`, `final`, `copy`, `temp`.
+- A file name is part of the image's identity in this project (see §6), so **rename a file only together with every place that refers to it**.
+
+Existing names that do not follow the convention are listed here instead of being changed, because some are load-bearing:
+
+| Current name | Why it was left | Suggested name |
+|---|---|---|
+| `how-we-make/chair_coat.webp`, `sitch.webp`, `image.webp` | keys `chair_coat`, `sitch`, `image` are used in `AboutSections.tsx` | `how-we-make-step-02-fabric.webp`, `…-03-stitch.webp`, `…-04-fit.webp` |
+| `real-grooms/gallery/image.png`, `image1.png`, `image2.png`, `imagee.png`, `imagei.png` | the gallery metadata (`ourWorksGallery.ts`) and `galleryFile` in `data/testimonials.ts` match by file name | `real-groom-01.png` … `05.png`, with both tables updated |
+| `accessories/originals/1.png`, `32.png`, `321.png`, `main_image.png`, … | unreferenced masters | `accessory-brooch-original.png` etc. |
+| `shared/devatan-shirt/place-0..2.webp`, `detail-0..4.webp` | keys `place-N`, `detail-N` are used in data files | `devatan-placement-front.webp`, `devatan-detail-01.webp` … |
+
+## 4. Image sequences
+
+**Hero frames.** `animations/hero-frames/web/frame-001.webp … frame-201.webp` are the frames the site plays, in order (1920×1088). `animations/hero-frames/source/frames00001.png … frames00201.png` are the master PNGs. The numbering is the order: the loader sorts by the number in the file name. Some neighbouring frames are byte-identical (the footage holds: frames 1–2 and 198–201); the loader fetches each distinct file once.
+
+Rebuild the web frames from the masters (never edits the masters):
+
+```bash
+python scripts/build-hero-frames.py
+```
+
+Do not delete, rename or reorder frames in `web/` without re-running it.
+
+## 5. Adding assets
+
+### A new collection look
+1. Add `my-look.webp` (900×1350) and `my-look-sm.webp` (440×660) to `images/collections/looks/`.
+2. Import them in `src/data/assets/collections.ts` and export them from `collectionAssets`.
+3. Register `'my-look'` and `'my-look-sm'` in `src/data/images.ts`.
+4. Add the dimensions to `src/data/imageMetadata.ts` (see §6, the script covers this folder).
+5. Add the look to `src/data/outfits.ts`.
+
+### A new groom photograph (Real Grooms gallery)
+Drop the image into `images/real-grooms/gallery/`. It is picked up automatically (`ourWorksGallery.ts` globs the folder). For a custom title, caption or focal point, add an entry for its file name to `CURATED_WORKS` in `sections/Home/ourWorksGallery.ts`. To show it as a testimonial avatar, set `galleryFile` in `src/data/testimonials.ts` to the same file name.
+
+### A new testimonial portrait
+Put it in `images/testimonials/`, import it in `src/data/assets/testimonials.ts` and register it in `src/data/images.ts`.
+
+### A new accessory image
+Make a transparent, square cut-out (256×256 WebP is enough: it is shown at 34–114 px) and save it in `images/accessories/orbit/`. Import it in `src/data/assets/accessories.ts`, register an `orbit-…` key in `src/data/images.ts`, map it to its accessory in `sections/Collections/StylingOrbit.tsx`, and keep the original in `images/accessories/originals/`.
+
+## 6. Using assets in code
+
+Never import an image from a component. Components use the type-safe registry:
+
+```tsx
+import { SourceImage } from '../../components/common/SourceImage';
+
+<SourceImage asset="sherwani" alt="Ivory embroidered sherwani" responsive sizes="(max-width: 900px) 100vw, 50vw" loading="lazy" />
+```
+
+The chain is: file in `src/assets/…` → imported in a domain module `src/data/assets/<domain>.ts` → exposed as an `ImageKey` in `src/data/images.ts` → dimensions in `src/data/imageMetadata.ts` → rendered by `<SourceImage>`. **Moving a file only changes the import path in `src/data/assets/<domain>.ts`; keys, components and data do not change.**
+
+Things that depend on file names or folders:
+- `scripts/generate-seo.mjs` finds the social-preview image in `dist/assets/` by the name `happy-grooms-hero-<hash>.webp`. Do not rename `happy-grooms-hero.webp`.
+- `scripts/image-metadata.ts` builds `imageMetadata.ts` entries from the file names in the folders listed in `KEYED_IMAGE_FOLDERS`. Entries for the About, orbit and similar images are maintained by hand, so check `git diff` before committing a regenerated file.
+- `scripts/build-hero-frames.py` reads `animations/hero-frames/source/` and writes `animations/hero-frames/web/`.
+- `sections/Home/heroFrames.ts` and `sections/Home/ourWorksGallery.ts` load their folders with `import.meta.glob`.
+- `scripts/extract-assets.ts` is the one-off script that created the first asset set from a downloaded HTML preview. It still writes to the old flat paths and is not part of the current workflow.
+
+## 7. Fonts
+
+`fonts/serif/` and `fonts/sans-serif/` are the files `src/styles/fonts.css` loads. The 10 files at the root of `fonts/` are byte-identical copies of those and are not referenced; they were left in place (see §8). See `docs/FONT_GUIDE.md`.
+
+## 8. Duplicates (reported, all kept)
+
+Byte-identical files at different paths. Nothing was merged or removed:
+
+- `about/our-story/detail-0..4.webp` and `devatan-shirt.webp` are identical to `shared/devatan-shirt/detail-0..4.webp` and `devatan-shirt.webp` (the same embroidery photographs used by two different sections).
+- `accessories/originals/1.png` = `accessories/orbit/belt.png`; `accessories/originals/main_image.png` = `shoe.png`.
+- The 10 loose `fonts/*.woff2` files = the files in `fonts/serif/` and `fonts/sans-serif/`.
+- Inside the hero sequence: `frame-001 = frame-002` and `frame-198 = 199 = 200 = 201` (also in `source/`).
+
+## 9. Images with no literal reference in code
+
+Masters, kept for future use: `about/how-we-make/{chair_coat,image,sitch}.png`, `accessories/originals/{1,32,321,hand_towel,main_image,shoe,watch}.png`, and `shared/devatan-shirt/devatan-shirt.webp` (a legacy copy, imported but not registered).
+
+Registered in `data/images.ts` but not named in any component or data file (check before deleting; they may be used dynamically): `sherwani-wide`, `gowtham`, `happy-grooms-shirt`, `place-0`, `place-2`, `groom-profile-1 … 5`.
+
+## 10. Image standards
+
+1. **Formats**: photographs and cut-outs are WebP (transparent cut-outs keep their alpha channel); logos are SVG; masters stay PNG.
+2. **Sizes**: looks 900×1350, `-sm` thumbnails 440×660, hero frames 1920×1088, orbit cut-outs 256×256.
+3. **Intrinsic dimensions** of every registered image are recorded in `src/data/imageMetadata.ts` so the browser reserves the right space before the bytes arrive.
+4. **Never** replace an original with a compressed or resized version; add a derivative next to it instead.
+
+## 11. Inventory and integrity
+
+`docs/asset-inventory.csv` lists all 526 files with: filename, original path, new path, format, dimensions, size, the first 12 characters of the SHA-256, image keys, website section and the source files that use it.
+
+The reorganisation was verified by hashing every file before and after: 526 files before and after, 506 moved files byte-identical at their new paths, the 20 fonts untouched.

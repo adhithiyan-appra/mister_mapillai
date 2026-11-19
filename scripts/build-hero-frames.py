@@ -1,7 +1,7 @@
 """Encode the hero frame sequence for the web.
 
-Reads the original PNG frames in src/assets/hero_frames (never modified) and
-writes WebP copies, in the same order, to src/assets/hero_frames_web/.
+Reads the original PNG frames in src/assets/animations/hero-frames/source (never modified) and
+writes WebP copies, in the same order, to src/assets/animations/hero-frames/web/.
 Run from the project root after replacing or adding frames:
 
     python scripts/build-hero-frames.py
@@ -21,8 +21,8 @@ from pathlib import Path
 from PIL import Image, ImageChops, ImageStat
 
 ROOT = Path(__file__).resolve().parent.parent
-SOURCE = ROOT / 'src' / 'assets' / 'hero_frames'
-TARGET = ROOT / 'src' / 'assets' / 'hero_frames_web'
+SOURCE = ROOT / 'src' / 'assets' / 'animations' / 'hero-frames' / 'source'
+TARGET = ROOT / 'src' / 'assets' / 'animations' / 'hero-frames' / 'web'
 QUALITY = 90
 
 

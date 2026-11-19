@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" role="img" aria-label="Mister Mapillai seal">
+  <defs>
+    <radialGradient id="sg" cx="50%" cy="42%" r="60%"><stop offset="0" stop-color="#651316"/><stop offset=".55" stop-color="#3A0607"/><stop offset="1" stop-color="#250304"/></radialGradient>
+    <linearGradient id="gg" x1="0" y1="0" x2="1" y2=".35"><stop offset="0" stop-color="#8E6A2E"/><stop offset=".3" stop-color="#D9B56C"/><stop offset=".48" stop-color="#F6DD9C"/><stop offset=".66" stop-color="#C9A35B"/><stop offset="1" stop-color="#8E6A2E"/></linearGradient>
+    <pattern id="chk" width="6" height="6" patternUnits="userSpaceOnUse"><rect width="3" height="3" fill="#C9A35B"/><rect x="3" y="3" width="3" height="3" fill="#C9A35B"/></pattern>
+    <g id="eleph">
+      <path d="M14 34C14 22 26 13 42 13C52 13 60 11 68 11C78 11 86 17 87 27C88 36 86 46 84 54C83 58 79 60 77 57C76 55 79 54 80 52C81 46 81 39 79 34C77 37 74 40 70 41L70 64L61 64L61 50C54 51 40 51 33 50L33 64L24 64L24 46C19 44 15 40 14 34Z"/>
+      <path d="M14 33C10 37 9 43 11 48" fill="none" stroke="url(#gg)" stroke-width="2"/>
+      <path d="M36 14L58 13L58 33L47 40L36 33Z" fill="#3A0607" opacity=".55"/>
+      <path d="M38 18H56M38 24H56M40 30H54" stroke="url(#gg)" stroke-width="1.4"/>
+      <path d="M63 17C57 20 57 31 63 35C67 32 68 22 63 17Z" fill="#3A0607" opacity=".45"/>
+      <path d="M73 40C76 44 80 45 84 44" fill="none" stroke="#F6DD9C" stroke-width="2"/>
+    </g>
+  </defs>
+  <circle cx="200" cy="200" r="199" fill="url(#sg)"/>
+  <circle cx="200" cy="200" r="163" fill="none" stroke="url(#gg)" stroke-width="3.2"/>
+  <circle cx="200" cy="200" r="157" fill="none" stroke="url(#gg)" stroke-width=".6" opacity=".55"/>
+  <!-- faint lotus at the crown, as on the seal -->
+  <g fill="none" stroke="#C9A35B" stroke-width="1.4" opacity=".16">
+    <path d="M200 62C186 82 186 104 200 124C214 104 214 82 200 62Z"/>
+    <path d="M200 124C178 116 164 100 160 82C180 86 194 100 200 124Z"/>
+    <path d="M200 124C222 116 236 100 240 82C220 86 206 100 200 124Z"/>
+    <path d="M200 124C172 126 152 116 140 100M200 124C228 126 248 116 260 100"/>
+  </g>
+  <text x="83" y="220" font-family="Cormorant Garamond, Georgia, serif" font-weight="300" font-size="72" fill="url(#gg)">M</text>
+  <line x1="155" y1="163" x2="155" y2="224" stroke="url(#gg)" stroke-width="1.2"/>
+  <text x="168" y="184" font-family="Josefin Sans, sans-serif" font-weight="300" font-size="18" fill="url(#gg)" textLength="140" lengthAdjust="spacing">MISTER</text>
+  <text x="310" y="174" font-family="Josefin Sans, sans-serif" font-size="6" fill="#C9A35B">™</text>
+  <text x="167" y="211" font-family="Josefin Sans, sans-serif" font-weight="400" font-size="22" fill="url(#gg)" textLength="148" lengthAdjust="spacing">MAPILLAI</text>
+  <text x="168" y="224" font-family="Josefin Sans, sans-serif" font-weight="300" font-size="5.4" fill="#C9A35B" textLength="146" lengthAdjust="spacing">BESPOKE FOR LIFE’S GREATEST MOMENTS</text>
+  <!-- elephants facing a central spire, on a woven band -->
+  <g fill="url(#gg)">
+    <use href="#eleph" transform="translate(116 262) scale(.62)"/>
+    <use href="#eleph" transform="translate(284 262) scale(-.62 .62)"/>
+    <path d="M200 256C196 262 196 268 200 272C204 268 204 262 200 256ZM200 270C194 272 191 278 192 284C197 283 200 278 200 270ZM200 270C206 272 209 278 208 284C203 283 200 278 200 270ZM199 272H201V302H199Z"/>
+  </g>
+  <rect x="106" y="302" width="188" height="1.4" fill="url(#gg)"/>
+  <rect x="112" y="305" width="176" height="6" fill="url(#chk)" opacity=".85"/>
+  <rect x="106" y="313" width="188" height="1.4" fill="url(#gg)"/>
+</svg>

@@ -5,11 +5,20 @@
  *
  * Measured bottlenecks this design removes (Chrome, real GPU, 1440×900):
  * - drawImage(<img>) re-decoded each 1920×1088 frame synchronously on the
- *   main thread at draw time (~30 ms per frame): frames are now decoded ahead
- *   with createImageBitmap, off the main thread, at exactly the drawn size.
+ *   main thread at draw time (~30 ms per frame): frames are now decoded ahead,
+ *   off the main thread, at exactly the drawn size.
+ * - createImageBitmap(blob) took ~72 ms per 1920×1088 WebP and topped out near
+ *   50 frames/s however many decodes ran at once, below what ordinary wheel
+ *   scrolling asks for, so the canvas froze and then jumped (up to 32 frames
+ *   in one step). WebCodecs ImageDecoder decodes the same file in ~19 ms and
+ *   scales to ~200 frames/s, so it is used wherever the browser has it.
  * - drawing a CPU bitmap into an accelerated canvas uploads it to the GPU at
  *   draw time (~11 ms per frame on the main thread): in the worker path that
  *   upload happens on the worker, so the page's main thread does no image work.
+ * - the frame to show was chosen on the main thread, so any main-thread hitch
+ *   froze the picture. The renderer now owns a playhead that glides toward the
+ *   scroll position on its own clock (the worker's rAF), at a speed the decoded
+ *   frames can sustain, so it never skips ahead of what is ready.
  */
 
 export interface RenderProfile {
@@ -20,6 +29,10 @@ export interface RenderProfile {
   behind: number;
   /** Keyframes kept decoded across the sequence, so a fast jump always has a close neighbour. */
   keyStride: number;
+  /** Fastest the playhead travels, in frames per second (the sequence never plays faster than this). */
+  maxSpeed: number;
+  /** How far the playhead trails a steadily moving scroll position, in seconds (its response time). */
+  glide: number;
 }
 
 /** Canvas size and where (and at what size) frames are drawn, in device pixels. */
@@ -79,6 +92,10 @@ export class FrameStore {
   private wanted = new Set<number>();
   /** undefined: not provided yet (wait); null: fetch frame 1 like the others. */
   private first: FirstFrame | undefined;
+  /** Decoder in use: WebCodecs ImageDecoder ('fast') once probed, otherwise createImageBitmap. */
+  private decoder: 'probing' | 'fast' | 'standard' = 'probing';
+  /** The hero is off screen: only the keyframes are kept decoded. */
+  private resting = false;
 
   constructor(
     urls: readonly string[],
@@ -103,6 +120,26 @@ export class FrameStore {
     add(this.unique[urls.length - 1]);
     for (let stride = 32; stride >= 1; stride /= 2) for (let p = 0; p < urls.length; p += stride) add(this.unique[p]);
     this.updateWanted();
+    void this.probeDecoder();
+  }
+
+  /** Number of positions in the sequence. */
+  get length() { return this.unique.length; }
+
+  get isResting() { return this.resting; }
+
+  /** The hero is off screen: release the decoded window (the keyframes stay) until `focus` is called again. */
+  rest() {
+    if (this.resting) return;
+    this.resting = true;
+    this.updateWanted();
+  }
+
+  private async probeDecoder() {
+    let fast = false;
+    try { fast = typeof ImageDecoder === 'function' && await ImageDecoder.isTypeSupported('image/webp'); } catch { fast = false; }
+    this.decoder = fast ? 'fast' : 'standard';
+    this.pump();
   }
 
   /** The visible poster is frame 1: decoded from it instead of being fetched twice. */
@@ -131,7 +168,9 @@ export class FrameStore {
   /** Re-prioritise around the frame being shown and the scroll direction. */
   focus(position: number, direction: number) {
     const turned = direction !== 0 && Math.sign(direction) !== this.direction;
-    if (position === this.focusAt && !turned) return;
+    const woke = this.resting;
+    this.resting = false;
+    if (position === this.focusAt && !turned && !woke) return;
     this.focusAt = position;
     if (direction) this.direction = Math.sign(direction);
     this.updateWanted();
@@ -155,6 +194,21 @@ export class FrameStore {
     return null;
   }
 
+  /**
+   * How many frames in a row, starting next to `position` and heading in
+   * `direction`, are decoded and ready to draw. The end of the sequence has
+   * nothing further to wait for, so it counts as ready.
+   */
+  readyRun(position: number, direction: number): number {
+    const n = this.unique.length, limit = this.profile.ahead;
+    for (let d = 1; d <= limit; d++) {
+      const p = position + d * direction;
+      if (p < 0 || p >= n) return limit;
+      if (!this.frames[this.unique[p]].bitmap) return d - 1;
+    }
+    return limit;
+  }
+
   dispose() {
     this.disposed = true;
     this.abort.abort();
@@ -167,9 +221,11 @@ export class FrameStore {
     const { ahead, behind, keyStride } = this.profile;
     const n = this.unique.length;
     const wanted = new Set<number>();
-    for (let d = -behind; d <= ahead; d++) {
-      const p = this.focusAt + d * this.direction;
-      if (p >= 0 && p < n) wanted.add(this.unique[p]);
+    if (!this.resting) {
+      for (let d = -behind; d <= ahead; d++) {
+        const p = this.focusAt + d * this.direction;
+        if (p >= 0 && p < n) wanted.add(this.unique[p]);
+      }
     }
     for (let p = 0; p < n; p += keyStride) wanted.add(this.unique[p]);
     if (n) { wanted.add(this.unique[0]); wanted.add(this.unique[n - 1]); }
@@ -182,6 +238,7 @@ export class FrameStore {
 
   /** Window frames, nearest first, ahead of the scroll before behind it. */
   private windowOrder(): number[] {
+    if (this.resting) return [];
     const { ahead, behind } = this.profile;
     const n = this.unique.length, order: number[] = [];
     const push = (p: number) => { if (p >= 0 && p < n) order.push(this.unique[p]); };
@@ -211,7 +268,7 @@ export class FrameStore {
       if (frame.blob || frame.fetching || frame.failed || (u === 0 && this.first !== null)) continue;
       this.fetch(frame);
     }
-    if (!this.width) return;
+    if (!this.width || this.decoder === 'probing') return;
     // Decode: wanted frames missing or decoded at an old size; window first, then keyframes nearest first.
     const inWindow = new Set(order);
     const centre = this.unique[this.focusAt] ?? 0;
@@ -238,10 +295,10 @@ export class FrameStore {
     this.decoding++;
     frame.decoding = true;
     const size = this.sizeKey;
-    const decoded = this.resize
-      ? createImageBitmap(source, { resizeWidth: this.width, resizeHeight: this.height, resizeQuality: 'medium' })
-        .catch(() => createImageBitmap(source)) // engines without resize options: drawn scaled instead
-      : createImageBitmap(source);
+    const resize = this.resize ? { width: this.width, height: this.height } : null;
+    const decoded = this.decoder === 'fast' && source instanceof Blob
+      ? this.decodeFast(source, resize)
+      : this.decodeStandard(source, resize);
     decoded
       .then(bitmap => {
         if (this.disposed || !this.wanted.has(u)) { bitmap.close(); return; }
@@ -252,24 +309,99 @@ export class FrameStore {
       }, () => { /* undecodable: its neighbours are shown instead */ })
       .finally(() => { this.decoding--; frame.decoding = false; this.pump(); });
   }
+
+  private decodeStandard(source: ImageBitmapSource, resize: { width: number; height: number } | null): Promise<ImageBitmap> {
+    return resize
+      ? createImageBitmap(source, { resizeWidth: resize.width, resizeHeight: resize.height, resizeQuality: 'medium' })
+        .catch(() => createImageBitmap(source)) // engines without resize options: drawn scaled instead
+      : createImageBitmap(source);
+  }
+
+  /**
+   * WebCodecs path: the encoded file is decoded to a YUV VideoFrame (~19 ms) and converted to an
+   * ImageBitmap (~3 ms), which then draws ~5x faster than a bitmap made by createImageBitmap(blob).
+   * Same resolution; pixels match the standard decoder to within 2/255 (PSNR ≈ 55 dB, YUV→RGB rounding).
+   */
+  private async decodeFast(blob: Blob, resize: { width: number; height: number } | null): Promise<ImageBitmap> {
+    try {
+      const decoder = new ImageDecoder({ data: await blob.arrayBuffer(), type: 'image/webp' });
+      try {
+        const { image } = await decoder.decode();
+        try {
+          return resize
+            ? await createImageBitmap(image, { resizeWidth: resize.width, resizeHeight: resize.height, resizeQuality: 'medium' })
+              .catch(() => createImageBitmap(image))
+            : await createImageBitmap(image);
+        } finally { image.close(); }
+      } finally { decoder.close(); }
+    } catch (error) {
+      if (this.disposed) throw error;
+      // This browser cannot decode a frame this way: use the standard decoder from now on.
+      this.decoder = 'standard';
+      return this.decodeStandard(blob, resize);
+    }
+  }
 }
 
 type Context2D = CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D;
 /** Frames decoded before the sequence counts as ready: frame 1 and the next few. */
 export const CRITICAL_FRAMES = 6;
 const LETTERBOX = '#3a0811';
+/** Seconds of playback that must already be decoded ahead of the playhead; its speed is limited to what that allows. */
+const LOOKAHEAD = 0.12;
+/** The slowest the playhead creeps when hardly anything ahead is decoded yet (frames per second). */
+const CREEP = 10;
+/**
+ * Most the playhead's speed may change, in frames per second per second. A start from rest reaches full speed
+ * in ~0.1 s; turning round at full speed takes ~0.2 s (the picture coasts a few frames on before it reverses)
+ * instead of snapping from forward to backward.
+ */
+const ACCEL = 700;
 
 /**
- * Draws the wanted frame (or its nearest decoded neighbour) and repaints only
- * when what it would show changes. Used on both the worker and the page.
+ * One step of the playhead. Its speed aims for (distance to the goal) / time, which is an exponential approach
+ * that eases to a stop on the goal; it is capped at `maxSpeed` and may change by at most ACCEL per second, so it
+ * starts, stops and reverses without a jolt, never overshoots, and tracks a steadily moving goal at
+ * `time` seconds behind it. Returns the new [position, speed].
+ */
+function follow(position: number, goal: number, speed: number, time: number, maxSpeed: number, dt: number): [number, number] {
+  const aim = Math.max(-maxSpeed, Math.min(maxSpeed, (goal - position) / time));
+  const room = ACCEL * dt;
+  const next = speed + Math.max(-room, Math.min(room, aim - speed));
+  const to = position + (speed + next) / 2 * dt;
+  // A step that would pass the goal lands on it instead.
+  return (goal - position) * (goal - to) < 0 ? [goal, 0] : [to, next];
+}
+
+/**
+ * Owns the playhead and draws the frame it is on (or its nearest decoded
+ * neighbour), only when what it would show changes. Used on both the worker
+ * and the page.
+ *
+ * The page reports where the scroll position falls in the sequence (a
+ * fractional frame number); the playhead follows it on this renderer's own
+ * clock, one step per display frame, so a busy main thread cannot freeze it. Its
+ * speed follows how many frames ahead are decoded, so it eases off instead of
+ * leaping over frames that are not ready, and it is capped so that even a hard
+ * fling plays through the footage frame by frame.
  */
 export class FrameRenderer {
   private readonly store: FrameStore;
   private layout: RenderLayout | null = null;
+  /** Where the scroll position falls in the sequence, and where the playhead is (fractional frames). */
+  private goal = 0;
+  private head = 0;
+  /** Playhead speed in frames per second (signed) and the direction it last travelled. */
+  private speed = 0;
+  private dir = 1;
+  private seeded = false;
+  /** The frame wanted: the playhead rounded. */
   private target = 0;
   private drawn = -1;
   private drawnSharp = false;
   private force = true;
+  /** Time of the previous step; 0 while the playhead is at rest. */
+  private clock = 0;
   private pending = 0;
   private disposed = false;
   private criticalLeft: Set<number>;
@@ -278,9 +410,9 @@ export class FrameRenderer {
     private readonly canvas: { width: number; height: number },
     private readonly context: Context2D,
     urls: readonly string[],
-    profile: RenderProfile,
-    /** Coalesced one-shot repaint for frames that arrive while nothing is scrolling. */
-    private readonly schedule: (callback: () => void) => number,
+    private readonly profile: RenderProfile,
+    /** One-shot callback at the next display frame (rAF, or a timer where there is none). */
+    private readonly schedule: (callback: (now: number) => void) => number,
     private readonly cancel: (handle: number) => void,
     private readonly onFirstDraw: () => void,
     /** Called once, when the opening frames (CRITICAL_FRAMES) are decoded and ready to draw. */
@@ -305,13 +437,24 @@ export class FrameRenderer {
     this.draw();
   }
 
-  /** Show sequence position `target`; `direction` is the scroll direction (sign). */
-  show(target: number, direction: number) {
-    if (target === this.target && !this.force) return;
-    this.target = target;
-    this.store.focus(target, direction);
-    this.draw();
+  /** Where the scroll position falls in the sequence, as a (fractional) frame number. The playhead glides there. */
+  seek(goal: number) {
+    const next = Math.min(Math.max(0, this.store.length - 1), Math.max(0, goal));
+    if (!this.seeded) {
+      // The first position (page load, restored scroll) is where the playhead starts: no glide from frame 1.
+      this.seeded = true;
+      this.goal = this.head = next;
+      this.speed = 0;
+      this.show();
+      return;
+    }
+    if (next === this.goal && !this.store.isResting) return;
+    this.goal = next;
+    this.wake();
   }
+
+  /** The hero is off screen: free the decoded window (about 3/4 of the frame memory); the next seek brings it back. */
+  rest() { this.store.rest(); }
 
   dispose() {
     this.disposed = true;
@@ -319,11 +462,38 @@ export class FrameRenderer {
     this.store.dispose();
   }
 
+  private wake() {
+    if (!this.pending && !this.disposed) this.pending = this.schedule(now => this.step(now));
+  }
+
+  /** One display frame of the playhead: glide toward the goal, then draw what that frame needs. */
+  private step(now: number) {
+    this.pending = 0;
+    if (this.disposed) return;
+    const dt = this.clock ? Math.min(0.1, Math.max(0.0005, (now - this.clock) / 1000)) : 1 / 60;
+    this.clock = now;
+    if (this.goal !== this.head) this.dir = this.goal > this.head ? 1 : -1;
+    // The glide may not outrun the decoded frames: its speed limit follows the decoded run ahead of it.
+    const run = this.store.readyRun(Math.round(this.head), this.dir);
+    const limit = Math.min(this.profile.maxSpeed, Math.max(CREEP, run / LOOKAHEAD));
+    [this.head, this.speed] = follow(this.head, this.goal, this.speed, this.profile.glide, limit, dt);
+    if (Math.abs(this.goal - this.head) < 0.004 && Math.abs(this.speed) < 0.2) { this.head = this.goal; this.speed = 0; }
+    this.show();
+    if (this.head !== this.goal) this.wake();
+    else this.clock = 0;
+  }
+
+  /** Point the frame store at the playhead's frame and draw it. */
+  private show() {
+    this.target = Math.round(this.head);
+    this.store.focus(this.target, this.dir);
+    this.draw();
+  }
+
   private arrived(position: number) {
     if (this.criticalLeft.size && this.criticalLeft.delete(position) && !this.criticalLeft.size) this.onCritical();
     const better = Math.abs(position - this.target) < Math.abs(this.drawn - this.target) || (position === this.drawn && !this.drawnSharp);
-    if (!better || this.pending || this.disposed) return;
-    this.pending = this.schedule(() => { this.pending = 0; this.draw(); });
+    if (better) this.wake();
   }
 
   private draw() {

@@ -1,7 +1,7 @@
 import { Fragment, useRef } from 'react';
 import { useSceneAnimation } from '../../components/animations/AnimationProvider';
 import { fittingHref } from '../../data/navigation';
-import { clamp, scrollSmoothing, writeStyle } from '../../utils/animation';
+import { clamp, writeStyle } from '../../utils/animation';
 import { cssVars } from '../../utils/style';
 import { markHeroReady } from '../../utils/heroReady';
 import { SOURCE_SIZE, createHeroRenderer, deviceProfile, frameScale, frameUrls } from './heroFrames';
@@ -19,6 +19,12 @@ const TEXT_OUT: readonly [number, number] = [0.004, 0.1];
 const FRAMES_IN: readonly [number, number] = [0.03, 0.12];
 /** …and only then (phase 3) do the frames start to advance with the scroll. */
 const FRAMES_START = 0.12;
+/**
+ * Glide (1/s) of the introduction's fade and lift: small scroll steps ease in over
+ * ~150 ms. The frames do not use this: their playhead glides inside the renderer,
+ * on its own clock, at a speed the decoded frames can sustain (see frameRenderer.ts).
+ */
+const GLIDE_RESPONSE = 6.5;
 
 const smoothstep = (value: number, from: number, to: number) => {
   const t = clamp((value - from) / (to - from));
@@ -48,7 +54,6 @@ export function HeroSection() {
 
     let pinStart = 0, range = 1;
     let progress = 0, synced = false;
-    let shown = -1;
     let textHidden = false;
 
     // Reduced motion: no pinned sequence and no frame downloads; the maroon introduction is the hero.
@@ -80,9 +85,9 @@ export function HeroSection() {
         const sourceWidth = poster.naturalWidth || SOURCE_SIZE.width, sourceHeight = poster.naturalHeight || SOURCE_SIZE.height;
         const scale = frameScale(width, height, sourceWidth, sourceHeight) * dpr;
         const w = Math.round(sourceWidth * scale), h = Math.round(sourceHeight * scale);
-        // Keep the top edge anchored when vertical cropping occurs on wide screens so the groom's head and face are never cropped.
+        // The whole frame, centred; the letterbox around it is painted maroon.
         const x = Math.round((canvasWidth - w) / 2);
-        const y = h > canvasHeight ? 0 : Math.round((canvasHeight - h) / 2);
+        const y = Math.round((canvasHeight - h) / 2);
         // Frames are decoded at the drawn size, but never above the source resolution.
         const fit = Math.min(1, sourceWidth / w);
         renderer.layout({
@@ -97,10 +102,9 @@ export function HeroSection() {
         const goal = clamp((frame.scrollY - pinStart) / range / PLAY);
         if (!synced || frame.reducedMotion) { progress = goal; synced = true; }
         else {
-          // The site's scroll easing at its fastest response (~70 ms time constant):
-          // smooths wheel steps without a lagging tail. Snapping inside a third of a
-          // frame lands exactly on the scroll position's frame.
-          progress += (goal - progress) * scrollSmoothing(frame.deltaTime, 1);
+          // Frame-rate independent glide toward the scroll position (introduction only). Snapping
+          // inside a third of a frame lands exactly on the scroll position.
+          progress += (goal - progress) * (1 - Math.exp(-frame.deltaTime * GLIDE_RESPONSE));
           if (Math.abs(goal - progress) * (count - 1) < 0.35) progress = goal;
         }
 
@@ -116,13 +120,13 @@ export function HeroSection() {
         writeStyle(media, 'opacity', reveal.toFixed(3));
         writeStyle(veil, 'opacity', (1 - 0.7 * reveal).toFixed(3));
 
-        // Phase 3: frames follow the scroll. Only a changed frame number crosses to the renderer.
-        const target = Math.round(clamp((progress - FRAMES_START) / (1 - FRAMES_START)) * (count - 1));
-        if (renderer && target !== shown) {
-          renderer.show(target, shown < 0 ? 0 : target - shown);
-          shown = target;
-        }
+        // Phase 3: frames follow the scroll. The renderer's playhead glides to this (fractional) frame itself.
+        renderer?.seek(clamp((goal - FRAMES_START) / (1 - FRAMES_START)) * (count - 1));
         return progress !== goal;
+      },
+      // Scrolled past the hero: free the decoded frames (the next visit to the hero decodes them again in ~0.1 s).
+      leave() {
+        renderer?.rest();
       },
       dispose() {
         renderer?.dispose();

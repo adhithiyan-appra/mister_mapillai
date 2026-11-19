@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { PointerEvent as ReactPointerEvent } from 'react';
 import { SectionHeading } from '../../components/common/SectionHeading';
 import { testimonials } from '../../data/testimonials';
+import { heroPending, onHeroReady } from '../../utils/heroReady';
 import { loadOurWorksImages } from './ourWorksGallery';
 import type { OurWorkImage } from './ourWorksGallery';
 
@@ -17,9 +19,21 @@ export function TestimonialsSection() {
   const [paused, setPaused] = useState(false);
   const [openPreview, setOpenPreview] = useState<number | null>(null);
   const [cycle, setCycle] = useState(0);
+  // The avatars are large gallery photos. On a first home visit they wait for the hero's
+  // opening frames, so they do not share the network with them.
+  const [photosOn, setPhotosOn] = useState(() => !heroPending());
   const ref = useRef<HTMLElement>(null);
 
   const blocked = paused;
+
+  // Hover pauses only over the review itself and its dots, not the whole padded section,
+  // so a resting cursor elsewhere on screen does not freeze the carousel.
+  const pauseOnHover = useCallback((event: ReactPointerEvent) => {
+    if (event.pointerType !== 'touch') setPaused(true);
+  }, []);
+  const resumeOnLeave = useCallback((event: ReactPointerEvent) => {
+    if (event.pointerType !== 'touch') setPaused(false);
+  }, []);
 
   const select = useCallback((index: number) => {
     setCurrent(index);
@@ -70,14 +84,16 @@ export function TestimonialsSection() {
     setOpenPreview(value => (value === null ? value : null));
   }, [current]);
 
+  useEffect(() => onHeroReady(() => setPhotosOn(true)), []);
+
   useEffect(() => {
     const next = TESTIMONIAL_PHOTOS[(current + 1) % TESTIMONIAL_PHOTOS.length];
-    if (!next) return;
+    if (!next || !photosOn) return;
     const image = new Image();
     image.decoding = 'async';
     image.src = next.src;
     void image.decode().catch(() => undefined);
-  }, [current]);
+  }, [current, photosOn]);
 
   if (!testimonials.length) return null;
 
@@ -86,14 +102,12 @@ export function TestimonialsSection() {
     id="testimonials"
     aria-labelledby="testi-title"
     ref={ref}
-    onPointerEnter={event => { if (event.pointerType !== 'touch') setPaused(true); }}
-    onPointerLeave={event => { if (event.pointerType !== 'touch') setPaused(false); }}
     onFocus={event => { if (event.target instanceof HTMLElement && event.target.matches(':focus-visible')) setPaused(true); }}
     onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) setPaused(false); }}
   >
     <div className="mm-container">
       <SectionHeading id="testi-title" eyebrow="Kind Words" title={<>From Our <em>Grooms</em></>} />
-      <div className="mm-testi-wrap" aria-roledescription="carousel" aria-label="Groom testimonials">
+      <div className="mm-testi-wrap" aria-roledescription="carousel" aria-label="Groom testimonials" onPointerEnter={pauseOnHover} onPointerLeave={resumeOnLeave}>
         {testimonials.map((item, i) => {
           const photo = TESTIMONIAL_PHOTOS[i];
           return <figure
@@ -121,7 +135,7 @@ export function TestimonialsSection() {
               >
                 <span className="mm-testi__preview" aria-hidden="true">
                   <img
-                    src={photo.src}
+                    src={photosOn ? photo.src : undefined}
                     width={photo.width}
                     height={photo.height}
                     alt=""
@@ -132,7 +146,7 @@ export function TestimonialsSection() {
                   />
                 </span>
                 <img
-                  src={photo.src}
+                  src={photosOn ? photo.src : undefined}
                   width={photo.width}
                   height={photo.height}
                   alt={item.name}
@@ -147,7 +161,7 @@ export function TestimonialsSection() {
           </figure>;
         })}
       </div>
-      <div className="mm-dots" role="group" aria-label="Choose a testimonial">
+      <div className="mm-dots" role="group" aria-label="Choose a testimonial" onPointerEnter={pauseOnHover} onPointerLeave={resumeOnLeave}>
         {testimonials.map((item, i) => <button type="button" key={item.id} aria-label={`Show testimonial ${i + 1}: ${item.name}`} aria-current={i === current} onClick={() => select(i)} />)}
       </div>
     </div>

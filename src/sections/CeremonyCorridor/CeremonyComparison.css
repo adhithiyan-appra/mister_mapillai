@@ -364,9 +364,8 @@
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: rgba(var(--ivory-rgb), 0.5);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  line-height: 1.25;
   transition: color 0.25s ease;
 }
 
@@ -666,7 +665,7 @@
   .corr .cnow .btn {
     width: 100%;
     justify-content: center;
-    min-height: 38px;
+    min-height: 44px;
     padding: 9px 14px 7px;
     font-size: 11px;
   }

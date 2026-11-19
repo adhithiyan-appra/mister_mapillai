@@ -37,7 +37,7 @@ const VALID_IMAGE_PATTERN = /\.(jpe?g|png|webp|avif)$/i;
 
 /**
  * Curated outfit titles and subject focal points for inspected files in
- * src/assets/our_works. Any newly added images in that folder are still
+ * src/assets/images/real-grooms/gallery. Any newly added images in that folder are still
  * picked up dynamically and formatted automatically.
  */
 const CURATED_WORKS: Record<string, CuratedWorkMeta> = {
@@ -81,7 +81,7 @@ const CURATED_WORKS: Record<string, CuratedWorkMeta> = {
 };
 
 const ourWorksModules = import.meta.glob<string>(
-  '../../assets/our_works/**/*.{jpg,jpeg,png,webp,avif,JPG,JPEG,PNG,WEBP,AVIF}',
+  '../../assets/images/real-grooms/gallery/**/*.{jpg,jpeg,png,webp,avif,JPG,JPEG,PNG,WEBP,AVIF}',
   { eager: true, import: 'default' },
 );
 

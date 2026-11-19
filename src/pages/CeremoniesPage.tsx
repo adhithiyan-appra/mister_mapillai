@@ -5,6 +5,7 @@ import { HeadToToe } from '../sections/HeadToToe/HeadToToe';
 /** The existing immersive ceremony corridor and head-to-toe scenes, unchanged, on their own route. */
 export function CeremoniesPage() {
   return <>
+    <h1 className="mm-sr">Wedding Ceremony Styling by Mister Mapillai</h1>
     <CeremonyCorridor />
     <HeadToToe />
     <div className="mm">

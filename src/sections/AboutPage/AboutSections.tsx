@@ -19,6 +19,7 @@ interface CraftStep {
   description: string;
   alt: string;
   objectPosition?: string;
+  objectFit?: 'contain';
   externalSrc?: string;
   asset?: ImageKey;
 }
@@ -49,7 +50,7 @@ const craftSteps: readonly CraftStep[] = [
     label: 'Step Three',
     title: 'Measure, Cut & Embroider',
     description: '30+ measurement points, a custom pattern for your body, and hand embroidery by artisans who have done this for generations.',
-    asset: 'sherwani-wide',
+    asset: 'sitch',
     alt: 'Bespoke champagne gold sherwani with hand embroidery along collar and shoulders',
     objectPosition: 'center 12%',
   },
@@ -58,11 +59,50 @@ const craftSteps: readonly CraftStep[] = [
     label: 'Step Four',
     title: 'Fit, Finish & Style',
     description: 'Two trial fittings, final finishing and a quality check — then we style you head to toe with footwear and accessories, ready for the camera.',
-     asset: 'veshti-wide',
-    alt: 'Golden pure silk groom shirt paired with a gold-border pattu veshti',
-    objectPosition: 'center 12%',
+    asset: 'image',
+    alt: 'Groom in a navy three-piece suit standing in a heritage courtyard',
+    objectPosition: 'center',
+    objectFit: 'contain',
   },
 ];
+
+const storyDetailImages = [
+  {
+    asset: 'about-dome-detail',
+    position: 'dome',
+    alt: 'Temple dome motif embroidered with gold zari and pearls',
+  },
+  {
+    asset: 'about-heritage-detail',
+    position: 'elephant',
+    alt: 'Traditional elephant motif embroidered with gold zari',
+  },
+  {
+    asset: 'about-floral-detail',
+    position: 'floral',
+    alt: 'Gold floral embroidery and pearl craftsmanship detail',
+  },
+  {
+    asset: 'about-vine-detail',
+    position: 'vine',
+    alt: 'Delicate gold vine embroidery on ceremonial fabric',
+  },
+  {
+    asset: 'about-bud-detail',
+    position: 'bud',
+    alt: 'Small pearl flower motifs on gold ceremonial fabric',
+  },
+  {
+    asset: 'happy-grooms-place-back',
+    position: 'back',
+    alt: 'Back yoke of a groom shirt hand-embroidered with a gold temple dome and vine',
+  },
+  {
+    asset: 'happy-grooms-material-beads',
+    position: 'beads',
+    alt: 'Close-up of polished gold beads used in the embroidery',
+  },
+] as const satisfies readonly { asset: ImageKey; position: string; alt: string }[];
 
 function listOf(items: readonly string[]) {
   return items.length < 2 ? items.join('') : `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`;
@@ -71,10 +111,14 @@ function listOf(items: readonly string[]) {
 export function BrandStory() {
   return <section className="mm-sec" aria-labelledby="story-title">
     <div className="mm-container mm-split">
-      <div className="mm-stack mm-reveal mm-reveal--left">
-        <div className="mm-stack__a"><SourceImage asset="moodboard" alt="Royal Procession wedding moodboard" responsive sizes="(max-width: 900px) 72vw, 440px" /></div>
-        <div className="mm-stack__b"><SourceImage asset="bandhgala-ivory" alt="Groom in an ivory bandhgala" responsive sizes="(max-width: 900px) 55vw, 340px" /></div>
-        <div className="mm-stack__badge"><CountUp value={ceremonies.length} /><span>Ceremonies dressed</span></div>
+      <div className="mm-stack mm-story-collage mm-reveal mm-reveal--left">
+        {storyDetailImages.map(detail => <div className={`mm-story-collage__tile mm-story-collage__tile--${detail.position}`} key={detail.asset}>
+          <SourceImage asset={detail.asset} alt={detail.alt} loading="lazy" />
+        </div>)}
+        <div className="mm-story-collage__shirt">
+          <SourceImage asset="about-devatan-shirt" alt="Complete gold ceremonial groom shirt with hand-embroidered temple and elephant motifs" loading="eager" fetchPriority="high" />
+        </div>
+        <div className="mm-stack__badge"><CountUp value={12} suffix="+" /><span>Years of craft</span></div>
       </div>
       <div className="mm-reveal mm-reveal--right mm-prose">
         <span className="mm-eyebrow">Our Story</span>
@@ -151,7 +195,7 @@ export function MakingTimeline() {
             {step.externalSrc
               ? <img src={step.externalSrc} alt={step.alt} loading="lazy" decoding="async" style={step.objectPosition ? { objectPosition: step.objectPosition } : undefined} />
               : step.asset
-                ? <SourceImage asset={step.asset} alt={step.alt} responsive sizes="(max-width: 900px) 92vw, 520px" style={step.objectPosition ? { objectPosition: step.objectPosition } : undefined} />
+                ? <SourceImage asset={step.asset} alt={step.alt} responsive sizes="(max-width: 900px) 92vw, 520px" style={step.objectPosition || step.objectFit ? { objectPosition: step.objectPosition, objectFit: step.objectFit } : undefined} />
                 : null}
           </div>
           <div className="mm-mk__num" aria-hidden="true">{step.number}</div>

@@ -1,0 +1,43 @@
+/**
+ * MISTER MAPILLAI — pre-script shell.
+ *
+ * Linked from index.html, so the browser holds the first paint until these rules
+ * are in place. Everything the loader markup in index.html needs lives here, with
+ * literal values: the custom properties and fonts normally arrive with the main
+ * stylesheets, which `vite dev` delivers through JavaScript (so, without this file,
+ * the loader showed as unstyled logo + tagline in the top-left corner until the
+ * bundle had run). The React loader (components/layout/SiteLoader.tsx) renders the
+ * same markup and is styled by the same rules, so the hand-over is seamless.
+ */
+
+html,body{margin:0;background:#3a0811}
+html.mm-loading{overflow:hidden}
+
+/* ---------- initial loader ---------- */
+.mm-loader{position:fixed;inset:0;z-index:400;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;background:radial-gradient(ellipse at center,#5a0f1c 0%,#3a0811 62%,#24050b 100%);transition:opacity .7s ease,visibility .7s}
+.mm-loader.is-leaving{opacity:0;visibility:hidden;pointer-events:none}
+.mm-loader__emblem{position:relative;width:132px;height:132px;transition:transform .7s ease}
+.mm-loader.is-leaving .mm-loader__emblem{transform:scale(1.08)}
+.mm-loader__lottie{position:absolute;inset:0}
+/* Stand-in until Lottie arrives (and before any script runs): the same ring, in CSS. */
+.mm-loader__ring{position:absolute;inset:17px;border-radius:50%;border:1.2px solid rgba(201,162,77,.22);border-top-color:#c9a24d;animation:mmLoaderSpin 1.1s linear infinite}
+@keyframes mmLoaderSpin{to{transform:rotate(360deg)}}
+.mm-loader__brand{pointer-events:none}
+.mm-loader__tag{font-family:"Inter",system-ui,-apple-system,sans-serif;font-size:10px;font-weight:500;letter-spacing:4px;text-transform:uppercase;color:#c9a24d;opacity:.85}
+
+/* The brand lock-up inside the loader (same values as the shared .lock rules in original.css). */
+.mm-loader .lock{display:inline-flex;align-items:center;gap:12px;text-decoration:none;line-height:1}
+.mm-loader .lock .mono{font-family:"Cormorant Garamond",Georgia,serif;font-weight:300;font-size:46px;line-height:.8;padding-top:6px}
+.mm-loader .lock .bar{width:1px;height:36px;background:linear-gradient(#8e6a2e,#ebcb86,#8e6a2e)}
+.mm-loader .lock .words{display:flex;flex-direction:column;gap:5px}
+.mm-loader .lock .w1{font-family:"Josefin Sans","Futura","Century Gothic",sans-serif;font-weight:300;font-size:13px;letter-spacing:.62em;margin-right:-.62em}
+.mm-loader .lock .w1 sup{font-size:6px;letter-spacing:0;vertical-align:top;margin-left:-.5em}
+.mm-loader .lock .w2{font-family:"Josefin Sans","Futura","Century Gothic",sans-serif;font-weight:400;font-size:15px;letter-spacing:.2em}
+.mm-loader .gold-text{background:linear-gradient(100deg,#8e6a2e 0%,#d9b56c 28%,#f3d995 45%,#c9a35b 62%,#8e6a2e 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+@media (max-width:520px){
+  .mm-loader .lock .mono{font-size:38px}
+  .mm-loader .lock .bar{height:30px}
+  .mm-loader .lock .w1{font-size:11px}
+  .mm-loader .lock .w2{font-size:13px}
+}
+@media (prefers-reduced-motion:reduce){.mm-loader__ring{animation:none}.mm-loader,.mm-loader__emblem{transition:none}}

@@ -1,7 +1,6 @@
 import type { ImageKey } from './images';
 import { outfitById } from './outfits';
 import type { Outfit, OutfitFilter } from './outfits';
-import { journeyChapters } from '../sections/GroomJourney/journeyData';
 
 export interface SiteStat {
   value: number;
@@ -151,8 +150,8 @@ export const accessoryAddons: readonly AccessoryAddon[] = [
   { icon: 'mala', name: 'Mala' },
   { icon: 'cufflinks', name: 'Cufflinks' },
   { icon: 'footwear', name: 'Footwear' },
-  { icon: 'turban', name: 'Turban' },
-  { icon: 'stole', name: 'Stole' },
+  { icon: 'turban', name: "Groom's Trouser" },
+  { icon: 'stole', name: 'Embroidered Shirt' },
 ];
 
 export const craftHighlights: readonly string[] = [
@@ -161,23 +160,3 @@ export const craftHighlights: readonly string[] = [
   'Imported suiting from Italian mills',
   'Two trial fittings, every order',
 ];
-
-export interface MakingStep {
-  key: string;
-  title: string;
-  description: string;
-  image: ImageKey;
-  alt: string;
-}
-
-const makingImages: Record<string, { image: ImageKey; alt: string }> = {
-  Design: { image: 'moodboard', alt: 'Royal Procession wedding moodboard' },
-  Motifs: { image: 'motifs', alt: 'Temple, elephant and floral motif studies' },
-  Measure: { image: 'charcoal-wide', alt: 'Charcoal waistcoat suit, tailored to measure' },
-  Craft: { image: 'signature-shirt', alt: 'Hand-worked zari and aari on an ivory shirt' },
-  Fit: { image: 'ceremonial-shirt', alt: 'Complete ceremonial look with embroidered shirt, belt, trousers and oxfords' },
-};
-
-export const makingSteps: readonly MakingStep[] = journeyChapters
-  .filter(chapter => chapter.key in makingImages)
-  .map(chapter => ({ key: chapter.key, title: chapter.title, description: chapter.description, ...makingImages[chapter.key] }));
