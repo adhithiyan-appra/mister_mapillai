@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:http';
-import { readFileSync, existsSync, writeFileSync } from 'node:fs';
+import { readFileSync, existsSync, writeFileSync, rmSync } from 'node:fs';
 import { resolve, extname } from 'node:path';
 
 const projectDir = process.cwd();
@@ -62,6 +62,7 @@ const server = createServer((req, res) => {
 });
 
 let chrome;
+let chromeProfile;
 server.listen(port, '127.0.0.1', async () => {
   try {
     await run();
@@ -70,12 +71,18 @@ server.listen(port, '127.0.0.1', async () => {
     process.exitCode = 1;
   } finally {
     chrome?.kill();
+    if (chrome) await Promise.race([new Promise(resolve => chrome.once('exit', resolve)), sleep(2000)]);
+    if (chromeProfile) {
+      try { rmSync(chromeProfile, { recursive: true, force: true }); } catch {}
+    }
     server.close();
   }
 });
 
 async function run() {
-  chrome = spawn(chromePath, ['--headless=new', `--remote-debugging-port=${debugPort}`, '--disable-gpu', '--no-sandbox', '--disable-extensions', 'about:blank']);
+  chromeProfile = resolve(outDir, 'scratch', 'chrome-profile');
+  rmSync(chromeProfile, { recursive: true, force: true });
+  chrome = spawn(chromePath, ['--headless=new', `--remote-debugging-port=${debugPort}`, `--user-data-dir=${chromeProfile}`, '--disable-cache', '--disable-gpu', '--no-sandbox', '--disable-extensions', 'about:blank']);
   let version;
   for (let i = 0; i < 50; i++) {
     await sleep(200);

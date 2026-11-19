@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-19T11:56:51.768Z",
+  "generatedAt": "2026-11-19T12:23:09.332Z",
   "pages": [
     "home",
     "collections",
@@ -53,8 +53,8 @@
       "previewOpacity": "0"
     },
     "carousel": {
-      "before": 1,
-      "after": 2
+      "before": 0,
+      "after": 1
     },
     "trackOrder": {
       "viewport": {
@@ -313,22 +313,22 @@
         {
           "el": "a.mm-nav__link@mm-nav__links[Home]",
           "w": 44,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Collections]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[About Us]",
           "w": 77,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Track Order]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-btn.mm-btn--outline@mm-nav__links[Book Your Look]",
@@ -408,52 +408,52 @@
         {
           "el": "a[Home]",
           "w": 39,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Collections]",
           "w": 74,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[About Us]",
           "w": 61,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Track Order]",
           "w": 79,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Ceremony Styling]",
           "w": 118,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Book Your Look]",
           "w": 104,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[14, Kumaran Road]",
           "w": 119,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[+91 98765 00000]",
           "w": 118,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[WhatsApp]",
           "w": 69,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Instagram @mistermapillai]",
           "w": 175,
-          "h": 17
+          "h": 24
         }
       ],
       "menuButtonDisplay": "none",
@@ -487,22 +487,22 @@
         {
           "el": "a.mm-nav__link@mm-nav__links[Home]",
           "w": 44,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Collections]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[About Us]",
           "w": 77,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Track Order]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-btn.mm-btn--outline@mm-nav__links[Book Your Look]",
@@ -582,52 +582,52 @@
         {
           "el": "a[Home]",
           "w": 39,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Collections]",
           "w": 74,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[About Us]",
           "w": 61,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Track Order]",
           "w": 79,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Ceremony Styling]",
           "w": 118,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Book Your Look]",
           "w": 104,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[14, Kumaran Road]",
           "w": 119,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[+91 98765 00000]",
           "w": 118,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[WhatsApp]",
           "w": 69,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Instagram @mistermapillai]",
           "w": 175,
-          "h": 17
+          "h": 24
         }
       ],
       "menuButtonDisplay": "none",
@@ -661,22 +661,22 @@
         {
           "el": "a.mm-nav__link@mm-nav__links[Home]",
           "w": 44,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Collections]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[About Us]",
           "w": 77,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Track Order]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-btn.mm-btn--outline@mm-nav__links[Book Your Look]",
@@ -756,52 +756,52 @@
         {
           "el": "a[Home]",
           "w": 39,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Collections]",
           "w": 74,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[About Us]",
           "w": 61,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Track Order]",
           "w": 79,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Ceremony Styling]",
           "w": 118,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Book Your Look]",
           "w": 104,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[14, Kumaran Road]",
           "w": 119,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[+91 98765 00000]",
           "w": 118,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[WhatsApp]",
           "w": 69,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Instagram @mistermapillai]",
           "w": 175,
-          "h": 17
+          "h": 24
         }
       ],
       "menuButtonDisplay": "none",
@@ -835,22 +835,22 @@
         {
           "el": "a.mm-nav__link@mm-nav__links[Home]",
           "w": 44,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Collections]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[About Us]",
           "w": 77,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Track Order]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-btn.mm-btn--outline@mm-nav__links[Book Your Look]",
@@ -930,52 +930,52 @@
         {
           "el": "a[Home]",
           "w": 39,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Collections]",
           "w": 74,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[About Us]",
           "w": 61,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Track Order]",
           "w": 79,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Ceremony Styling]",
           "w": 118,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Book Your Look]",
           "w": 104,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[14, Kumaran Road]",
           "w": 119,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[+91 98765 00000]",
           "w": 118,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[WhatsApp]",
           "w": 69,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Instagram @mistermapillai]",
           "w": 175,
-          "h": 17
+          "h": 24
         }
       ],
       "menuButtonDisplay": "none",
@@ -1032,22 +1032,22 @@
         {
           "el": "a.mm-nav__link@mm-nav__links[Home]",
           "w": 44,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Collections]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[About Us]",
           "w": 77,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Track Order]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-btn.mm-btn--outline@mm-nav__links[Book Your Look]",
@@ -1127,52 +1127,52 @@
         {
           "el": "a[Home]",
           "w": 39,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Collections]",
           "w": 74,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[About Us]",
           "w": 61,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Track Order]",
           "w": 79,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Ceremony Styling]",
           "w": 118,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Book Your Look]",
           "w": 104,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[14, Kumaran Road]",
           "w": 119,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[+91 98765 00000]",
           "w": 118,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[WhatsApp]",
           "w": 69,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Instagram @mistermapillai]",
           "w": 175,
-          "h": 17
+          "h": 24
         }
       ],
       "menuButtonDisplay": "none",
@@ -1413,22 +1413,22 @@
         {
           "el": "a.mm-nav__link@mm-nav__links[Home]",
           "w": 44,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Collections]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[About Us]",
           "w": 77,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Track Order]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-btn.mm-btn--outline@mm-nav__links[Book Your Look]",
@@ -1587,22 +1587,22 @@
         {
           "el": "a.mm-nav__link@mm-nav__links[Home]",
           "w": 44,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Collections]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[About Us]",
           "w": 77,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Track Order]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-btn.mm-btn--outline@mm-nav__links[Book Your Look]",
@@ -1761,22 +1761,22 @@
         {
           "el": "a.mm-nav__link@mm-nav__links[Home]",
           "w": 44,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Collections]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[About Us]",
           "w": 77,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Track Order]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-btn.mm-btn--outline@mm-nav__links[Book Your Look]",
@@ -1935,22 +1935,22 @@
         {
           "el": "a.mm-nav__link@mm-nav__links[Home]",
           "w": 44,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Collections]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[About Us]",
           "w": 77,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Track Order]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-btn.mm-btn--outline@mm-nav__links[Book Your Look]",
@@ -2132,22 +2132,22 @@
         {
           "el": "a.mm-nav__link@mm-nav__links[Home]",
           "w": 44,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Collections]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[About Us]",
           "w": 77,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Track Order]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-btn.mm-btn--outline@mm-nav__links[Book Your Look]",
@@ -2513,22 +2513,22 @@
         {
           "el": "a.mm-nav__link@mm-nav__links[Home]",
           "w": 44,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Collections]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[About Us]",
           "w": 77,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Track Order]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-btn.mm-btn--outline@mm-nav__links[Book Your Look]",
@@ -2553,57 +2553,57 @@
         {
           "el": "a[Home]",
           "w": 39,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Collections]",
           "w": 74,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[About Us]",
           "w": 61,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Track Order]",
           "w": 79,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Ceremony Styling]",
           "w": 118,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Book Your Look]",
           "w": 104,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[14, Kumaran Road]",
           "w": 119,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[+91 98765 00000]",
           "w": 118,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[WhatsApp]",
           "w": 69,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Instagram @mistermapillai]",
           "w": 175,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[hello@mistermapillai.com]",
           "w": 169,
-          "h": 17
+          "h": 24
         }
       ],
       "menuButtonDisplay": "none",
@@ -2637,22 +2637,22 @@
         {
           "el": "a.mm-nav__link@mm-nav__links[Home]",
           "w": 44,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Collections]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[About Us]",
           "w": 77,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Track Order]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-btn.mm-btn--outline@mm-nav__links[Book Your Look]",
@@ -2677,57 +2677,57 @@
         {
           "el": "a[Home]",
           "w": 39,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Collections]",
           "w": 74,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[About Us]",
           "w": 61,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Track Order]",
           "w": 79,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Ceremony Styling]",
           "w": 118,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Book Your Look]",
           "w": 104,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[14, Kumaran Road]",
           "w": 119,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[+91 98765 00000]",
           "w": 118,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[WhatsApp]",
           "w": 69,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Instagram @mistermapillai]",
           "w": 175,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[hello@mistermapillai.com]",
           "w": 169,
-          "h": 17
+          "h": 24
         }
       ],
       "menuButtonDisplay": "none",
@@ -2761,22 +2761,22 @@
         {
           "el": "a.mm-nav__link@mm-nav__links[Home]",
           "w": 44,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Collections]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[About Us]",
           "w": 77,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Track Order]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-btn.mm-btn--outline@mm-nav__links[Book Your Look]",
@@ -2801,57 +2801,57 @@
         {
           "el": "a[Home]",
           "w": 39,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Collections]",
           "w": 74,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[About Us]",
           "w": 61,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Track Order]",
           "w": 79,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Ceremony Styling]",
           "w": 118,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Book Your Look]",
           "w": 104,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[14, Kumaran Road]",
           "w": 119,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[+91 98765 00000]",
           "w": 118,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[WhatsApp]",
           "w": 69,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Instagram @mistermapillai]",
           "w": 175,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[hello@mistermapillai.com]",
           "w": 169,
-          "h": 17
+          "h": 24
         }
       ],
       "menuButtonDisplay": "none",
@@ -2885,22 +2885,22 @@
         {
           "el": "a.mm-nav__link@mm-nav__links[Home]",
           "w": 44,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Collections]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[About Us]",
           "w": 77,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Track Order]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-btn.mm-btn--outline@mm-nav__links[Book Your Look]",
@@ -2925,57 +2925,57 @@
         {
           "el": "a[Home]",
           "w": 39,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Collections]",
           "w": 74,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[About Us]",
           "w": 61,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Track Order]",
           "w": 79,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Ceremony Styling]",
           "w": 118,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Book Your Look]",
           "w": 104,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[14, Kumaran Road]",
           "w": 119,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[+91 98765 00000]",
           "w": 118,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[WhatsApp]",
           "w": 69,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Instagram @mistermapillai]",
           "w": 175,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[hello@mistermapillai.com]",
           "w": 169,
-          "h": 17
+          "h": 24
         }
       ],
       "menuButtonDisplay": "none",
@@ -3032,22 +3032,22 @@
         {
           "el": "a.mm-nav__link@mm-nav__links[Home]",
           "w": 44,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Collections]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[About Us]",
           "w": 77,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Track Order]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-btn.mm-btn--outline@mm-nav__links[Book Your Look]",
@@ -3072,57 +3072,57 @@
         {
           "el": "a[Home]",
           "w": 39,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Collections]",
           "w": 74,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[About Us]",
           "w": 61,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Track Order]",
           "w": 79,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Ceremony Styling]",
           "w": 118,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Book Your Look]",
           "w": 104,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[14, Kumaran Road]",
           "w": 119,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[+91 98765 00000]",
           "w": 118,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[WhatsApp]",
           "w": 69,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Instagram @mistermapillai]",
           "w": 175,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[hello@mistermapillai.com]",
           "w": 169,
-          "h": 17
+          "h": 24
         }
       ],
       "menuButtonDisplay": "none",
@@ -3363,22 +3363,22 @@
         {
           "el": "a.mm-nav__link@mm-nav__links[Home]",
           "w": 44,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Collections]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[About Us]",
           "w": 77,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Track Order]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-btn.mm-btn--outline@mm-nav__links[Book Your Look]",
@@ -3393,57 +3393,57 @@
         {
           "el": "a[Home]",
           "w": 39,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Collections]",
           "w": 74,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[About Us]",
           "w": 61,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Track Order]",
           "w": 79,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Ceremony Styling]",
           "w": 118,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Book Your Look]",
           "w": 104,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[14, Kumaran Road]",
           "w": 119,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[+91 98765 00000]",
           "w": 118,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[WhatsApp]",
           "w": 69,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Instagram @mistermapillai]",
           "w": 175,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[hello@mistermapillai.com]",
           "w": 169,
-          "h": 17
+          "h": 24
         }
       ],
       "menuButtonDisplay": "none",
@@ -3477,22 +3477,22 @@
         {
           "el": "a.mm-nav__link@mm-nav__links[Home]",
           "w": 44,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Collections]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[About Us]",
           "w": 77,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Track Order]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-btn.mm-btn--outline@mm-nav__links[Book Your Look]",
@@ -3507,57 +3507,57 @@
         {
           "el": "a[Home]",
           "w": 39,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Collections]",
           "w": 74,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[About Us]",
           "w": 61,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Track Order]",
           "w": 79,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Ceremony Styling]",
           "w": 118,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Book Your Look]",
           "w": 104,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[14, Kumaran Road]",
           "w": 119,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[+91 98765 00000]",
           "w": 118,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[WhatsApp]",
           "w": 69,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Instagram @mistermapillai]",
           "w": 175,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[hello@mistermapillai.com]",
           "w": 169,
-          "h": 17
+          "h": 24
         }
       ],
       "menuButtonDisplay": "none",
@@ -3591,22 +3591,22 @@
         {
           "el": "a.mm-nav__link@mm-nav__links[Home]",
           "w": 44,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Collections]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[About Us]",
           "w": 77,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Track Order]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-btn.mm-btn--outline@mm-nav__links[Book Your Look]",
@@ -3621,57 +3621,57 @@
         {
           "el": "a[Home]",
           "w": 39,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Collections]",
           "w": 74,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[About Us]",
           "w": 61,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Track Order]",
           "w": 79,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Ceremony Styling]",
           "w": 118,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Book Your Look]",
           "w": 104,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[14, Kumaran Road]",
           "w": 119,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[+91 98765 00000]",
           "w": 118,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[WhatsApp]",
           "w": 69,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Instagram @mistermapillai]",
           "w": 175,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[hello@mistermapillai.com]",
           "w": 169,
-          "h": 17
+          "h": 24
         }
       ],
       "menuButtonDisplay": "none",
@@ -3705,22 +3705,22 @@
         {
           "el": "a.mm-nav__link@mm-nav__links[Home]",
           "w": 44,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Collections]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[About Us]",
           "w": 77,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Track Order]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-btn.mm-btn--outline@mm-nav__links[Book Your Look]",
@@ -3735,57 +3735,57 @@
         {
           "el": "a[Home]",
           "w": 39,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Collections]",
           "w": 74,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[About Us]",
           "w": 61,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Track Order]",
           "w": 79,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Ceremony Styling]",
           "w": 118,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Book Your Look]",
           "w": 104,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[14, Kumaran Road]",
           "w": 119,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[+91 98765 00000]",
           "w": 118,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[WhatsApp]",
           "w": 69,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Instagram @mistermapillai]",
           "w": 175,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[hello@mistermapillai.com]",
           "w": 169,
-          "h": 17
+          "h": 24
         }
       ],
       "menuButtonDisplay": "none",
@@ -3842,22 +3842,22 @@
         {
           "el": "a.mm-nav__link@mm-nav__links[Home]",
           "w": 44,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Collections]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[About Us]",
           "w": 77,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Track Order]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-btn.mm-btn--outline@mm-nav__links[Book Your Look]",
@@ -3872,57 +3872,57 @@
         {
           "el": "a[Home]",
           "w": 39,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Collections]",
           "w": 74,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[About Us]",
           "w": 61,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Track Order]",
           "w": 79,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Ceremony Styling]",
           "w": 118,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Book Your Look]",
           "w": 104,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[14, Kumaran Road]",
           "w": 119,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[+91 98765 00000]",
           "w": 118,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[WhatsApp]",
           "w": 69,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Instagram @mistermapillai]",
           "w": 175,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[hello@mistermapillai.com]",
           "w": 169,
-          "h": 17
+          "h": 24
         }
       ],
       "menuButtonDisplay": "none",
@@ -4163,22 +4163,22 @@
         {
           "el": "a.mm-nav__link@mm-nav__links[Home]",
           "w": 44,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Collections]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[About Us]",
           "w": 77,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Track Order]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-btn.mm-btn--outline@mm-nav__links[Book Your Look]",
@@ -4188,12 +4188,12 @@
         {
           "el": "button.mm-track-sample@mm-track-hint[MM-2611-0042]",
           "w": 97,
-          "h": 22
+          "h": 24
         },
         {
           "el": "button.mm-track-sample@mm-track-hint[9876543210]",
           "w": 79,
-          "h": 22
+          "h": 24
         },
         {
           "el": "a.lock@mm-foot__brand[Mister Mapillai home]",
@@ -4203,57 +4203,57 @@
         {
           "el": "a[Home]",
           "w": 39,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Collections]",
           "w": 74,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[About Us]",
           "w": 61,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Track Order]",
           "w": 79,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Ceremony Styling]",
           "w": 118,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Book Your Look]",
           "w": 104,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[14, Kumaran Road]",
           "w": 119,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[+91 98765 00000]",
           "w": 118,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[WhatsApp]",
           "w": 69,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Instagram @mistermapillai]",
           "w": 175,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[hello@mistermapillai.com]",
           "w": 169,
-          "h": 17
+          "h": 24
         }
       ],
       "menuButtonDisplay": "none",
@@ -4287,22 +4287,22 @@
         {
           "el": "a.mm-nav__link@mm-nav__links[Home]",
           "w": 44,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Collections]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[About Us]",
           "w": 77,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Track Order]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-btn.mm-btn--outline@mm-nav__links[Book Your Look]",
@@ -4312,12 +4312,12 @@
         {
           "el": "button.mm-track-sample@mm-track-hint[MM-2611-0042]",
           "w": 97,
-          "h": 22
+          "h": 24
         },
         {
           "el": "button.mm-track-sample@mm-track-hint[9876543210]",
           "w": 79,
-          "h": 22
+          "h": 24
         },
         {
           "el": "a.lock@mm-foot__brand[Mister Mapillai home]",
@@ -4327,57 +4327,57 @@
         {
           "el": "a[Home]",
           "w": 39,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Collections]",
           "w": 74,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[About Us]",
           "w": 61,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Track Order]",
           "w": 79,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Ceremony Styling]",
           "w": 118,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Book Your Look]",
           "w": 104,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[14, Kumaran Road]",
           "w": 119,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[+91 98765 00000]",
           "w": 118,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[WhatsApp]",
           "w": 69,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Instagram @mistermapillai]",
           "w": 175,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[hello@mistermapillai.com]",
           "w": 169,
-          "h": 17
+          "h": 24
         }
       ],
       "menuButtonDisplay": "none",
@@ -4411,22 +4411,22 @@
         {
           "el": "a.mm-nav__link@mm-nav__links[Home]",
           "w": 44,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Collections]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[About Us]",
           "w": 77,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Track Order]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-btn.mm-btn--outline@mm-nav__links[Book Your Look]",
@@ -4436,12 +4436,12 @@
         {
           "el": "button.mm-track-sample@mm-track-hint[MM-2611-0042]",
           "w": 97,
-          "h": 22
+          "h": 24
         },
         {
           "el": "button.mm-track-sample@mm-track-hint[9876543210]",
           "w": 79,
-          "h": 22
+          "h": 24
         },
         {
           "el": "a.lock@mm-foot__brand[Mister Mapillai home]",
@@ -4451,57 +4451,57 @@
         {
           "el": "a[Home]",
           "w": 39,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Collections]",
           "w": 74,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[About Us]",
           "w": 61,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Track Order]",
           "w": 79,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Ceremony Styling]",
           "w": 118,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Book Your Look]",
           "w": 104,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[14, Kumaran Road]",
           "w": 119,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[+91 98765 00000]",
           "w": 118,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[WhatsApp]",
           "w": 69,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Instagram @mistermapillai]",
           "w": 175,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[hello@mistermapillai.com]",
           "w": 169,
-          "h": 17
+          "h": 24
         }
       ],
       "menuButtonDisplay": "none",
@@ -4535,22 +4535,22 @@
         {
           "el": "a.mm-nav__link@mm-nav__links[Home]",
           "w": 44,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Collections]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[About Us]",
           "w": 77,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Track Order]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-btn.mm-btn--outline@mm-nav__links[Book Your Look]",
@@ -4560,12 +4560,12 @@
         {
           "el": "button.mm-track-sample@mm-track-hint[MM-2611-0042]",
           "w": 97,
-          "h": 22
+          "h": 24
         },
         {
           "el": "button.mm-track-sample@mm-track-hint[9876543210]",
           "w": 79,
-          "h": 22
+          "h": 24
         },
         {
           "el": "a.lock@mm-foot__brand[Mister Mapillai home]",
@@ -4575,57 +4575,57 @@
         {
           "el": "a[Home]",
           "w": 39,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Collections]",
           "w": 74,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[About Us]",
           "w": 61,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Track Order]",
           "w": 79,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Ceremony Styling]",
           "w": 118,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Book Your Look]",
           "w": 104,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[14, Kumaran Road]",
           "w": 119,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[+91 98765 00000]",
           "w": 118,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[WhatsApp]",
           "w": 69,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Instagram @mistermapillai]",
           "w": 175,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[hello@mistermapillai.com]",
           "w": 169,
-          "h": 17
+          "h": 24
         }
       ],
       "menuButtonDisplay": "none",
@@ -4682,22 +4682,22 @@
         {
           "el": "a.mm-nav__link@mm-nav__links[Home]",
           "w": 44,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Collections]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[About Us]",
           "w": 77,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Track Order]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-btn.mm-btn--outline@mm-nav__links[Book Your Look]",
@@ -4707,12 +4707,12 @@
         {
           "el": "button.mm-track-sample@mm-track-hint[MM-2611-0042]",
           "w": 97,
-          "h": 22
+          "h": 24
         },
         {
           "el": "button.mm-track-sample@mm-track-hint[9876543210]",
           "w": 79,
-          "h": 22
+          "h": 24
         },
         {
           "el": "a.lock@mm-foot__brand[Mister Mapillai home]",
@@ -4722,57 +4722,57 @@
         {
           "el": "a[Home]",
           "w": 39,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Collections]",
           "w": 74,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[About Us]",
           "w": 61,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Track Order]",
           "w": 79,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Ceremony Styling]",
           "w": 118,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Book Your Look]",
           "w": 104,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[14, Kumaran Road]",
           "w": 119,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[+91 98765 00000]",
           "w": 118,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[WhatsApp]",
           "w": 69,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Instagram @mistermapillai]",
           "w": 175,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[hello@mistermapillai.com]",
           "w": 169,
-          "h": 17
+          "h": 24
         }
       ],
       "menuButtonDisplay": "none",
@@ -5013,22 +5013,22 @@
         {
           "el": "a.mm-nav__link@mm-nav__links[Home]",
           "w": 44,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Collections]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[About Us]",
           "w": 77,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Track Order]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-btn.mm-btn--outline@mm-nav__links[Book Your Look]",
@@ -5078,57 +5078,57 @@
         {
           "el": "a[Home]",
           "w": 39,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Collections]",
           "w": 74,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[About Us]",
           "w": 61,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Track Order]",
           "w": 79,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Ceremony Styling]",
           "w": 118,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Book Your Look]",
           "w": 104,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[14, Kumaran Road]",
           "w": 119,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[+91 98765 00000]",
           "w": 118,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[WhatsApp]",
           "w": 69,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Instagram @mistermapillai]",
           "w": 175,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[hello@mistermapillai.com]",
           "w": 169,
-          "h": 17
+          "h": 24
         }
       ],
       "menuButtonDisplay": "none",
@@ -5162,22 +5162,22 @@
         {
           "el": "a.mm-nav__link@mm-nav__links[Home]",
           "w": 44,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Collections]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[About Us]",
           "w": 77,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Track Order]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-btn.mm-btn--outline@mm-nav__links[Book Your Look]",
@@ -5227,57 +5227,57 @@
         {
           "el": "a[Home]",
           "w": 39,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Collections]",
           "w": 74,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[About Us]",
           "w": 61,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Track Order]",
           "w": 79,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Ceremony Styling]",
           "w": 118,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Book Your Look]",
           "w": 104,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[14, Kumaran Road]",
           "w": 119,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[+91 98765 00000]",
           "w": 118,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[WhatsApp]",
           "w": 69,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Instagram @mistermapillai]",
           "w": 175,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[hello@mistermapillai.com]",
           "w": 169,
-          "h": 17
+          "h": 24
         }
       ],
       "menuButtonDisplay": "none",
@@ -5311,22 +5311,22 @@
         {
           "el": "a.mm-nav__link@mm-nav__links[Home]",
           "w": 44,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Collections]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[About Us]",
           "w": 77,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Track Order]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-btn.mm-btn--outline@mm-nav__links[Book Your Look]",
@@ -5376,57 +5376,57 @@
         {
           "el": "a[Home]",
           "w": 39,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Collections]",
           "w": 74,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[About Us]",
           "w": 61,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Track Order]",
           "w": 79,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Ceremony Styling]",
           "w": 118,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Book Your Look]",
           "w": 104,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[14, Kumaran Road]",
           "w": 119,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[+91 98765 00000]",
           "w": 118,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[WhatsApp]",
           "w": 69,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Instagram @mistermapillai]",
           "w": 175,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[hello@mistermapillai.com]",
           "w": 169,
-          "h": 17
+          "h": 24
         }
       ],
       "menuButtonDisplay": "none",
@@ -5460,22 +5460,22 @@
         {
           "el": "a.mm-nav__link@mm-nav__links[Home]",
           "w": 44,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Collections]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[About Us]",
           "w": 77,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Track Order]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-btn.mm-btn--outline@mm-nav__links[Book Your Look]",
@@ -5525,57 +5525,57 @@
         {
           "el": "a[Home]",
           "w": 39,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Collections]",
           "w": 74,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[About Us]",
           "w": 61,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Track Order]",
           "w": 79,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Ceremony Styling]",
           "w": 118,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Book Your Look]",
           "w": 104,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[14, Kumaran Road]",
           "w": 119,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[+91 98765 00000]",
           "w": 118,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[WhatsApp]",
           "w": 69,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Instagram @mistermapillai]",
           "w": 175,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[hello@mistermapillai.com]",
           "w": 169,
-          "h": 17
+          "h": 24
         }
       ],
       "menuButtonDisplay": "none",
@@ -5632,22 +5632,22 @@
         {
           "el": "a.mm-nav__link@mm-nav__links[Home]",
           "w": 44,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Collections]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[About Us]",
           "w": 77,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Track Order]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-btn.mm-btn--outline@mm-nav__links[Book Your Look]",
@@ -5697,57 +5697,57 @@
         {
           "el": "a[Home]",
           "w": 39,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Collections]",
           "w": 74,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[About Us]",
           "w": 61,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Track Order]",
           "w": 79,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Ceremony Styling]",
           "w": 118,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Book Your Look]",
           "w": 104,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[14, Kumaran Road]",
           "w": 119,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[+91 98765 00000]",
           "w": 118,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[WhatsApp]",
           "w": 69,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Instagram @mistermapillai]",
           "w": 175,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[hello@mistermapillai.com]",
           "w": 169,
-          "h": 17
+          "h": 24
         }
       ],
       "menuButtonDisplay": "none",
@@ -5988,22 +5988,22 @@
         {
           "el": "a.mm-nav__link@mm-nav__links[Home]",
           "w": 44,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Collections]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[About Us]",
           "w": 77,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Track Order]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-btn.mm-btn--outline@mm-nav__links[Book Your Look]",
@@ -6018,57 +6018,57 @@
         {
           "el": "a[Home]",
           "w": 39,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Collections]",
           "w": 74,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[About Us]",
           "w": 61,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Track Order]",
           "w": 79,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Ceremony Styling]",
           "w": 118,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Book Your Look]",
           "w": 104,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[14, Kumaran Road]",
           "w": 119,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[+91 98765 00000]",
           "w": 118,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[WhatsApp]",
           "w": 69,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Instagram @mistermapillai]",
           "w": 175,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[hello@mistermapillai.com]",
           "w": 169,
-          "h": 17
+          "h": 24
         }
       ],
       "menuButtonDisplay": "none",
@@ -6102,22 +6102,22 @@
         {
           "el": "a.mm-nav__link@mm-nav__links[Home]",
           "w": 44,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Collections]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[About Us]",
           "w": 77,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Track Order]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-btn.mm-btn--outline@mm-nav__links[Book Your Look]",
@@ -6132,57 +6132,57 @@
         {
           "el": "a[Home]",
           "w": 39,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Collections]",
           "w": 74,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[About Us]",
           "w": 61,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Track Order]",
           "w": 79,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Ceremony Styling]",
           "w": 118,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Book Your Look]",
           "w": 104,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[14, Kumaran Road]",
           "w": 119,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[+91 98765 00000]",
           "w": 118,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[WhatsApp]",
           "w": 69,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Instagram @mistermapillai]",
           "w": 175,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[hello@mistermapillai.com]",
           "w": 169,
-          "h": 17
+          "h": 24
         }
       ],
       "menuButtonDisplay": "none",
@@ -6216,22 +6216,22 @@
         {
           "el": "a.mm-nav__link@mm-nav__links[Home]",
           "w": 44,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Collections]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[About Us]",
           "w": 77,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Track Order]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-btn.mm-btn--outline@mm-nav__links[Book Your Look]",
@@ -6246,57 +6246,57 @@
         {
           "el": "a[Home]",
           "w": 39,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Collections]",
           "w": 74,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[About Us]",
           "w": 61,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Track Order]",
           "w": 79,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Ceremony Styling]",
           "w": 118,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Book Your Look]",
           "w": 104,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[14, Kumaran Road]",
           "w": 119,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[+91 98765 00000]",
           "w": 118,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[WhatsApp]",
           "w": 69,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Instagram @mistermapillai]",
           "w": 175,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[hello@mistermapillai.com]",
           "w": 169,
-          "h": 17
+          "h": 24
         }
       ],
       "menuButtonDisplay": "none",
@@ -6330,22 +6330,22 @@
         {
           "el": "a.mm-nav__link@mm-nav__links[Home]",
           "w": 44,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Collections]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[About Us]",
           "w": 77,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Track Order]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-btn.mm-btn--outline@mm-nav__links[Book Your Look]",
@@ -6360,57 +6360,57 @@
         {
           "el": "a[Home]",
           "w": 39,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Collections]",
           "w": 74,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[About Us]",
           "w": 61,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Track Order]",
           "w": 79,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Ceremony Styling]",
           "w": 118,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Book Your Look]",
           "w": 104,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[14, Kumaran Road]",
           "w": 119,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[+91 98765 00000]",
           "w": 118,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[WhatsApp]",
           "w": 69,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Instagram @mistermapillai]",
           "w": 175,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[hello@mistermapillai.com]",
           "w": 169,
-          "h": 17
+          "h": 24
         }
       ],
       "menuButtonDisplay": "none",
@@ -6467,22 +6467,22 @@
         {
           "el": "a.mm-nav__link@mm-nav__links[Home]",
           "w": 44,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Collections]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[About Us]",
           "w": 77,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-nav__link@mm-nav__links[Track Order]",
           "w": 104,
-          "h": 20
+          "h": 24
         },
         {
           "el": "a.mm-btn.mm-btn--outline@mm-nav__links[Book Your Look]",
@@ -6497,57 +6497,57 @@
         {
           "el": "a[Home]",
           "w": 39,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Collections]",
           "w": 74,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[About Us]",
           "w": 61,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Track Order]",
           "w": 79,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Ceremony Styling]",
           "w": 118,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Book Your Look]",
           "w": 104,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[14, Kumaran Road]",
           "w": 119,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[+91 98765 00000]",
           "w": 118,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[WhatsApp]",
           "w": 69,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[Instagram @mistermapillai]",
           "w": 175,
-          "h": 17
+          "h": 24
         },
         {
           "el": "a[hello@mistermapillai.com]",
           "w": 169,
-          "h": 17
+          "h": 24
         }
       ],
       "menuButtonDisplay": "none",

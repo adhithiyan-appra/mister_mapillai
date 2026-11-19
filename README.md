@@ -51,16 +51,11 @@ The compiled, minified production assets are emitted into `dist/`. The output is
 mister_mappilai/
 ├── public/                       # Static web assets (favicon, robots.txt, sitemap.xml, site.webmanifest)
 ├── src/                          # Application source code
-│   ├── assets/                   # Raw & optimized media assets
+│   ├── assets/                   # Media assets, organised by where the site uses them (docs/ASSET_GUIDE.md)
+│   │   ├── animations/           # hero-frames/ (web/ runtime WebP, source/ master PNG) and lottie/ (loader)
+│   │   ├── brand/logos/          # Official vector seal emblem (seal.svg)
 │   │   ├── fonts/                # Self-hosted WOFF2 fonts (serif/ and sans-serif/)
-│   │   ├── hero_frames/          # Master source PNG frames (reference)
-│   │   ├── hero_frames_web/      # Optimized 1920×1088 WebP frames for hero sequence
-│   │   ├── images/               # Collection & ceremony photography
-│   │   ├── about/                # Artisanal embroidery details & Devatan gold shirt
-│   │   ├── detail/               # Accessory cut-outs, swatches & orbit assets
-│   │   ├── our_works/            # Real groom lookbook photographs
-│   │   ├── logo/                 # Official vector seal emblem (seal.svg)
-│   │   └── lottie/               # Entrance loader motion graphic (mm-loader.json)
+│   │   └── images/               # collections/, home/, about/, real-grooms/, testimonials/, accessories/, shared/
 │   ├── components/               # Modular presentation & layout components
 │   │   ├── common/               # Shared UI elements (BrandLogo, CountUp, Lightbox, etc.)
 │   │   ├── layout/               # Header/Navbar, Footer, SiteLoader, SiteEffects
@@ -127,10 +122,10 @@ VITE_CONTACT_HOURS=Mon – Sun · 10 AM – 9 PM
 
 ## 6. Hero Frame Sequence System
 
-The home page hero features a high-performance scroll-driven sequence of 192 frames (1920×1088):
+The home page hero features a high-performance scroll-driven sequence of 201 frames (1920×1088):
 
-1. **Source Frames**: 192 master PNG frames stored in `src/assets/hero_frames/`.
-2. **Web Encoding**: `python scripts/build-hero-frames.py` generates full-resolution WebP frames in `src/assets/hero_frames_web/` with verifiable PSNR (>41.5 dB).
+1. **Source Frames**: 201 master PNG frames stored in `src/assets/animations/hero-frames/source/`.
+2. **Web Encoding**: `python scripts/build-hero-frames.py` generates full-resolution WebP frames in `src/assets/animations/hero-frames/web/` with verifiable PSNR (>41.5 dB).
 3. **OffscreenCanvas Worker**: `src/sections/Home/frameRenderer.worker.ts` handles fetching, off-thread `createImageBitmap` decoding, and 60fps canvas drawing without blocking the main React thread.
 4. **Vite HTML Transform**: `vite.config.ts` injects a dynamic `<link rel="preload" as="image" fetchpriority="high">` tag for `frame-001.webp` on the root route, eliminating render delays on initial visit.
 5. **Reduced Motion**: Respects `prefers-reduced-motion` by disabling pinning and sequence downloads, presenting a static hero poster.

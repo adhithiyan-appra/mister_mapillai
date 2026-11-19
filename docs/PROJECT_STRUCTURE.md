@@ -17,18 +17,11 @@ mister_mappilai/
 │   └── site.webmanifest          # PWA / browser configuration
 │
 ├── src/                          # Application source code
-│   ├── assets/                   # Raw & processed visual assets
-│   │   ├── fonts/                # Self-hosted WOFF2 web fonts
-│   │   │   ├── serif/            # Cormorant Garamond font weights & styles
-│   │   │   └── sans-serif/       # Inter Variable & Josefin Sans font files
-│   │   ├── hero_frames/          # Original high-res PNG sequence (reference)
-│   │   ├── hero_frames_web/      # Optimized WebP 1920×1088 runtime frames (001–192)
-│   │   ├── images/               # Production ceremony & collection imagery
-│   │   ├── about/                # Artisanal embroidery details & golden shirt
-│   │   ├── detail/               # Accessory cut-outs, swatches & orbit assets
-│   │   ├── our_works/            # Curated groom lookbook photography
-│   │   ├── logo/                 # Vector brand emblems (seal.svg)
-│   │   └── lottie/               # Lottie motion graphics (mm-loader.json)
+│   ├── assets/                   # Visual assets, organised by where the site uses them (see docs/ASSET_GUIDE.md)
+│   │   ├── animations/           # hero-frames/ (web/ runtime WebP, source/ master PNG) and lottie/ (loader)
+│   │   ├── brand/logos/          # Brand seal emblem (seal.svg)
+│   │   ├── fonts/                # Self-hosted WOFF2 web fonts (serif/, sans-serif/)
+│   │   └── images/               # collections/, home/, about/, real-grooms/, testimonials/, accessories/, shared/
 │   │
 │   ├── components/               # Modular React UI components
 │   │   ├── common/               # Shared presentation components (SectionHeading, Lightbox, etc.)
@@ -119,14 +112,16 @@ mister_mappilai/
 Contains static web files served at the root URL path (`/`). Used for search engine discovery (`robots.txt`, `sitemap.xml`), browser icons (`favicon.svg`, `seal.svg`), and application manifest (`site.webmanifest`). Files here are never hashed or bundled by Vite.
 
 ### 2. `src/assets/`
-The primary visual asset repository. Assets are categorized strictly by purpose:
-- **`fonts/`**: Organized into `serif/` and `sans-serif/` subfolders containing self-hosted `.woff2` files.
-- **`hero_frames_web/`**: 192 full-resolution (1920×1088) WebP sequence frames indexed `frame-001.webp` through `frame-192.webp`.
-- **`about/`**: Golden embroidered shirt (`devatan-shirt.webp`) and craftsmanship detail swatches (`detail-0.webp`–`detail-4.webp`).
-- **`detail/orbit/`**: Cut-outs of accessories (brooch, watch, pocket-square, cufflinks, footwear).
-- **`images/`**: High-fidelity collection items, ceremony before/after pairs, and groom portraits.
-- **`logo/`**: Vector brand emblem (`seal.svg`).
-- **`lottie/`**: Vector motion graphics (`mm-loader.json`).
+The primary visual asset repository, organised by where the website uses each file. The full tree, naming rules, how to add assets and the file-by-file inventory are in `docs/ASSET_GUIDE.md` and `docs/asset-inventory.csv`.
+- **`animations/hero-frames/web/`**: the 201 runtime hero frames (1920×1088 WebP), `frame-001.webp` … `frame-201.webp`; `source/` holds the master PNGs.
+- **`animations/lottie/`**: the loader animation (`mm-loader.json`).
+- **`brand/logos/`**: vector brand emblem (`seal.svg`).
+- **`fonts/`**: `serif/` and `sans-serif/` subfolders of self-hosted `.woff2` files.
+- **`images/collections/`**: the 13 signature looks (`looks/`) and their wide crops (`wide/`).
+- **`images/home/before-after/`**: the "before" images of the Before & After slider.
+- **`images/about/`**: the Our Story collage (`our-story/`) and the How We Make step images (`how-we-make/`).
+- **`images/real-grooms/`**: the Real Grooms gallery (`gallery/`) and the Mr. Gowtham case study (`happy-groom-story/`).
+- **`images/testimonials/`**, **`images/accessories/`** (orbit cut-outs and originals), **`images/shared/`** (assets used by several sections).
 
 ### 3. `src/components/`
 Modular, reusable React components split into clear responsibilities:
