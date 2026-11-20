@@ -93,6 +93,7 @@ mister_mappilai/
 │
 ├── scripts/                      # Developer tooling & build automation
 │   ├── build-hero-frames.py      # Encodes source frames to WebP with PSNR verification
+│   ├── convert-lossless-webp.py  # PNG originals -> verified lossless WebP (+ right-sized renditions)
 │   ├── extract-assets.ts         # Asset extraction and categorization tool
 │   ├── image-metadata.ts         # Automated intrinsic image dimension extractor
 │   └── verify-site.mjs           # E2E validation script
@@ -120,7 +121,7 @@ The primary visual asset repository, organised by where the website uses each fi
 - **`images/collections/`**: the 13 signature looks (`looks/`) and their wide crops (`wide/`).
 - **`images/home/before-after/`**: the "before" images of the Before & After slider.
 - **`images/about/`**: the Our Story collage (`our-story/`) and the How We Make step images (`how-we-make/`).
-- **`images/real-grooms/`**: the Real Grooms gallery as lossless WebP (`webp/`, what the site loads) with its PNG originals (`gallery/`, masters), and the Mr. Gowtham case study (`happy-groom-story/`).
+- **`images/real-grooms/`**: the Real Grooms gallery as lossless WebP (`webp/`, with 640 px renditions in `webp/sm/`; what the site loads) with its PNG originals (`gallery/`, masters), and the Mr. Gowtham case study (`happy-groom-story/`).
 - **`images/testimonials/`**, **`images/accessories/`** (orbit cut-outs and originals), **`images/shared/`** (assets used by several sections).
 
 ### 3. `src/components/`

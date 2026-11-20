@@ -73,7 +73,7 @@ export function StylingOrbit() {
     </div>
     <div className="mm-orbit mm-reveal mm-reveal--zoom" ref={orbitRef}>
       <div className="mm-orbit__path" aria-hidden="true" />
-      <div className="mm-orbit__center"><SourceImage asset="orbit-groom" alt="Complete ceremonial look: embroidered shirt, gold-buckle belt, black trousers and oxfords" /></div>
+      <div className="mm-orbit__center"><SourceImage asset="orbit-groom" alt="Complete ceremonial look: embroidered shirt, gold-buckle belt, black trousers and oxfords" loading="lazy" responsive sizes="(max-width: 900px) 168px, 227px" /></div>
       <ul className="mm-orbit__ring" aria-label="Head-to-toe accessories">
         {accessoryAddons.map((item, i) => {
           const asset = accessoryImages[item.icon];

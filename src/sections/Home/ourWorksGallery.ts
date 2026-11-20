@@ -2,6 +2,10 @@ export interface OurWorkImage {
   id: string;
   filename: string;
   src: string;
+  /** Lossless 640 px wide rendition of the same photograph (webp/sm), for cards and avatars that show it small. */
+  smallSrc?: string;
+  /** `smallSrc 640w, src <full>w`, when a rendition exists and the full width is known. */
+  srcSet?: string;
   title: string;
   caption: string;
   /** Initial fallback ratio before img.onLoad reports natural dimensions. */
@@ -38,7 +42,7 @@ const VALID_IMAGE_PATTERN = /\.(jpe?g|png|webp|avif)$/i;
 /**
  * Curated outfit titles and subject focal points for inspected files in
  * src/assets/images/real-grooms/webp (lossless WebP versions of the photographs in
- * ../gallery, made by scripts/convert-real-grooms-webp.py). Any newly added images in that
+ * ../gallery, made by scripts/convert-lossless-webp.py). Any newly added images in that
  * folder are still picked up dynamically and formatted automatically. The two-digit number in
  * each file name keeps the display order under the natural sort below.
  */
@@ -87,6 +91,14 @@ const ourWorksModules = import.meta.glob<string>(
   { eager: true, import: 'default' },
 );
 
+/** Width of the renditions in webp/sm (made by scripts/convert-lossless-webp.py). */
+const SMALL_WIDTH = 640;
+const smallModules = import.meta.glob<string>(
+  '../../assets/images/real-grooms/webp/sm/*.{webp,WEBP}',
+  { eager: true, import: 'default' },
+);
+const smallByFile = new Map(Object.entries(smallModules).map(([path, url]) => [(path.split('/').pop() ?? path).toLowerCase(), url]));
+
 function formatFallbackTitle(filename: string, index: number): string {
   const stem = filename.replace(/\.[^.]+$/, '');
   if (/^(img|image|dsc|pxl|photo|whatsapp|screenshot)[-_ ]*\d*$/i.test(stem)) {
@@ -111,10 +123,13 @@ export function loadOurWorksImages(): OurWorkImage[] {
     const filename = path.split('/').pop() ?? `look-${index + 1}`;
     const meta = CURATED_WORKS[filename.toLowerCase()];
     const aspectRatio = meta ? meta.width / meta.height : 0.75;
+    const smallSrc = smallByFile.get(filename.toLowerCase());
     return {
       id: path,
       filename,
       src,
+      smallSrc,
+      srcSet: smallSrc && meta ? `${smallSrc} ${SMALL_WIDTH}w, ${src} ${meta.width}w` : undefined,
       title: meta?.title ?? formatFallbackTitle(filename, index),
       caption: meta?.caption ?? 'Custom groom wear tailored at Mister Mapillai',
       aspectRatio,

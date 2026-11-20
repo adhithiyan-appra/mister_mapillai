@@ -26,7 +26,7 @@ export function StudioSection() {
       <li className="mm-studio-card mm-reveal">
         <div className="mm-studio-card__media">
           <span className="mm-studio-card__badge mm-studio-card__badge--open">Open Now</span>
-          <SourceImage asset="threepiece" alt="Groom in a sand beige three-piece suit at the Tiruppur flagship studio" responsive sizes="(max-width: 640px) 92vw, (max-width: 900px) 46vw, 280px" />
+          <SourceImage asset="threepiece" alt="Groom in a sand beige three-piece suit at the Tiruppur flagship studio" loading="lazy" responsive sizes="(max-width: 640px) 92vw, (max-width: 900px) 46vw, 280px" />
         </div>
         <div className="mm-studio-card__body">
           <h3 className="mm-studio-card__title">Tiruppur Flagship</h3>
@@ -41,7 +41,7 @@ export function StudioSection() {
       <li className="mm-studio-card mm-studio-card--upcoming mm-reveal" style={cssVars({ '--d': '.1s' })}>
         <div className="mm-studio-card__media">
           <span className="mm-studio-card__badge">Coming Soon</span>
-          <SourceImage asset="bandhgala-ivory" alt="Groom in an ivory bandhgala" responsive sizes="(max-width: 640px) 92vw, (max-width: 900px) 46vw, 280px" />
+          <SourceImage asset="bandhgala-ivory" alt="Groom in an ivory bandhgala" loading="lazy" responsive sizes="(max-width: 640px) 92vw, (max-width: 900px) 46vw, 280px" />
         </div>
         <div className="mm-studio-card__body">
           <h3 className="mm-studio-card__title">Coimbatore</h3>
@@ -56,7 +56,7 @@ export function StudioSection() {
       <li className="mm-studio-card mm-studio-card--upcoming mm-reveal" style={cssVars({ '--d': '.2s' })}>
         <div className="mm-studio-card__media">
           <span className="mm-studio-card__badge">Coming Soon</span>
-          <SourceImage asset="double-breasted" alt="Tailored double-breasted suit" responsive sizes="(max-width: 640px) 92vw, (max-width: 900px) 46vw, 280px" />
+          <SourceImage asset="double-breasted" alt="Tailored double-breasted suit" loading="lazy" responsive sizes="(max-width: 640px) 92vw, (max-width: 900px) 46vw, 280px" />
         </div>
         <div className="mm-studio-card__body">
           <h3 className="mm-studio-card__title">Erode</h3>

@@ -20,7 +20,7 @@ function tilt(event: ReactPointerEvent<HTMLElement>) {
 function LookCard({ outfit, index, onOpen }: { outfit: Outfit; index: number; onOpen: (id: string) => void }) {
   return <li className="mm-look" style={cssVars({ '--d': `${index * 0.06}s` })} onPointerMove={tilt} onPointerLeave={event => { event.currentTarget.style.transform = ''; }}>
     <button type="button" className="mm-look__media" onClick={() => onOpen(outfit.id)} aria-label={`View details: ${outfit.title}`}>
-      <SourceImage asset={outfit.thumbnail} responsive sizes="(max-width: 430px) calc(100vw - 32px), (max-width: 767px) 500px, (max-width: 1023px) 47vw, 380px" alt={outfit.title} />
+      <SourceImage asset={outfit.thumbnail} loading="lazy" nativeLazy responsive sizes="(max-width: 430px) calc(100vw - 32px), (max-width: 767px) 500px, (max-width: 1023px) 47vw, 380px" alt={outfit.title} />
     </button>
     <div className="mm-look__body">
       <span className="mm-look__tag">{occasionText(outfit)}</span>

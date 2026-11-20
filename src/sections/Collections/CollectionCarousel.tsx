@@ -246,7 +246,7 @@ export function CollectionCarousel({ onOpen }: { onOpen: (id: string) => void })
     </div>
     <div className="mm-cinfo" aria-live="polite">
       <div className="mm-cinfo__in" key={look.id}>
-        <span className="mm-eyebrow">{occasionText(look)}{look.price ? ` · ${look.price}` : ''}</span>
+        <span className="mm-eyebrow">{occasionText(look)}</span>
         <h3>{look.title}</h3>
         <p>{look.description}</p>
         <a href={bookingHref(look.id)} className="mm-btn mm-btn--gold">Book This Look</a>

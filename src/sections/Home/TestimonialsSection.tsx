@@ -10,6 +10,7 @@ const INTERVAL = 3000;
 
 const GALLERY_PHOTOS = loadOurWorksImages();
 const PHOTO_BY_FILE = new Map(GALLERY_PHOTOS.map(photo => [photo.filename.toLowerCase(), photo]));
+// Avatars (64 px, 192 px on hover) use the gallery's small lossless rendition, not the full photograph.
 const TESTIMONIAL_PHOTOS: OurWorkImage[] = testimonials.map((item, i) => (
   PHOTO_BY_FILE.get(item.galleryFile.toLowerCase()) ?? GALLERY_PHOTOS[i % GALLERY_PHOTOS.length]
 )).filter((photo): photo is OurWorkImage => Boolean(photo));
@@ -91,7 +92,7 @@ export function TestimonialsSection() {
     if (!next || !photosOn) return;
     const image = new Image();
     image.decoding = 'async';
-    image.src = next.src;
+    image.src = next.smallSrc ?? next.src;
     void image.decode().catch(() => undefined);
   }, [current, photosOn]);
 
@@ -135,7 +136,7 @@ export function TestimonialsSection() {
               >
                 <span className="mm-testi__preview" aria-hidden="true">
                   <img
-                    src={photosOn ? photo.src : undefined}
+                    src={photosOn ? photo.smallSrc ?? photo.src : undefined}
                     width={photo.width}
                     height={photo.height}
                     alt=""
@@ -146,7 +147,7 @@ export function TestimonialsSection() {
                   />
                 </span>
                 <img
-                  src={photosOn ? photo.src : undefined}
+                  src={photosOn ? photo.smallSrc ?? photo.src : undefined}
                   width={photo.width}
                   height={photo.height}
                   alt={item.name}

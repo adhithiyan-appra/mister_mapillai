@@ -1,5 +1,5 @@
 import { useLayoutEffect } from 'react';
-import { prepareImageGroup } from '../../utils/imageLoading';
+import { prepareImageElement, prepareImageGroup } from '../../utils/imageLoading';
 import { useAnimationController } from './AnimationProvider';
 import { onHeroReady } from '../../utils/heroReady';
 
@@ -30,16 +30,19 @@ export function ImageLoading({ routeKey }: { routeKey: string }) {
         if (preparedHeight === frame.height) return;
         preparedHeight = frame.height;
         imageObserver?.disconnect();
-        // Requests already started at bootstrap. This observer only promotes
-        // approaching groups inside the bounded decode queue.
+        // A section's images are requested when the section comes within ~2.5 screens of the viewport
+        // (the ones on screen first, at high priority), so a page only downloads what it is about to
+        // show. Requests then go through the bounded decode queue.
+        const viewportHeight = frame.height;
         imageObserver = new IntersectionObserver(entries => {
           entries.forEach(entry => {
             if (!entry.isIntersecting) return;
-            prepareSection(entry.target as HTMLElement);
+            const box = entry.boundingClientRect;
+            prepareSection(entry.target as HTMLElement, box.bottom > 0 && box.top < viewportHeight);
             preparedSections.add(entry.target);
             imageObserver!.unobserve(entry.target);
           });
-        }, { rootMargin: `${frame.height * 8}px 0px` });
+        }, { rootMargin: `${Math.round(viewportHeight * 2.5)}px 0px` });
         sections.forEach(section => { if (!preparedSections.has(section)) imageObserver!.observe(section); });
       },
       update() {},
@@ -59,9 +62,11 @@ export function ImageLoading({ routeKey }: { routeKey: string }) {
       const about = document.getElementById('about');
       if (about) prepareSection(about);
     }
-    // Attach every mounted image/background to the URL-level registry now;
-    // scrolling no longer controls whether a resource is requested or decoded.
-    invalidateWhenReady(prepareImageGroup(document, 'low'));
+    // Deferred images outside any page section (none today) are prepared at once, so nothing is left
+    // waiting for an observer. Everything inside a section waits for the section to come near.
+    document.querySelectorAll<HTMLImageElement>('img[data-image-src]').forEach(image => {
+      if (!image.closest('main > section')) invalidateWhenReady(prepareImageElement(image, 'low'));
+    });
     return () => {
       live = false;
       imageObserver?.disconnect();

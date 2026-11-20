@@ -115,6 +115,7 @@ export const images = {
   'orbit-cufflinks': accessoryAssets.cufflinks,
   'orbit-footwear': accessoryAssets.footwear,
   'orbit-groom': accessoryAssets.groom,
+  'orbit-groom-sm': accessoryAssets.groomSm,
   'orbit-stole': accessoryAssets.stole,
   'orbit-turban': accessoryAssets.turban,
 } as const;

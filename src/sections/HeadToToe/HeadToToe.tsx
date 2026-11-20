@@ -50,7 +50,7 @@ export function HeadToToe() {
         <ol className="steps" id="h2tSteps">{stylingDetails.map((detail, i) => <li id={`styling-${i}`} key={detail.key}><b>{detail.key}</b><span>{detail.description}</span></li>)}</ol>
       </div>
       <div className="figure3d"><div className="fig" id="fig"><div className="in">
-        <SourceImage asset="ceremonial-shirt" sizes="(max-width: 900px) 37.34svh, min(52svh, 507px)" alt="Groom in an embroidered ceremonial shirt, black trousers, gold-buckle belt and black oxfords" />
+        <SourceImage asset="ceremonial-shirt" loading="lazy" sizes="(max-width: 900px) 37.34svh, min(52svh, 507px)" alt="Groom in an embroidered ceremonial shirt, black trousers, gold-buckle belt and black oxfords" />
         <div className="scan" id="scan" aria-hidden="true" />
         {stylingDetails.map((detail, i) => <button type="button" className="pin" key={detail.key} style={{ left: `${detail.x * 100}%`, top: `${detail.y * 100}%` }} aria-label={`${detail.key}: ${detail.description}`} aria-controls={`styling-${i}`} onClick={() => scrollToDetail(ref.current, 0.05 + 0.85 * detail.y)} />)}
       </div></div></div>

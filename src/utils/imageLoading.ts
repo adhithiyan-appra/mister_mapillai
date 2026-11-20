@@ -217,13 +217,16 @@ export function prepareImageElement(image: HTMLImageElement, priority: ImagePrio
 
   if (existing) {
     const selected = imageSource(image) || existing.fallbackSource;
-    if (selected) promote(requestImage(selected, existing.priority), existing.priority);
+    if (selected && (image.currentSrc || !image.srcset)) promote(requestImage(selected, existing.priority), existing.priority);
     return existing.ready;
   }
 
   const fallbackSource = imageSource(image);
   if (!fallbackSource) return Promise.resolve(true);
-  requestImage(fallbackSource, priority);
+  // An element with a srcset chooses and fetches its own candidate. Until the browser has chosen
+  // (currentSrc is empty right after src/srcset are assigned), requesting `src` here would download the
+  // full-size file as well as the right-sized one. The load handler below attaches to the chosen URL.
+  if (image.currentSrc || !image.srcset) requestImage(fallbackSource, priority);
   const prepared: PreparedImage = { priority, fallbackSource, ready: Promise.resolve(true) };
   prepared.ready = new Promise<boolean>(resolve => {
     let settled = false;

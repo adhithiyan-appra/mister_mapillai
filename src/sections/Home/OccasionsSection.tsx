@@ -25,7 +25,7 @@ function OccasionCard({ card, index }: { card: OccasionCardItem; index: number }
     >
       <div className="mm-flip__in">
         <div className="mm-face mm-face--front">
-          <SourceImage asset={card.image} alt="" responsive sizes="(max-width: 640px) 92vw, (max-width: 1000px) 46vw, 380px" />
+          <SourceImage asset={card.image} alt="" loading="lazy" responsive sizes="(max-width: 640px) 92vw, (max-width: 1000px) 46vw, 380px" />
           <div className="mm-face__info">
             <small>{card.subtitle}</small>
             <h3>{card.name}</h3>

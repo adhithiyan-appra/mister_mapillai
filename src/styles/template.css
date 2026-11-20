@@ -904,6 +904,28 @@ html.mm-menu-open body{position:fixed;left:0;right:0;width:100%}
   #looks .mm-look p{margin-bottom:16px}
   #looks .mm-look .mm-btn{padding-right:10px;padding-left:10px;font-size:10.5px;letter-spacing:1.1px}
 }
+
+/* Filter buttons on phones and small tablets: one design language for both filter groups, a grid of equal-height buttons
+   with centred text instead of unevenly wrapped pills. Desktop keeps its centred row. Home ("With & Without Mister
+   Mapillai", .mm-ba-tabs) is three rows of two; Collections ("Find Your Look", #looks .mm-tabs) is two columns with the
+   odd last button centred. Scoped by section: the shared .mm-tab look (maroon active state, gold border) is unchanged. */
+@media (max-width:900px){
+  .mm-ba-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:1fr;gap:10px;width:100%;max-width:560px;margin:28px auto 0}
+  .mm-ba-tabs .mm-tab,#looks .mm-tabs .mm-tab{display:flex;align-items:center;justify-content:center;min-width:0;min-height:48px;padding:10px 8px;text-align:center;line-height:1.25;font-size:clamp(10px,2.75vw,12px);letter-spacing:clamp(.4px,.3vw,1.4px)}
+}
+@media (max-width:767px){
+  #looks .mm-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:1fr;gap:10px;max-width:520px;margin-right:auto;margin-bottom:40px;margin-left:auto}
+  #looks .mm-tabs .mm-tab:last-child:nth-child(odd){grid-column:1/-1;justify-self:center;width:calc(50% - 5px)}
+}
+@media (max-width:359px){
+  .mm-ba-tabs,#looks .mm-tabs{gap:8px}
+  .mm-ba-tabs .mm-tab,#looks .mm-tabs .mm-tab{padding:8px 4px;font-size:9.5px;letter-spacing:.5px}
+  #looks .mm-tabs .mm-tab:last-child:nth-child(odd){width:calc(50% - 4px)}
+}
+/* Touch screens keep :hover after a tap: only the selected button may look selected. */
+@media (hover:none){
+  .mm-ba-tabs .mm-tab:hover:not([aria-pressed="true"]),#looks .mm-tabs .mm-tab:hover:not([aria-pressed="true"]){background:none;color:var(--mm-maroon);border-color:var(--mm-gold)}
+}
 @media (min-width:431px) and (max-width:640px){
   #looks .mm-looks-tabs{column-gap:38px}
 }

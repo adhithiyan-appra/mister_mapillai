@@ -195,7 +195,7 @@ export function MakingTimeline() {
             {step.externalSrc
               ? <img src={step.externalSrc} alt={step.alt} loading="lazy" decoding="async" style={step.objectPosition ? { objectPosition: step.objectPosition } : undefined} />
               : step.asset
-                ? <SourceImage asset={step.asset} alt={step.alt} responsive sizes="(max-width: 900px) 92vw, 520px" style={step.objectPosition || step.objectFit ? { objectPosition: step.objectPosition, objectFit: step.objectFit } : undefined} />
+                ? <SourceImage asset={step.asset} alt={step.alt} loading="lazy" responsive sizes="(max-width: 900px) 92vw, 520px" style={step.objectPosition || step.objectFit ? { objectPosition: step.objectPosition, objectFit: step.objectFit } : undefined} />
                 : null}
           </div>
           <div className="mm-mk__num" aria-hidden="true">{step.number}</div>

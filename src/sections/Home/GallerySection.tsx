@@ -13,6 +13,13 @@ import type { OurWorkImage, PlacedGalleryItem } from './ourWorksGallery';
 
 const OUR_WORKS_ITEMS: OurWorkImage[] = loadOurWorksImages();
 
+/**
+ * Display width of a card for `srcset`: its share of the grid (2 columns up to 767 px, 3 up to 1023 px, 4 above) in
+ * viewport units. It over-states the real width on wide screens (the grid has a maximum width), so the browser only
+ * ever errs toward the larger file.
+ */
+const gallerySizes = (colSpan: number) => `(max-width: 767px) ${colSpan * 50}vw, (max-width: 1023px) ${colSpan * 33}vw, ${colSpan * 25}vw`;
+
 interface GalleryCardProps {
   item: PlacedGalleryItem;
   index: number;
@@ -46,6 +53,8 @@ const GalleryCard = memo(function GalleryCard({ item, index, onOpen, onMeasure }
         <img
           className="gallery-image"
           src={item.src}
+          srcSet={item.srcSet}
+          sizes={item.srcSet ? gallerySizes(item.colSpan) : undefined}
           width={item.width}
           height={item.height}
           alt={item.title}
@@ -91,9 +100,9 @@ export function GallerySection() {
       if (idx === -1) return prev;
       const current = prev[idx];
       if (
-        current.width === width
-        && current.height === height
-        && Math.abs(current.aspectRatio - measuredRatio) <= 0.015
+        Math.abs(current.aspectRatio - measuredRatio) <= 0.015
+        // A photograph with a srcset may load its smaller rendition: same aspect ratio, other pixel size.
+        && (current.srcSet || (current.width === width && current.height === height))
       ) {
         return prev;
       }
