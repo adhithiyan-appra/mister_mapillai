@@ -21,7 +21,7 @@ function heroPosterPreload(): Plugin {
       const asset = ctx.bundle
         ? Object.keys(ctx.bundle).find(name => /(^|\/)frame-001-[^/]+\.webp$/.test(name))
         : undefined;
-      const href = asset ? `/${asset}` : '/src/assets/hero_frames_web/frame-001.webp';
+      const href = asset ? `/${asset}` : '/src/assets/animations/hero-frames/web/frame-001.webp';
       const script = `(function(){if(location.pathname.split('/').join('')!==''){return}var l=document.createElement('link');l.rel='preload';l.as='image';l.href=${JSON.stringify(href)};l.setAttribute('fetchpriority','high');document.head.appendChild(l)})()`;
       return [{ tag: 'script', children: script, injectTo: 'head-prepend' }];
     },

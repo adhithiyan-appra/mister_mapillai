@@ -2,14 +2,14 @@
 
 Where every image, frame sequence, logo, font and animation file lives, how it is named, and how to use it from code.
 
-Every asset is under `src/assets/`, organised by **where the website uses it** (not by file type). Nothing in this tree was resized, re-encoded, renamed or deleted when it was organised: files were only moved, and `docs/asset-inventory.csv` records the old path, new path, format, dimensions, hash and usage of all 526 of them.
+Every asset is under `src/assets/`, organised by **where the website uses it** (not by file type). Nothing in this tree was resized, re-encoded, renamed or deleted when it was organised: files were only moved, and `docs/asset-inventory.csv` records the old path, new path, format, dimensions, hash and usage of all 531 of them (526 original files plus the 5 lossless WebP copies of the Real Grooms gallery, see `real-grooms/webp/`).
 
 ---
 
 ## 1. Folder tree
 
 ```text
-src/assets/                                   526 files
+src/assets/                                   531 files
 │
 ├── animations/
 │   ├── hero-frames/
@@ -34,7 +34,8 @@ src/assets/                                   526 files
     │   ├── our-story/              6  Our Story collage: 5 embroidery details + the golden shirt
     │   └── how-we-make/            6  How We Make steps 2–4 (3 WebP in use + 3 PNG masters)
     ├── real-grooms/
-    │   ├── gallery/                5  Real Grooms gallery photographs (PNG)
+    │   ├── gallery/                5  original gallery photographs (PNG masters; not loaded by the site)
+    │   ├── webp/                   5  lossless WebP versions of the gallery photographs (what the site loads)
     │   └── happy-groom-story/     18  the Mr. Gowtham case study: shirt, placements, details, materials, boards
     ├── testimonials/               5  groom portraits (groom-profile-1 … 5)
     ├── accessories/
@@ -53,7 +54,7 @@ There are no videos, standalone icon files or CSS background images in the proje
 |---|---|---|
 | Home — hero | `animations/hero-frames/web/` | loaded by `sections/Home/heroFrames.ts` (glob), not the registry |
 | Home — Before & After | `images/home/before-after/` (+ looks as the "after" side) | `transformationAssets` |
-| Home — Real Grooms gallery, testimonial avatars | `images/real-grooms/gallery/` | loaded by `sections/Home/ourWorksGallery.ts` (glob) |
+| Home — Real Grooms gallery, its lightbox, testimonial avatars | `images/real-grooms/webp/` | loaded by `sections/Home/ourWorksGallery.ts` (glob) |
 | Collections — signature looks, carousel, grid | `images/collections/looks/` | `collectionAssets` |
 | Collections — Complete the Look orbit | `images/accessories/orbit/` | `accessoryAssets` |
 | About — Our Story collage | `images/about/our-story/` | `aboutAssets` |
@@ -82,7 +83,7 @@ Existing names that do not follow the convention are listed here instead of bein
 | Current name | Why it was left | Suggested name |
 |---|---|---|
 | `how-we-make/chair_coat.webp`, `sitch.webp`, `image.webp` | keys `chair_coat`, `sitch`, `image` are used in `AboutSections.tsx` | `how-we-make-step-02-fabric.webp`, `…-03-stitch.webp`, `…-04-fit.webp` |
-| `real-grooms/gallery/image.png`, `image1.png`, `image2.png`, `imagee.png`, `imagei.png` | the gallery metadata (`ourWorksGallery.ts`) and `galleryFile` in `data/testimonials.ts` match by file name | `real-groom-01.png` … `05.png`, with both tables updated |
+| `real-grooms/gallery/image.png`, `image1.png`, `image2.png`, `imagee.png`, `imagei.png` | these are the untouched originals. The site loads their lossless WebP copies in `real-grooms/webp/`, named `real-groom-NN-<subject>.webp` (the number keeps the display order) | none needed |
 | `accessories/originals/1.png`, `32.png`, `321.png`, `main_image.png`, … | unreferenced masters | `accessory-brooch-original.png` etc. |
 | `shared/devatan-shirt/place-0..2.webp`, `detail-0..4.webp` | keys `place-N`, `detail-N` are used in data files | `devatan-placement-front.webp`, `devatan-detail-01.webp` … |
 
@@ -108,7 +109,9 @@ Do not delete, rename or reorder frames in `web/` without re-running it.
 5. Add the look to `src/data/outfits.ts`.
 
 ### A new groom photograph (Real Grooms gallery)
-Drop the image into `images/real-grooms/gallery/`. It is picked up automatically (`ourWorksGallery.ts` globs the folder). For a custom title, caption or focal point, add an entry for its file name to `CURATED_WORKS` in `sections/Home/ourWorksGallery.ts`. To show it as a testimonial avatar, set `galleryFile` in `src/data/testimonials.ts` to the same file name.
+1. Put the original in `images/real-grooms/gallery/` (it is the master; the site does not load it).
+2. Add `('original.png', 'real-groom-NN-subject.webp')` to `GALLERY` in `scripts/convert-real-grooms-webp.py`, using the next two-digit number, and run `python scripts/convert-real-grooms-webp.py`. It writes a **lossless** WebP into `images/real-grooms/webp/` and checks that it is a VP8L (lossless) stream with identical dimensions and pixels. It never modifies the original.
+3. The WebP is picked up automatically (`ourWorksGallery.ts` globs `webp/`, sorted by file name). For a custom title, caption or focal point, add an entry keyed by the WebP file name to `CURATED_WORKS` in `sections/Home/ourWorksGallery.ts`. To show it as a testimonial avatar, set `galleryFile` in `src/data/testimonials.ts` to the same file name.
 
 ### A new testimonial portrait
 Put it in `images/testimonials/`, import it in `src/data/assets/testimonials.ts` and register it in `src/data/images.ts`.
@@ -132,7 +135,8 @@ Things that depend on file names or folders:
 - `scripts/generate-seo.mjs` finds the social-preview image in `dist/assets/` by the name `happy-grooms-hero-<hash>.webp`. Do not rename `happy-grooms-hero.webp`.
 - `scripts/image-metadata.ts` builds `imageMetadata.ts` entries from the file names in the folders listed in `KEYED_IMAGE_FOLDERS`. Entries for the About, orbit and similar images are maintained by hand, so check `git diff` before committing a regenerated file.
 - `scripts/build-hero-frames.py` reads `animations/hero-frames/source/` and writes `animations/hero-frames/web/`.
-- `sections/Home/heroFrames.ts` and `sections/Home/ourWorksGallery.ts` load their folders with `import.meta.glob`.
+- `scripts/convert-real-grooms-webp.py` reads `real-grooms/gallery/` and writes `real-grooms/webp/` (lossless; see §5).
+- `sections/Home/heroFrames.ts` and `sections/Home/ourWorksGallery.ts` load their folders (`animations/hero-frames/web/` and `images/real-grooms/webp/`) with `import.meta.glob`.
 - `scripts/extract-assets.ts` is the one-off script that created the first asset set from a downloaded HTML preview. It still writes to the old flat paths and is not part of the current workflow.
 
 ## 7. Fonts
@@ -150,7 +154,7 @@ Byte-identical files at different paths. Nothing was merged or removed:
 
 ## 9. Images with no literal reference in code
 
-Masters, kept for future use: `about/how-we-make/{chair_coat,image,sitch}.png`, `accessories/originals/{1,32,321,hand_towel,main_image,shoe,watch}.png`, and `shared/devatan-shirt/devatan-shirt.webp` (a legacy copy, imported but not registered).
+Masters, kept for future use: `real-grooms/gallery/*.png` (the originals of the lossless WebP files the site loads), `about/how-we-make/{chair_coat,image,sitch}.png`, `accessories/originals/{1,32,321,hand_towel,main_image,shoe,watch}.png`, and `shared/devatan-shirt/devatan-shirt.webp` (a legacy copy, imported but not registered).
 
 Registered in `data/images.ts` but not named in any component or data file (check before deleting; they may be used dynamically): `sherwani-wide`, `gowtham`, `happy-grooms-shirt`, `place-0`, `place-2`, `groom-profile-1 … 5`.
 
@@ -166,3 +170,5 @@ Registered in `data/images.ts` but not named in any component or data file (chec
 `docs/asset-inventory.csv` lists all 526 files with: filename, original path, new path, format, dimensions, size, the first 12 characters of the SHA-256, image keys, website section and the source files that use it.
 
 The reorganisation was verified by hashing every file before and after: 526 files before and after, 506 moved files byte-identical at their new paths, the 20 fonts untouched.
+
+The Real Grooms WebP conversion was verified separately: each `real-grooms/webp/*.webp` is a VP8L (lossless) bitstream with the same dimensions as its PNG original and **zero** pixel difference, the browser decodes both to identical pixels, and the originals' hashes are unchanged.

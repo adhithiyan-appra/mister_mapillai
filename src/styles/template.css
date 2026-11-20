@@ -145,6 +145,19 @@
 .mm-hero-seq .mm-hero__media{opacity:0}
 .mm-hero-seq > .mm-hero{position:sticky;top:var(--mm-nav-h);height:calc(100svh - var(--mm-nav-h));min-height:0;background:var(--mm-maroon-dark)}
 @media (max-width:640px){.mm-hero-seq{--mm-hero-scroll:400svh}}
+/* Phones and tablets. The footage is a 16:9 picture on a tall screen, so every frame is still shown whole (the sign, the poster
+   and the groom are spread across its width and must not be cropped), but the space around it is a soft wash of the frame's own
+   edge colours (painted by the renderer, see frameRenderer.ts) that fades into the maroon, not an empty screen.
+   --mm-hero-ambient is the wash's strength at the frame's edge; the feather below blends the frame into it. Desktop is untouched. */
+@media (max-width:1023px){
+  .mm-hero{--mm-hero-ambient:.55}
+  .mm-hero__media::after{background:
+    linear-gradient(to bottom,transparent var(--mm-gy),rgba(58,8,17,var(--mm-hero-ambient)) var(--mm-gy),rgba(58,8,17,0) calc(var(--mm-gy) + var(--mm-fy)),rgba(58,8,17,0) calc(100% - var(--mm-gy) - var(--mm-fy)),rgba(58,8,17,var(--mm-hero-ambient)) calc(100% - var(--mm-gy)),transparent calc(100% - var(--mm-gy))),
+    linear-gradient(to right,transparent var(--mm-gx),rgba(58,8,17,var(--mm-hero-ambient)) var(--mm-gx),rgba(58,8,17,0) calc(var(--mm-gx) + var(--mm-fx)),rgba(58,8,17,0) calc(100% - var(--mm-gx) - var(--mm-fx)),rgba(58,8,17,var(--mm-hero-ambient)) calc(100% - var(--mm-gx)),transparent calc(100% - var(--mm-gx)))}
+}
+/* Short phone screens: the introduction is centred above the SCROLL cue, so the cue never lands on the buttons; on the shortest it is dropped. */
+@media (max-width:1023px) and (max-height:700px){.mm-hero-seq > .mm-hero{padding-bottom:78px}}
+@media (max-width:1023px) and (max-height:600px){.mm-hero-seq > .mm-hero{padding-bottom:0}.mm-scroll-hint{display:none}}
 .mm-hero__content{position:relative;z-index:2;padding:0 24px;max-width:1000px;transform-origin:50% 40%}
 .mm-hero__brand{text-transform:uppercase;font-family:var(--sans);font-weight:400;font-size:clamp(12px,1.3vw,15px);letter-spacing:.55em;margin:0 -.55em 14px 0;opacity:0;animation:mmFadeUp 1s .1s forwards}
 .mm-hero h1{font-size:clamp(34px,min(8vw,11.5svh),92px);line-height:1;margin-bottom:22px;perspective:600px}
@@ -370,6 +383,7 @@
 .mm-cinfo p{opacity:.8;font-size:14px;margin:6px 0 20px}
 
 /* ---------- look grid + cards ---------- */
+.mm-looks-tabs{margin-top:34px}
 .mm-looks{display:grid;grid-template-columns:repeat(3,1fr);gap:30px;perspective:1200px}
 .mm-look{background:#fff;transform-style:preserve-3d;transition:transform .2s,box-shadow .4s;animation:mmPopIn .6s both;animation-delay:var(--d,0s);display:flex;flex-direction:column}
 @keyframes mmPopIn{from{opacity:0;transform:translateY(30px) scale(.95)}to{opacity:1;transform:none}}
@@ -854,6 +868,42 @@ html.mm-menu-open body{position:fixed;left:0;right:0;width:100%}
   .mm-orbit__content img{width:30px;height:30px}
   .mm-orbit__chip b{font-size:8.5px}
   .mm-orbit__chip b.mm-orbit__label--long{font-size:7.5px}
+}
+
+/* Collections: preserve the desktop composition while refining the touch layouts. */
+@media (max-width:1023px){
+  #looks .mm-looks-tabs{gap:8px;margin-top:30px;margin-bottom:44px}
+  #looks .mm-tab{padding-right:16px;padding-left:16px}
+  #looks .mm-looks{gap:24px}
+  #looks .mm-look__media{height:auto;aspect-ratio:4/5;max-height:500px}
+  #looks .mm-look__body{padding:22px}
+  #looks .mm-look .mm-btns{gap:8px}
+}
+@media (max-width:767px){
+  #looks .mm-looks-head .mm-lead{max-width:34ch}
+  #looks .mm-looks-tabs{max-width:680px;margin-right:auto;margin-bottom:40px;margin-left:auto}
+  #looks .mm-tab{padding-right:12px;padding-left:12px;font-size:11px;letter-spacing:1.1px}
+  #looks .mm-looks{grid-template-columns:1fr;max-width:500px;margin-right:auto;margin-left:auto;gap:24px}
+  #looks .mm-look__media{aspect-ratio:2/3;max-height:580px}
+  #looks .mm-look .mm-btns{display:grid;grid-template-columns:minmax(0,.82fr) minmax(0,1.35fr);gap:10px}
+  #looks .mm-look .mm-btn{width:100%;padding-right:12px;padding-left:12px;font-size:11.5px;letter-spacing:1.4px}
+}
+@media (max-width:430px){
+  #looks .mm-container{padding-right:16px;padding-left:16px}
+  #looks .mm-looks-tabs{gap:8px;margin-top:28px;margin-bottom:36px}
+  #looks .mm-tab{padding-right:10px;padding-left:10px;font-size:10.5px;letter-spacing:1px}
+  #looks .mm-look__body{padding:20px}
+  #looks .mm-look h3{font-size:25px}
+  #looks .mm-look p{margin-bottom:16px}
+  #looks .mm-look .mm-btn{padding-right:10px;padding-left:10px;font-size:10.5px;letter-spacing:1.1px}
+}
+@media (min-width:431px) and (max-width:640px){
+  #looks .mm-looks-tabs{column-gap:38px}
+}
+@media (max-width:767px),(hover:none),(pointer:coarse){
+  #looks .mm-looks{perspective:none}
+  #looks .mm-look{transform-style:flat}
+  #looks .mm-look__body{transform:none}
 }
 
 @media (prefers-reduced-motion:reduce){

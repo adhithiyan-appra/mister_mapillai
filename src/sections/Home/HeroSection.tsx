@@ -73,7 +73,11 @@ export function HeroSection() {
       layout(frame) {
         const box = track.getBoundingClientRect();
         const stageHeight = stage.offsetHeight;
-        const stickyTop = parseFloat(getComputedStyle(stage).top) || 0;
+        const stageStyle = getComputedStyle(stage);
+        const stickyTop = parseFloat(stageStyle.top) || 0;
+        // Phones and tablets (template.css) set --mm-hero-ambient: the space around the whole frame is then a soft wash
+        // of its own edge colours instead of flat maroon. Desktop leaves it unset (0).
+        const ambient = Math.min(1, Math.max(0, parseFloat(stageStyle.getPropertyValue('--mm-hero-ambient')) || 0));
         // The stage sticks once the track reaches the bottom of the fixed navigation.
         pinStart = box.top + frame.scrollY - stickyTop;
         range = Math.max(1, track.offsetHeight - stageHeight);
@@ -94,6 +98,7 @@ export function HeroSection() {
           canvasWidth, canvasHeight,
           x, y, w, h,
           cover: w >= canvasWidth && h >= canvasHeight,
+          ambient,
           decodeWidth: Math.round(w * fit), decodeHeight: Math.round(h * fit),
           sourceWidth, sourceHeight,
         });

@@ -37,11 +37,13 @@ const VALID_IMAGE_PATTERN = /\.(jpe?g|png|webp|avif)$/i;
 
 /**
  * Curated outfit titles and subject focal points for inspected files in
- * src/assets/images/real-grooms/gallery. Any newly added images in that folder are still
- * picked up dynamically and formatted automatically.
+ * src/assets/images/real-grooms/webp (lossless WebP versions of the photographs in
+ * ../gallery, made by scripts/convert-real-grooms-webp.py). Any newly added images in that
+ * folder are still picked up dynamically and formatted automatically. The two-digit number in
+ * each file name keeps the display order under the natural sort below.
  */
 const CURATED_WORKS: Record<string, CuratedWorkMeta> = {
-  'image.png': {
+  'real-groom-01-maroon-hand-beaded-indo-western.webp': {
     title: 'Maroon Hand-Beaded Indo-Western',
     caption: 'Bespoke deep maroon draped jacket with hand-beaded lapel detailing and tailored trousers',
     width: 1024,
@@ -49,28 +51,28 @@ const CURATED_WORKS: Record<string, CuratedWorkMeta> = {
     objectPosition: '50% 12%',
     preferTall: true,
   },
-  'image1.png': {
+  'real-groom-02-ivory-muhurtham-silk-ensemble.webp': {
     title: 'Ivory Muhurtham Silk Ensemble',
     caption: 'Pure ivory raw-silk ceremonial shirt paired with gold-border pattu veshti and angavastram',
     width: 1024,
     height: 1536,
     objectPosition: '50% 10%',
   },
-  'image2.png': {
+  'real-groom-03-midnight-crystal-bandhgala.webp': {
     title: 'Midnight Crystal Bandhgala',
     caption: 'Sculpted midnight-navy bandhgala jacket accented with hand-worked crystal shoulders and sleeves',
     width: 1672,
     height: 941,
     objectPosition: '46% 14%',
   },
-  'imagee.png': {
+  'real-groom-04-navy-double-breasted-tailoring.webp': {
     title: 'Navy Double-Breasted Tailoring',
     caption: 'Sharp navy double-breasted blazer styled with crisp white shirt and ivory tailored trousers',
     width: 1122,
     height: 1402,
     objectPosition: '52% 14%',
   },
-  'imagei.png': {
+  'real-groom-05-espresso-embellished-three-piece.webp': {
     title: 'Espresso Embellished Three-Piece',
     caption: 'Rich espresso shawl-lapel three-piece reception suit with tonal crystal embroidery',
     width: 1024,
@@ -81,7 +83,7 @@ const CURATED_WORKS: Record<string, CuratedWorkMeta> = {
 };
 
 const ourWorksModules = import.meta.glob<string>(
-  '../../assets/images/real-grooms/gallery/**/*.{jpg,jpeg,png,webp,avif,JPG,JPEG,PNG,WEBP,AVIF}',
+  '../../assets/images/real-grooms/webp/*.{webp,WEBP}',
   { eager: true, import: 'default' },
 );
 
