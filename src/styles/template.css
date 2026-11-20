@@ -146,11 +146,11 @@
 .mm-hero-seq > .mm-hero{position:sticky;top:var(--mm-nav-h);height:calc(100svh - var(--mm-nav-h));min-height:0;background:var(--mm-maroon-dark)}
 @media (max-width:640px){.mm-hero-seq{--mm-hero-scroll:400svh}}
 /* Phones and tablets. The footage is a 16:9 picture on a tall screen, so every frame is still shown whole (the sign, the poster
-   and the groom are spread across its width and must not be cropped), but the space around it is a soft wash of the frame's own
-   edge colours (painted by the renderer, see frameRenderer.ts) that fades into the maroon, not an empty screen.
-   --mm-hero-ambient is the wash's strength at the frame's edge; the feather below blends the frame into it. Desktop is untouched. */
+   and the groom are spread across its width and must not be cropped), but the space around it is the footage itself: a soft mirror
+   image of the frame's edge (painted by the renderer, see frameRenderer.ts) that fades into the maroon, not an empty screen.
+   --mm-hero-ambient is the maroon's strength at the frame's edge; the feather below blends the frame into it. Desktop is untouched. */
 @media (max-width:1023px){
-  .mm-hero{--mm-hero-ambient:.55}
+  .mm-hero{--mm-hero-ambient:.3}
   .mm-hero__media::after{background:
     linear-gradient(to bottom,transparent var(--mm-gy),rgba(58,8,17,var(--mm-hero-ambient)) var(--mm-gy),rgba(58,8,17,0) calc(var(--mm-gy) + var(--mm-fy)),rgba(58,8,17,0) calc(100% - var(--mm-gy) - var(--mm-fy)),rgba(58,8,17,var(--mm-hero-ambient)) calc(100% - var(--mm-gy)),transparent calc(100% - var(--mm-gy))),
     linear-gradient(to right,transparent var(--mm-gx),rgba(58,8,17,var(--mm-hero-ambient)) var(--mm-gx),rgba(58,8,17,0) calc(var(--mm-gx) + var(--mm-fx)),rgba(58,8,17,0) calc(100% - var(--mm-gx) - var(--mm-fx)),rgba(58,8,17,var(--mm-hero-ambient)) calc(100% - var(--mm-gx)),transparent calc(100% - var(--mm-gx)))}
@@ -445,29 +445,27 @@
 .mm-orbit__item{position:absolute;top:50%;left:50%;width:114px;height:114px;margin:-57px;transform:rotate(var(--a)) translateX(var(--mm-orbit-r)) rotate(calc(-1 * var(--a)));opacity:0;transition:opacity .45s ease var(--orbit-delay);pointer-events:auto}
 .mm-orbit.is-in .mm-orbit__item{opacity:1}
 .mm-orbit__chip{width:100%;height:100%;border-radius:50%;background:#fff;border:1px solid var(--mm-gold);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:12px 8px;color:var(--mm-maroon);transform:scale(.88);transition:transform .45s var(--mm-ease) var(--orbit-delay),background-color .3s ease,border-color .3s ease,color .3s ease,box-shadow .3s ease;box-shadow:0 3px 14px rgba(90,15,28,.035);animation:mm-orbit-counter var(--mm-orbit-period) linear infinite paused}
-button.mm-orbit__chip{appearance:none;-webkit-appearance:none;border:1px solid var(--mm-gold);font:inherit;margin:0;text-align:center;cursor:pointer;outline:none}
-button.mm-orbit__chip:focus-visible{outline:2px solid var(--mm-gold);outline-offset:3px}
 .mm-orbit.is-orbiting .mm-orbit__ring,.mm-orbit.is-orbiting .mm-orbit__chip{animation-play-state:running}
-.mm-orbit.is-orbiting:hover .mm-orbit__ring,
-.mm-orbit.is-orbiting:hover .mm-orbit__chip,
-.mm-orbit.is-orbiting:focus-within .mm-orbit__ring,
-.mm-orbit.is-orbiting:focus-within .mm-orbit__chip,
-.mm-orbit.is-orbiting.is-paused .mm-orbit__ring,
-.mm-orbit.is-orbiting.is-paused .mm-orbit__chip{animation-play-state:paused}
+/* Hover pauses the orbit; leaving resumes it from the same angle. Hover-capable devices only: on a touch screen a tap
+   would leave `:hover` stuck on, holding the orbit still and a circle maroon until the next tap elsewhere. */
+@media (hover:hover){
+  .mm-orbit.is-orbiting:hover .mm-orbit__ring,
+  .mm-orbit.is-orbiting:hover .mm-orbit__chip{animation-play-state:paused}
+}
 @keyframes mm-orbit-spin{to{rotate:360deg}}
 @keyframes mm-orbit-counter{to{rotate:-360deg}}
 .mm-orbit__content{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:inherit;width:100%;height:100%;pointer-events:none}
 .mm-orbit__content *{pointer-events:none}
 .mm-orbit__content img{width:58px;height:58px;object-fit:contain;flex:none;transition:filter .3s ease}
 .mm-orbit.is-in .mm-orbit__chip{transform:scale(1)}
-.mm-orbit.is-in .mm-orbit__chip:hover,
-.mm-orbit.is-in .mm-orbit__chip.is-active{transform:scale(1);background:#5a0f1c;border-color:#c9a24d;color:#c9a24d;box-shadow:0 4px 18px rgba(90,15,28,.28)}
-.mm-orbit.is-in .mm-orbit__chip:hover b,
-.mm-orbit.is-in .mm-orbit__chip.is-active b{color:#c9a24d}
-.mm-orbit.is-in .mm-orbit__chip:hover svg,
-.mm-orbit.is-in .mm-orbit__chip.is-active svg{color:#c9a24d;stroke:#c9a24d}
-.mm-orbit.is-in .mm-orbit__chip:hover img,
-.mm-orbit.is-in .mm-orbit__chip.is-active img{filter:brightness(1.08) drop-shadow(0 2px 6px rgba(201,162,77,.35))}
+/* Hover only (no click or selected state): the circle under the pointer turns maroon with gold text and icon, and the
+   .3s transitions on the chip, its label, icon and image ease it back to white the moment the pointer leaves. */
+@media (hover:hover){
+  .mm-orbit.is-in .mm-orbit__chip:hover{background:#5a0f1c;border-color:#c9a24d;color:#c9a24d;box-shadow:0 4px 18px rgba(90,15,28,.28)}
+  .mm-orbit.is-in .mm-orbit__chip:hover b{color:#c9a24d}
+  .mm-orbit.is-in .mm-orbit__chip:hover svg{color:#c9a24d;stroke:#c9a24d}
+  .mm-orbit.is-in .mm-orbit__chip:hover img{filter:brightness(1.08) drop-shadow(0 2px 6px rgba(201,162,77,.35))}
+}
 .mm-orbit__chip svg{width:34px;height:34px;color:var(--mm-gold-deep);stroke:currentColor;flex:none;transition:color .3s ease,stroke .3s ease}
 .mm-orbit__chip b{display:block;width:100%;font-family:var(--mm-serif);font-size:12.5px;font-weight:600;line-height:1;letter-spacing:0;text-align:center;white-space:normal;color:var(--mm-maroon);transition:color .3s ease}
 .mm-orbit__chip b.mm-orbit__label--long{font-size:11.5px;letter-spacing:-.12px}

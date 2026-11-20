@@ -46,8 +46,8 @@ export interface RenderLayout {
   /** The frame covers the whole canvas (no letterbox to paint). */
   cover: boolean;
   /**
-   * 0 = the letterbox is flat maroon (desktop). Above 0 (phones and tablets) the letterbox is a soft wash of the
-   * frame's own edge colours that fades into the maroon; this is its strength at the frame's edge (0-1).
+   * 0 = the letterbox is flat maroon (desktop). Above 0 (phones and tablets) the letterbox is a soft mirror image of
+   * the frame's own edge that fades into the maroon; this is the maroon's strength at the frame's edge (0-1).
    */
   ambient: number;
   /** Decode size: the drawn size, never above the source resolution. */
@@ -354,27 +354,33 @@ export const CRITICAL_FRAMES = 6;
 const LETTERBOX = '#3a0811';
 /** The letterbox colour as rgb, for the wash's fade into it. */
 const LETTERBOX_RGB = '58,8,17';
-/** The wash is sampled from this share of the frame's edge, at this many points along it. */
-const EDGE_SHARE = 0.04;
-const EDGE_POINTS = 10;
 /** The wash follows the footage loosely: its colours are refreshed every few frames, not on every draw. */
 const EDGE_REFRESH = 3;
 /** Wash strength at the far end of a band, as a share of maroon (it is `layout.ambient` at the frame's edge). */
-const WASH_FAR = 0.96;
+const WASH_FAR = 0.6;
 
-/** A band's tile is this many pixels deep (from the frame's edge outward); the edge colours are EDGE_POINTS across. */
-const WASH_STEPS = 24;
+/**
+ * A band's tile is this many pixels along the frame's edge and this many across it. The frame is shrunk into it, so the
+ * band is a soft, blurred picture of the footage; stretching the tile over the band is what makes it smooth.
+ */
+const WASH_LONG = 64;
+const WASH_SHORT = 32;
+/**
+ * How much of the frame a band reflects, at most, as a share of the frame's depth: only the part nearest the edge, stretched over
+ * the band. Reflecting the whole frame would show a ghost of its figures upside-down; this is just the room's colour and light.
+ */
+const WASH_REACH = 0.4;
 
 type Edge = 'top' | 'bottom' | 'left' | 'right';
 /**
- * One band of the wash as a tiny canvas: the frame's edge colours already darkened toward the maroon with distance
- * from the frame. Drawing it, stretched over the band, is the whole cost of painting the band.
+ * One band of the wash as a tiny canvas: a mirror image of the frame's own edge, blurred by the shrinking and darkened
+ * toward the maroon with distance from the frame. Drawing it, stretched over the band, is the whole cost of painting the band.
  */
 interface WashTile { canvas: OffscreenCanvas | HTMLCanvasElement; context: Context2D; shade: CanvasGradient | null; ambient: number }
 
 function washTile(edge: Edge): WashTile | null {
   const horizontal = edge === 'top' || edge === 'bottom';
-  const width = horizontal ? EDGE_POINTS : WASH_STEPS, height = horizontal ? WASH_STEPS : EDGE_POINTS;
+  const width = horizontal ? WASH_LONG : WASH_SHORT, height = horizontal ? WASH_SHORT : WASH_LONG;
   const canvas = typeof OffscreenCanvas === 'function' ? new OffscreenCanvas(width, height) : Object.assign(document.createElement('canvas'), { width, height });
   const context = canvas.getContext('2d');
   if (!context) return null;
@@ -555,12 +561,13 @@ export class FrameRenderer {
 
   /**
    * Phones and tablets: the frame is shown whole, so a landscape frame on a tall screen leaves space above and below
-   * it (or beside it on a landscape phone). Fill that space with a wash of the frame's own edge colours that fades
-   * into the maroon the further it is from the frame, so the picture does not float in an empty screen.
+   * it (or beside it on a landscape phone). Fill that space with the footage itself: a soft mirror image of the frame's
+   * edge that continues the picture outward and is darkened toward the maroon the further it is from the frame, so the
+   * picture does not float in an empty screen.
    *
    * The canvas keeps its pixels between draws, so the bands are painted only when the layout changes or their colours
    * refresh (every EDGE_REFRESH frames while moving, exactly at rest; the wash is soft and need not track every frame). A refresh composes each
-   * band's small tile from the frame's edge strip, and painting a band is one stretched blit of that tile. Most draws
+   * band's small tile from the frame, and painting a band is one stretched blit of that tile. Most draws
    * are therefore just the frame, as on desktop.
    */
   private paintWash(layout: RenderLayout, bitmap: ImageBitmap, position: number, repaint: boolean, settled: boolean) {
@@ -587,21 +594,29 @@ export class FrameRenderer {
         tile = this.tiles[edge] = made;
         fresh = true;
       }
-      if (fresh) this.composeTile(tile, edge, bitmap, ambient);
+      if (fresh) this.composeTile(tile, edge, bitmap, ambient, edge === 'top' || edge === 'bottom' ? bh / h : bw / w);
       this.context.drawImage(tile.canvas, bx, by, bw, bh);
     }
     if (stale) this.edgeFrame = position;
   }
 
-  /** The frame's edge strip stretched over the tile, then darkened toward the maroon with distance from the frame. */
-  private composeTile(tile: WashTile, edge: Edge, bitmap: ImageBitmap, ambient: number) {
+  /**
+   * The frame's edge, mirrored, shrunk into the tile (that is the blur) and then darkened toward the maroon with
+   * distance from the frame. The band touches the frame along the mirror line, so the picture carries on across the
+   * frame's edge with no seam. `reach` is how deep the band is, as a share of the frame (it never reflects more than
+   * WASH_REACH of it: a deeper band stretches that part).
+   */
+  private composeTile(tile: WashTile, edge: Edge, bitmap: ImageBitmap, ambient: number, reach: number) {
     const t = tile.context, tw = tile.canvas.width, th = tile.canvas.height;
     const sw = bitmap.width, sh = bitmap.height;
-    const ex = Math.max(1, Math.round(sw * EDGE_SHARE)), ey = Math.max(1, Math.round(sh * EDGE_SHARE));
-    if (edge === 'top') t.drawImage(bitmap, 0, 0, sw, ey, 0, 0, tw, th);
-    else if (edge === 'bottom') t.drawImage(bitmap, 0, sh - ey, sw, ey, 0, 0, tw, th);
-    else if (edge === 'left') t.drawImage(bitmap, 0, 0, ex, sh, 0, 0, tw, th);
-    else t.drawImage(bitmap, sw - ex, 0, ex, sh, 0, 0, tw, th);
+    const share = Math.min(WASH_REACH, Math.max(0.05, reach));
+    const rw = Math.max(1, Math.round(sw * share)), rh = Math.max(1, Math.round(sh * share));
+    t.save();
+    if (edge === 'top') { t.translate(0, th); t.scale(1, -1); t.drawImage(bitmap, 0, 0, sw, rh, 0, 0, tw, th); }
+    else if (edge === 'bottom') { t.translate(0, th); t.scale(1, -1); t.drawImage(bitmap, 0, sh - rh, sw, rh, 0, 0, tw, th); }
+    else if (edge === 'left') { t.translate(tw, 0); t.scale(-1, 1); t.drawImage(bitmap, 0, 0, rw, sh, 0, 0, tw, th); }
+    else { t.translate(tw, 0); t.scale(-1, 1); t.drawImage(bitmap, sw - rw, 0, rw, sh, 0, 0, tw, th); }
+    t.restore();
     if (!tile.shade || tile.ambient !== ambient) {
       // Strongest at the frame's edge (`ambient`), fading to WASH_FAR at the far end of the band.
       const [x0, y0, x1, y1] = edge === 'top' ? [0, th, 0, 0] : edge === 'bottom' ? [0, 0, 0, th] : edge === 'left' ? [tw, 0, 0, 0] : [0, 0, tw, 0];

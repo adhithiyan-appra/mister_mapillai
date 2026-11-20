@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { SectionHeading } from '../../components/common/SectionHeading';
 import { SourceImage } from '../../components/common/SourceImage';
 import { accessoryAddons } from '../../data/showcase';
@@ -48,10 +48,12 @@ function AccessoryIcon({ name }: { name: string }) {
   }
 }
 
-/** Eight accessories orbiting the finished look. */
+/**
+ * Eight accessories orbiting the finished look. Hover only: the maroon/gold state is a CSS `:hover` (and only on devices
+ * that can hover), so there is no click handler and no selected state to get stuck.
+ */
 export function StylingOrbit() {
   const orbitRef = useRef<HTMLDivElement>(null);
-  const [activeItem, setActiveItem] = useState<string | null>(null);
 
   useEffect(() => {
     const orbit = orbitRef.current;
@@ -63,17 +65,6 @@ export function StylingOrbit() {
     return () => observer.disconnect();
   }, []);
 
-  useEffect(() => {
-    if (!activeItem) return;
-    const onPointerDownOutside = (event: PointerEvent) => {
-      if (orbitRef.current && !orbitRef.current.contains(event.target as Node)) {
-        setActiveItem(null);
-      }
-    };
-    window.addEventListener('pointerdown', onPointerDownOutside);
-    return () => window.removeEventListener('pointerdown', onPointerDownOutside);
-  }, [activeItem]);
-
   return <section className="mm-sec mm-sec--white" id="head-to-toe-styling" style={{ overflow: 'hidden' }} aria-labelledby="orbit-title">
     <div className="mm-container">
       <SectionHeading
@@ -83,31 +74,27 @@ export function StylingOrbit() {
         lead="Every accessory chosen to complete your look."
       />
     </div>
-    <div className={`mm-orbit mm-reveal mm-reveal--zoom${activeItem ? ' is-paused' : ''}`} ref={orbitRef}>
+    {/* This className must stay a constant string. `is-in` (scroll reveal, hooks/useReveal.ts) and `is-orbiting` (the effect
+        above) are added to this element with classList, and React rewrites the whole attribute whenever the string it renders
+        changes, which would drop both and fade every accessory out. */}
+    <div className="mm-orbit mm-reveal mm-reveal--zoom" ref={orbitRef}>
       <div className="mm-orbit__path" aria-hidden="true" />
       <div className="mm-orbit__center"><SourceImage asset="orbit-groom" alt="Complete ceremonial look: embroidered shirt, gold-buckle belt, black trousers and oxfords" loading="lazy" responsive sizes="(max-width: 900px) 168px, 227px" /></div>
       <ul className="mm-orbit__ring" aria-label="Head-to-toe accessories">
         {accessoryAddons.map((item, i) => {
           const asset = accessoryImages[item.icon];
-          const isActive = activeItem === item.name;
           return <li className="mm-orbit__item" style={cssVars({
             '--a': `${-112.5 + (i / accessoryAddons.length) * 360}deg`,
             '--orbit-delay': `${180 + i * 75}ms`,
           })} key={item.name}>
-            <button
-              type="button"
-              className={`mm-orbit__chip${isActive ? ' is-active' : ''}`}
-              aria-pressed={isActive}
-              aria-label={`${item.name} accessory`}
-              onClick={() => setActiveItem(curr => (curr === item.name ? null : item.name))}
-            >
+            <div className="mm-orbit__chip">
               <div className="mm-orbit__content">
                 {asset
                   ? <SourceImage asset={asset} alt="" loading="lazy" />
                   : <AccessoryIcon name={item.icon} />}
                 <b className={item.icon === 'stole' ? 'mm-orbit__label--long' : undefined}>{item.name}</b>
               </div>
-            </button>
+            </div>
           </li>;
         })}
       </ul>
