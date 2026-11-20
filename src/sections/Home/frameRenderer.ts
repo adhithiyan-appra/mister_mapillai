@@ -544,7 +544,7 @@ export class FrameRenderer {
     const repaint = this.force;
     this.force = false;
     if (layout.cover) { /* the frame fills the canvas: nothing to paint around it */ }
-    else if (layout.ambient > 0) this.paintWash(layout, frame.bitmap, frame.position, repaint);
+    else if (layout.ambient > 0) this.paintWash(layout, frame.bitmap, frame.position, repaint, this.head === this.goal);
     else { this.context.fillStyle = LETTERBOX; this.context.fillRect(0, 0, layout.canvasWidth, layout.canvasHeight); }
     // At the decoded size this is a 1:1 copy: no decode and no resampling at draw time.
     this.context.drawImage(frame.bitmap, layout.x, layout.y, layout.w, layout.h);
@@ -559,16 +559,17 @@ export class FrameRenderer {
    * into the maroon the further it is from the frame, so the picture does not float in an empty screen.
    *
    * The canvas keeps its pixels between draws, so the bands are painted only when the layout changes or their colours
-   * refresh (every EDGE_REFRESH frames; the wash is soft and need not track every frame). A refresh composes each
+   * refresh (every EDGE_REFRESH frames while moving, exactly at rest; the wash is soft and need not track every frame). A refresh composes each
    * band's small tile from the frame's edge strip, and painting a band is one stretched blit of that tile. Most draws
    * are therefore just the frame, as on desktop.
    */
-  private paintWash(layout: RenderLayout, bitmap: ImageBitmap, position: number, repaint: boolean) {
+  private paintWash(layout: RenderLayout, bitmap: ImageBitmap, position: number, repaint: boolean, settled: boolean) {
     const { canvasWidth, canvasHeight, x, y, w, h, ambient } = layout;
     const key = `${canvasWidth}x${canvasHeight}:${x},${y},${w},${h}:${ambient}`;
     if (key !== this.edgeLayout) { this.edgeLayout = key; this.edgeFrame = -1000; repaint = true; }
-    // Stale after a layout change (edgeFrame was reset) or once the playhead has moved a few frames on.
-    const stale = Math.abs(position - this.edgeFrame) >= EDGE_REFRESH;
+    // Stale after a layout change (edgeFrame was reset) or once the playhead has moved a few frames on. When the playhead
+    // is at rest the colours are refreshed to this exact frame, so a frame looks the same however the scroll got there.
+    const stale = Math.abs(position - this.edgeFrame) >= (settled ? 1 : EDGE_REFRESH);
     if (!repaint && !stale) return;
 
     const bands: [Edge, number, number, number, number][] = [];
