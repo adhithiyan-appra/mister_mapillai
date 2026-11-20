@@ -20,7 +20,7 @@ function tilt(event: ReactPointerEvent<HTMLElement>) {
 function LookCard({ outfit, index, onOpen }: { outfit: Outfit; index: number; onOpen: (id: string) => void }) {
   return <li className="mm-look" style={cssVars({ '--d': `${index * 0.06}s` })} onPointerMove={tilt} onPointerLeave={event => { event.currentTarget.style.transform = ''; }}>
     <button type="button" className="mm-look__media" onClick={() => onOpen(outfit.id)} aria-label={`View details: ${outfit.title}`}>
-      <SourceImage asset={outfit.thumbnail} responsive sizes="(max-width: 640px) 92vw, (max-width: 1000px) 46vw, 380px" alt={outfit.title} />
+      <SourceImage asset={outfit.thumbnail} responsive sizes="(max-width: 430px) calc(100vw - 32px), (max-width: 767px) 500px, (max-width: 1023px) 47vw, 380px" alt={outfit.title} />
     </button>
     <div className="mm-look__body">
       <span className="mm-look__tag">{occasionText(outfit)}</span>
@@ -45,7 +45,7 @@ export function LookGrid({ filter, onFilter, onOpen }: LookGridProps) {
   return <section className="mm-sec" id="looks" aria-labelledby="looks-title">
     <div className="mm-container">
       <SectionHeading id="looks-title" eyebrow="Browse All" title={<>Find Your <em>Look</em></>} lead="Each look is a starting point. Every piece is tailored to you." className="mm-looks-head" />
-      <div className="mm-tabs" role="group" aria-label="Filter by occasion" style={{ marginTop: 34 }}>
+      <div className="mm-tabs mm-looks-tabs" role="group" aria-label="Filter by occasion">
         {outfitFilters.map(item => <button type="button" className="mm-tab" key={item.id} aria-pressed={item.id === filter} onClick={() => onFilter(item.id)}>{item.label}</button>)}
       </div>
       <p className="mm-sr" aria-live="polite">{looks.length} looks shown</p>

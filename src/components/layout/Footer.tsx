@@ -1,5 +1,5 @@
 import { BrandLogo } from '../common/BrandLogo';
-import { exploreNav, fittingHref, siteNav } from '../../data/navigation';
+import { fittingHref, siteNav } from '../../data/navigation';
 import { contactConfig, generalEnquiry, mapsUrl, telHref, whatsappUrl } from '../../data/contact';
 
 export function Footer() {
@@ -15,7 +15,6 @@ export function Footer() {
           <h2 id="foot-explore">Explore</h2>
           <ul>
             {siteNav.map(item => <li key={item.href}><a href={item.href}>{item.label}</a></li>)}
-            {exploreNav.map(item => <li key={item.href}><a href={item.href}>{item.label}</a></li>)}
             <li><a href={fittingHref}>Book Your Look</a></li>
           </ul>
         </nav>
