@@ -158,6 +158,8 @@ export function MakingTimeline() {
     if (!root) return;
     const media = gsap.matchMedia();
     media.add('(prefers-reduced-motion: no-preference)', () => {
+      // Only the vertical line is scroll-linked. The pictures, the copy and the numbered markers all come in through the
+      // page's one scroll reveal (.mm-reveal / .is-in, see hooks/useReveal.ts and the .mm-mk__num rule in template.css).
       const line = root.querySelector<HTMLElement>('.mm-make__line-fill');
       if (line) {
         gsap.fromTo(line, { scaleY: 0 }, {
@@ -166,17 +168,6 @@ export function MakingTimeline() {
           scrollTrigger: { trigger: root, start: 'top 75%', end: 'bottom 70%', scrub: 0.4 },
         });
       }
-      root.querySelectorAll<HTMLElement>('.mm-mk').forEach((step, index) => {
-        const pic = step.querySelector('.mm-mk__media');
-        const num = step.querySelector('.mm-mk__num');
-        const copy = step.querySelector('.mm-mk__copy');
-        const tl = gsap.timeline({
-          scrollTrigger: { trigger: step, start: 'top 86%', once: true },
-        });
-        if (pic) tl.from(pic, { opacity: 0, y: 26, duration: 0.75, ease: 'power2.out', clearProps: 'transform,opacity' }, 0);
-        if (num) tl.from(num, { opacity: 0, scale: 0.8, duration: 0.45, ease: 'back.out(1.6)', clearProps: 'transform,opacity' }, 0.08 + index * 0.04);
-        if (copy) tl.from(copy, { opacity: 0, y: 20, duration: 0.65, ease: 'power2.out', clearProps: 'transform,opacity' }, 0.14);
-      });
     });
     return () => media.revert();
   }, []);
@@ -191,7 +182,7 @@ export function MakingTimeline() {
       </div>
       <ol className="mm-make__list">
         {craftSteps.map((step, i) => <li className={`mm-mk${i % 2 === 1 ? ' mm-mk--reverse' : ''}`} key={step.label}>
-          <div className="mm-mk__media">
+          <div className={`mm-mk__media mm-reveal mm-reveal--${i % 2 === 1 ? 'right' : 'left'}`}>
             {step.externalSrc
               ? <img src={step.externalSrc} alt={step.alt} loading="lazy" decoding="async" style={step.objectPosition ? { objectPosition: step.objectPosition } : undefined} />
               : step.asset
@@ -199,7 +190,7 @@ export function MakingTimeline() {
                 : null}
           </div>
           <div className="mm-mk__num" aria-hidden="true">{step.number}</div>
-          <div className="mm-mk__copy">
+          <div className={`mm-mk__copy mm-reveal mm-reveal--${i % 2 === 1 ? 'left' : 'right'}`}>
             <span className="mm-eyebrow">{step.label}</span>
             <h3>{step.title}</h3>
             <p>{step.description}</p>

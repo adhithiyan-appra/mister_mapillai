@@ -39,7 +39,7 @@ const GalleryCard = memo(function GalleryCard({ item, index, onOpen, onMeasure }
     <li
       className="mm-reveal mm-reveal--zoom mm-gal-item"
       style={{
-        ...cssVars({ '--d': `${(index % 4) * 0.08}s` }),
+        ...cssVars({ '--d': `${(index % 4) * 0.1}s` }),
         gridColumn: `${item.colStart} / span ${item.colSpan}`,
         gridRow: `${item.rowStart} / span ${item.rowSpan}`,
       }}

@@ -245,7 +245,7 @@ export function TransformationSection() {
             </ul>
           </div>
           <div
-            className="mm-ba"
+            className="mm-ba mm-reveal mm-reveal--zoom"
             ref={frameRef}
             onPointerDown={onDown}
             onPointerMove={onMove}

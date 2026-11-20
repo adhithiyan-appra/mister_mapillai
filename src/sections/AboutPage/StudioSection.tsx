@@ -38,7 +38,7 @@ export function StudioSection() {
           </div>
         </div>
       </li>
-      <li className="mm-studio-card mm-studio-card--upcoming mm-reveal" style={cssVars({ '--d': '.1s' })}>
+      <li className="mm-studio-card mm-studio-card--upcoming mm-reveal" style={cssVars({ '--d': '.12s' })}>
         <div className="mm-studio-card__media">
           <span className="mm-studio-card__badge">Coming Soon</span>
           <SourceImage asset="bandhgala-ivory" alt="Groom in an ivory bandhgala" loading="lazy" responsive sizes="(max-width: 640px) 92vw, (max-width: 900px) 46vw, 280px" />
@@ -53,7 +53,7 @@ export function StudioSection() {
           <p className="mm-studio-card__opening">Opening early 2027</p>
         </div>
       </li>
-      <li className="mm-studio-card mm-studio-card--upcoming mm-reveal" style={cssVars({ '--d': '.2s' })}>
+      <li className="mm-studio-card mm-studio-card--upcoming mm-reveal" style={cssVars({ '--d': '.24s' })}>
         <div className="mm-studio-card__media">
           <span className="mm-studio-card__badge">Coming Soon</span>
           <SourceImage asset="double-breasted" alt="Tailored double-breasted suit" loading="lazy" responsive sizes="(max-width: 640px) 92vw, (max-width: 900px) 46vw, 280px" />
@@ -68,7 +68,7 @@ export function StudioSection() {
           <p className="mm-studio-card__opening">Opening mid 2027</p>
         </div>
       </li>
-      <li className="mm-studio-card mm-studio-card--promo mm-reveal" style={cssVars({ '--d': '.3s' })}>
+      <li className="mm-studio-card mm-studio-card--promo mm-reveal" style={cssVars({ '--d': '.36s' })}>
         <svg className="mm-studio-card__star" viewBox="0 0 48 48" fill="none" aria-hidden="true">
           <path d="M24 2l4.2 17.8L46 24l-17.8 4.2L24 46l-4.2-17.8L2 24l17.8-4.2L24 2z" stroke="currentColor" strokeWidth="1.4" fill="none" />
           <circle cx="24" cy="24" r="3" fill="currentColor" />

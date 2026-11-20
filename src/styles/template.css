@@ -89,7 +89,7 @@
 .mm-reveal{opacity:0;transform:translateY(40px);transition:opacity 1s ease,transform 1s var(--mm-ease);transition-delay:var(--d,0s)}
 .mm-reveal--left{transform:translateX(-50px)}
 .mm-reveal--right{transform:translateX(50px)}
-.mm-reveal--zoom{transform:scale(.92)}
+.mm-reveal--zoom{transform:scale(.9)}
 .mm-reveal.is-in{opacity:1;transform:none}
 
 /* ---------- chrome: progress, glow, curtain ---------- */
@@ -241,14 +241,20 @@
 /* ---------- how it works / journey timeline ---------- */
 .mm-journey{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:20px;margin-top:60px;position:relative}
 .mm-journey__track{position:absolute;top:34px;left:10%;right:10%;height:2px;background:var(--mm-line);z-index:0;pointer-events:none}
-.mm-journey__fill{height:100%;width:100%;background:var(--mm-gold);transform:scaleX(0);transform-origin:left center;transition:transform 1.2s var(--mm-ease)}
+.mm-journey__fill{height:100%;width:100%;background:var(--mm-gold);transform:scaleX(0);transform-origin:left center;transition:transform 2.5s ease}
 .mm-journey.is-in .mm-journey__fill{transform:none}
 .mm-step{text-align:center;position:relative;z-index:1;min-width:0}
-.mm-step__num{width:68px;height:68px;border-radius:50%;border:1px solid var(--mm-gold);background:var(--mm-cream);color:var(--mm-maroon);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-family:var(--mm-serif);font-size:28px;font-weight:600;line-height:1;font-variant-numeric:lining-nums;position:relative;z-index:1;transform:scale(.92);transition:background .5s,color .5s,box-shadow .5s,transform .5s var(--mm-ease);transition-delay:var(--d,0s)}
-.mm-journey.is-in .mm-step__num{transform:none;background:var(--mm-maroon);color:var(--mm-gold);box-shadow:0 0 0 8px rgba(201,162,77,.15)}
-.mm-step:hover .mm-step__num{transform:scale(1.08);box-shadow:0 0 0 11px rgba(201,162,77,.22)}
-.mm-step__copy{opacity:0;transform:translateY(14px);transition:opacity .6s ease,transform .6s var(--mm-ease);transition-delay:calc(var(--d,0s) + .12s)}
-.mm-journey.is-in .mm-step__copy{opacity:1;transform:none}
+.mm-step__num{width:68px;height:68px;border-radius:50%;border:1px solid var(--mm-gold);background:var(--mm-cream);color:var(--mm-maroon);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-family:var(--mm-serif);font-size:28px;font-weight:600;line-height:1;font-variant-numeric:lining-nums;position:relative;z-index:1;transform:scale(.92);transition:transform .8s var(--mm-ease),box-shadow .8s var(--mm-ease),background .5s ease,color .5s ease}
+.mm-journey.is-in .mm-step__num{transform:none;background:var(--mm-maroon);color:var(--mm-gold);box-shadow:0 0 0 8px rgba(201,162,77,.15);animation:mmJourneyStepIn .5s var(--mm-ease) var(--d,0s) backwards}
+@media (hover:hover) and (pointer:fine){
+  .mm-journey.is-in .mm-step:hover .mm-step__num{transform:rotate(360deg) scale(1.12);box-shadow:0 0 0 11px rgba(201,162,77,.22)}
+}
+.mm-step__copy{opacity:0;transform:translateY(14px);transition:opacity .6s ease,transform .6s var(--mm-ease)}
+.mm-journey.is-in .mm-step__copy{opacity:1;transform:none;transition-delay:calc(var(--d,0s) + .12s)}
+@keyframes mmJourneyStepIn{
+  from{transform:scale(.92);background:var(--mm-cream);color:var(--mm-maroon);box-shadow:0 0 0 0 rgba(201,162,77,0)}
+  to{transform:none;background:var(--mm-maroon);color:var(--mm-gold);box-shadow:0 0 0 8px rgba(201,162,77,.15)}
+}
 .mm-step__title{font-family:var(--mm-serif);font-size:22px;font-weight:600;color:var(--mm-maroon);margin:0 0 6px}
 .mm-step p{font-size:13.5px;line-height:1.55;color:var(--mm-muted);max-width:210px;margin:0 auto}
 
@@ -261,6 +267,11 @@
 .mm-studios__grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px;margin-top:52px;align-items:stretch}
 .mm-studio-card{display:flex;flex-direction:column;min-width:0;background:#fff;border:1px solid var(--mm-card-line);overflow:hidden;transition:transform .4s var(--mm-ease),box-shadow .4s,border-color .4s}
 .mm-studio-card:hover{transform:translateY(-6px);box-shadow:0 22px 44px rgba(58,8,17,.14);border-color:var(--mm-gold)}
+/* The booking form's studio picker (further down) reuses this class name, and its transition list replaced the reveal's:
+   the cards used to pop in with no fade, no slide and no stagger. They reveal like every other .mm-reveal (1s, --d).
+   The hover lift runs on `translate` rather than `transform`, so the two never share a property or the reveal's delay. */
+.mm-studios__grid .mm-studio-card.mm-reveal{transition:opacity 1s ease var(--d,0s),transform 1s var(--mm-ease) var(--d,0s),translate .4s var(--mm-ease),box-shadow .4s,border-color .4s}
+.mm-studios__grid .mm-studio-card.is-in:hover{transform:none;translate:0 -6px}
 .mm-studio-card__media{height:218px;position:relative;overflow:hidden;flex:none;background:var(--mm-ph)}
 .mm-studio-card__media img{display:block;width:100%;height:100%;object-fit:cover;object-position:center 24%;transition:transform .9s var(--mm-ease),filter .5s}
 .mm-studio-card:hover .mm-studio-card__media img{transform:scale(1.06)}
@@ -277,7 +288,7 @@
 .mm-studio-card__actions .mm-btn{padding:12px 6px;font-size:10px;letter-spacing:1.2px;min-width:0}
 .mm-studio-card__progress-label{margin:20px 0 9px;font-size:9.5px;font-weight:600;letter-spacing:1.4px;text-transform:uppercase;color:var(--mm-gold-deep)}
 .mm-studio-card__progress{height:5px;background:var(--mm-line);overflow:hidden}
-.mm-studio-card__progress span{display:block;width:var(--f);height:100%;background:linear-gradient(90deg,var(--mm-gold-deep),var(--mm-gold));transform:scaleX(0);transform-origin:left center;transition:transform 1.4s var(--mm-ease);transition-delay:var(--d,0s)}
+.mm-studio-card__progress span{display:block;width:var(--f);height:100%;background:linear-gradient(90deg,var(--mm-gold-deep),var(--mm-gold));transform:scaleX(0);transform-origin:left center;transition:transform 2s ease .4s}
 .mm-studio-card.is-in .mm-studio-card__progress span{transform:none}
 .mm-studio-card__opening{margin:10px 0 0;font-size:12.5px;color:var(--mm-secondary)}
 .mm-studio-card--promo{justify-content:center;align-items:center;text-align:center;background:var(--mm-maroon);border-color:var(--mm-maroon);color:var(--mm-cream);padding:36px 22px}
@@ -429,21 +440,36 @@
 .mm-orbit__center img{width:100%;height:100%;object-fit:contain;object-position:center center}
 /* The ring turns clockwise; each chip turns back by the same angle so icons and labels stay upright.
    Both run on the compositor (individual `rotate`), share one period and pause together. */
-.mm-orbit{--mm-orbit-period:54s}
+.mm-orbit{--mm-orbit-period:36s}
 .mm-orbit__ring{position:absolute;inset:0;margin:0;padding:0;list-style:none;pointer-events:none;animation:mm-orbit-spin var(--mm-orbit-period) linear infinite paused;will-change:rotate}
 .mm-orbit__item{position:absolute;top:50%;left:50%;width:114px;height:114px;margin:-57px;transform:rotate(var(--a)) translateX(var(--mm-orbit-r)) rotate(calc(-1 * var(--a)));opacity:0;transition:opacity .45s ease var(--orbit-delay);pointer-events:auto}
 .mm-orbit.is-in .mm-orbit__item{opacity:1}
 .mm-orbit__chip{width:100%;height:100%;border-radius:50%;background:#fff;border:1px solid var(--mm-gold);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:12px 8px;color:var(--mm-maroon);transform:scale(.88);transition:transform .45s var(--mm-ease) var(--orbit-delay),background-color .3s ease,border-color .3s ease,color .3s ease,box-shadow .3s ease;box-shadow:0 3px 14px rgba(90,15,28,.035);animation:mm-orbit-counter var(--mm-orbit-period) linear infinite paused}
+button.mm-orbit__chip{appearance:none;-webkit-appearance:none;border:1px solid var(--mm-gold);font:inherit;margin:0;text-align:center;cursor:pointer;outline:none}
+button.mm-orbit__chip:focus-visible{outline:2px solid var(--mm-gold);outline-offset:3px}
 .mm-orbit.is-orbiting .mm-orbit__ring,.mm-orbit.is-orbiting .mm-orbit__chip{animation-play-state:running}
-.mm-orbit.is-orbiting .mm-orbit__ring:is(:hover,:focus-within),.mm-orbit.is-orbiting .mm-orbit__ring:is(:hover,:focus-within) .mm-orbit__chip{animation-play-state:paused}
+.mm-orbit.is-orbiting:hover .mm-orbit__ring,
+.mm-orbit.is-orbiting:hover .mm-orbit__chip,
+.mm-orbit.is-orbiting:focus-within .mm-orbit__ring,
+.mm-orbit.is-orbiting:focus-within .mm-orbit__chip,
+.mm-orbit.is-orbiting.is-paused .mm-orbit__ring,
+.mm-orbit.is-orbiting.is-paused .mm-orbit__chip{animation-play-state:paused}
 @keyframes mm-orbit-spin{to{rotate:360deg}}
 @keyframes mm-orbit-counter{to{rotate:-360deg}}
-.mm-orbit__content{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:inherit;width:100%;height:100%}
-.mm-orbit__content img{width:58px;height:58px;object-fit:contain;flex:none}
+.mm-orbit__content{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:inherit;width:100%;height:100%;pointer-events:none}
+.mm-orbit__content *{pointer-events:none}
+.mm-orbit__content img{width:58px;height:58px;object-fit:contain;flex:none;transition:filter .3s ease}
 .mm-orbit.is-in .mm-orbit__chip{transform:scale(1)}
-.mm-orbit.is-in .mm-orbit__chip:hover{transform:scale(1.055);background:var(--mm-cream);border-color:var(--mm-gold-deep);color:var(--mm-gold-deep);box-shadow:0 0 0 4px rgba(201,162,77,.16),0 10px 24px rgba(154,116,38,.16)}
-.mm-orbit__chip svg{width:34px;height:34px;color:var(--mm-gold-deep);flex:none}
-.mm-orbit__chip b{display:block;width:100%;font-family:var(--mm-serif);font-size:12.5px;font-weight:600;line-height:1;letter-spacing:0;text-align:center;white-space:normal}
+.mm-orbit.is-in .mm-orbit__chip:hover,
+.mm-orbit.is-in .mm-orbit__chip.is-active{transform:scale(1);background:#5a0f1c;border-color:#c9a24d;color:#c9a24d;box-shadow:0 4px 18px rgba(90,15,28,.28)}
+.mm-orbit.is-in .mm-orbit__chip:hover b,
+.mm-orbit.is-in .mm-orbit__chip.is-active b{color:#c9a24d}
+.mm-orbit.is-in .mm-orbit__chip:hover svg,
+.mm-orbit.is-in .mm-orbit__chip.is-active svg{color:#c9a24d;stroke:#c9a24d}
+.mm-orbit.is-in .mm-orbit__chip:hover img,
+.mm-orbit.is-in .mm-orbit__chip.is-active img{filter:brightness(1.08) drop-shadow(0 2px 6px rgba(201,162,77,.35))}
+.mm-orbit__chip svg{width:34px;height:34px;color:var(--mm-gold-deep);stroke:currentColor;flex:none;transition:color .3s ease,stroke .3s ease}
+.mm-orbit__chip b{display:block;width:100%;font-family:var(--mm-serif);font-size:12.5px;font-weight:600;line-height:1;letter-spacing:0;text-align:center;white-space:normal;color:var(--mm-maroon);transition:color .3s ease}
 .mm-orbit__chip b.mm-orbit__label--long{font-size:11.5px;letter-spacing:-.12px}
 .mm-orbit-note{max-width:520px;margin:28px auto 0;text-align:center;min-height:52px;color:var(--mm-maroon)}
 .mm-orbit-note b{font-family:var(--mm-serif);font-size:22px;margin-right:8px;color:var(--mm-gold-deep)}
@@ -453,8 +479,7 @@
 .mm-craft{background:var(--mm-cream)}
 .mm-craft__layout{grid-template-columns:repeat(2,minmax(0,1fr));gap:clamp(28px,5.5vw,70px)}
 .mm-craft__frame{aspect-ratio:1;overflow:hidden;position:relative;background:var(--mm-ph)}
-.mm-craft__frame img{display:block;width:100%;height:100%;object-fit:cover;transition:transform .8s var(--mm-ease);will-change:transform}
-.mm-craft__frame:hover img{transform:scale(1.035)}
+.mm-craft__frame img{display:block;width:100%;height:100%;object-fit:cover;transform:translate3d(0,var(--craft-parallax,0px),0) scale(1.23);will-change:transform}
 .mm-craft__copy .mm-title{font-size:clamp(38px,4.6vw,58px);margin-bottom:18px}
 .mm-craft__list{margin:20px 0 30px}
 .mm-craft__list li{gap:16px;padding:14px 0;color:var(--mm-maroon);font-size:15px}
@@ -544,9 +569,16 @@
 .mm-mk:last-child{margin-bottom:0}
 .mm-mk__media{height:300px;overflow:hidden;background:var(--mm-ph);position:relative}
 .mm-mk__media img{display:block;width:100%;height:100%;object-fit:cover;transition:transform .9s var(--mm-ease)}
-.mm-mk:hover .mm-mk__media img{transform:scale(1.035)}
+@media (hover:hover) and (pointer:fine){
+  .mm-mk:hover .mm-mk__media img{transform:scale(1.035)}
+}
 .mm-mk--reverse .mm-mk__media{order:2}
-.mm-mk__num{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:56px;height:56px;border-radius:50%;background:var(--mm-maroon-dark);border:1px solid var(--mm-gold);color:var(--mm-gold);display:flex;align-items:center;justify-content:center;font-family:var(--mm-serif);font-size:24px;font-weight:600;line-height:1;font-variant-numeric:lining-nums;z-index:2;box-shadow:0 0 0 8px var(--mm-maroon-dark)}
+/* The marker arrives with its picture: it follows the same `is-in` (the picture is its earlier sibling), so one scroll
+   trigger drives the picture, the copy and the marker. Its centring is the individual `translate` property, which is
+   applied outside `scale`: the marker grows about its own centre and never drifts off the line. */
+.mm-mk__num{opacity:0;scale:.8;transition:opacity .5s ease .08s,scale .5s var(--mm-ease) .08s}
+.mm-mk__media.is-in~.mm-mk__num{opacity:1;scale:1}
+.mm-mk__num{position:absolute;left:50%;top:50%;translate:-50% -50%;width:56px;height:56px;border-radius:50%;background:var(--mm-maroon-dark);border:1px solid var(--mm-gold);color:var(--mm-gold);display:flex;align-items:center;justify-content:center;font-family:var(--mm-serif);font-size:24px;font-weight:600;line-height:1;font-variant-numeric:lining-nums;z-index:2;box-shadow:0 0 0 8px var(--mm-maroon-dark)}
 .mm-mk__copy{min-width:0}
 .mm-mk__copy .mm-eyebrow{color:var(--mm-gold);margin-bottom:10px}
 .mm-mk__copy h3{font-family:var(--mm-serif);font-size:clamp(28px,3.2vw,34px);line-height:1.15;color:var(--mm-gold-light);margin-bottom:12px}
@@ -791,7 +823,7 @@ html.mm-menu-open body{position:fixed;left:0;right:0;width:100%}
   .mm-mk{grid-template-columns:1fr;gap:18px;padding-left:60px;margin-bottom:44px}
   .mm-mk--reverse .mm-mk__media{order:0}
   .mm-mk__media{height:220px}
-  .mm-mk__num{left:22px;top:22px;transform:translate(-50%,0);width:44px;height:44px;font-size:20px;box-shadow:0 0 0 6px var(--mm-maroon-dark)}
+  .mm-mk__num{left:22px;top:22px;translate:-50% 0;width:44px;height:44px;font-size:20px;box-shadow:0 0 0 6px var(--mm-maroon-dark)}
   .mm-mk__copy h3{font-size:28px}
   .mm-mk__copy p{font-size:14px;max-width:none}
   .mm-journey{grid-template-columns:1fr;gap:28px;margin-top:44px}
@@ -952,11 +984,16 @@ html.mm-menu-open body{position:fixed;left:0;right:0;width:100%}
   .mm-make__line-fill{transform:none}
   .mm-mk__media img{transition:none}
   .mm-mk:hover .mm-mk__media img{transform:none}
+  .mm-mk__num{opacity:1;scale:1;transition:none}
+  .mm-craft__frame img{transform:none}
+  .mm-journey.is-in .mm-step__num{animation:none}
   .mm-step__num{background:var(--mm-maroon);color:var(--mm-gold);box-shadow:0 0 0 8px rgba(201,162,77,.15)}
+  .mm-journey.is-in .mm-step:hover .mm-step__num{transform:none;box-shadow:0 0 0 8px rgba(201,162,77,.15);transition:none}
   .mm-studio-card__progress span{transform:none}
   .mm-studio-card:hover .mm-studio-card__media img{transform:none}
-  .mm-studio-card{transition:none}
+  .mm-studio-card,.mm-studios__grid .mm-studio-card.mm-reveal{transition:none}
   .mm-studio-card:hover{transform:none}
+  .mm-studios__grid .mm-studio-card.is-in:hover{translate:none}
   .mm-gal,.mm-gal .gallery-image,.mm-gal__overlay,.mm-gal__badge,.mm-gal__cap{transition:none}
   .mm-gal:hover .gallery-image,.mm-gal:focus-visible .gallery-image{transform:none}
   .mm-testi__preview{transition:none}

@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { pageMeta } from './data/navigation';
+import { expectTraversal, leavingForNewLocation } from './utils/scrollRestore';
 
 export type RoutePath = keyof typeof pageMeta;
 
@@ -65,7 +66,8 @@ export function RouterProvider({ children }: { children: ReactNode }) {
       history.replaceState(null, '', resolved + window.location.search + window.location.hash);
       setLocation(readLocation());
     }
-    const onPop = () => setLocation(readLocation());
+    // Back/forward: the entry stepped to may have a saved scroll position (utils/scrollRestore.ts).
+    const onPop = () => { expectTraversal(); setLocation(readLocation()); };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
   }, []);
@@ -80,6 +82,8 @@ export function RouterProvider({ children }: { children: ReactNode }) {
     const next = (legacyRedirects[requested] ?? requested) + url.search + url.hash;
     const current = canonicalPath(window.location.pathname) + window.location.search + window.location.hash;
     if (next !== current) {
+      // A new location: remember where this entry was scrolled; the new one starts fresh (top or its #hash).
+      leavingForNewLocation();
       if (replace) history.replaceState(history.state, '', next);
       else history.pushState(null, '', next);
     }

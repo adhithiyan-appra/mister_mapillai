@@ -7,6 +7,7 @@ import { Footer } from './components/layout/Footer';
 import { CursorGlow, PageCurtain, WhatsAppButton } from './components/layout/SiteEffects';
 import { SiteLoader } from './components/layout/SiteLoader';
 import { applyPageSeo } from './utils/seo';
+import { restoreScroll } from './utils/scrollRestore';
 import { useReveal } from './hooks/useReveal';
 import {
   AboutPage,
@@ -39,7 +40,9 @@ function Site() {
   const [firstPath] = useState(path);
   useReveal(main, routeKey);
   useLayoutEffect(() => {
-    scrollToHash(hash);
+    // A reload or a back/forward step returns to where that history entry was scrolled; anything else starts at the
+    // top (or the #hash), as before.
+    if (!restoreScroll()) scrollToHash(hash);
     controller.reset();
   }, [path, hash, controller]);
   useEffect(() => { applyPageSeo(path); }, [path]);

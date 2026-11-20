@@ -13,7 +13,7 @@ function OccasionCard({ card, index }: { card: OccasionCardItem; index: number }
     if (event.target !== event.currentTarget) return;
     if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); toggle(); }
   };
-  return <div className="mm-reveal" style={cssVars({ '--d': `${(index % 3) * 0.15}s` })}>
+  return <div className="mm-reveal" style={cssVars({ '--d': `${index * 0.15}s` })}>
     <div
       className={`mm-flip${flipped ? ' is-flipped' : ''}`}
       role="button"

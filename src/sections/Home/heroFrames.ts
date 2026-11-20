@@ -32,6 +32,12 @@ interface DeviceHints extends Navigator {
 export function deviceProfile(): RenderProfile & { maxDpr: number; maxArea: number } {
   const nav = navigator as DeviceHints;
   const lowPower = Boolean(nav.connection?.saveData) || (nav.deviceMemory ?? 8) <= 4 || (nav.hardwareConcurrency ?? 8) <= 4;
+  // Phones and tablets: a swipe crosses the pinned range in a second or two, so the playhead must be able to keep up
+  // (measured: at the desktop budget the hero started to leave with the sequence only a third of the way through).
+  // The frames are decoded at the drawn size, so a phone's are small (~1.4 MB) and can be held further ahead; a tablet's
+  // are not (~5 MB), so its window grows less. Desktop keeps the budgets below unchanged.
+  const phone = matchMedia('(max-width: 600px)').matches;
+  const touchSized = matchMedia('(max-width: 1023px)').matches;
   return {
     maxDpr: lowPower ? 1.5 : 2,
     /** Canvas backing-store budget in device pixels. */
@@ -40,11 +46,12 @@ export function deviceProfile(): RenderProfile & { maxDpr: number; maxArea: numb
     decodeConcurrency: lowPower ? 2 : 4,
     // ~27 decoded frames on desktop (full resolution, ~225 MB); ~17 smaller ones on low-power devices.
     // The window ahead covers the renderer's lookahead plus the frames still in the decoder at the top playhead speed.
-    ahead: lowPower ? 10 : 14,
+    ahead: lowPower ? (touchSized ? 14 : 10) : phone ? 22 : touchSized ? 16 : 14,
     behind: lowPower ? 2 : 3,
     keyStride: lowPower ? 40 : 32,
-    // The footage never plays faster than ~3x its natural pace, however hard the page is flung.
-    maxSpeed: lowPower ? 48 : 72,
+    // The footage never plays faster than ~3x its natural pace on desktop, however hard the page is flung; on phones and
+    // tablets it may go to ~5x so the sequence can keep up with a swipe (it still never outruns the decoded frames).
+    maxSpeed: lowPower ? (touchSized ? 72 : 48) : phone ? 130 : touchSized ? 110 : 72,
     // ~0.22 s glide: starts and stops without a jolt, trails the scroll by about a fifth of a second.
     glide: 0.22,
   };
