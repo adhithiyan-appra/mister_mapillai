@@ -362,19 +362,25 @@ const EDGE_REFRESH = 3;
 /** Wash strength at the far end of a band, as a share of maroon (it is `layout.ambient` at the frame's edge). */
 const WASH_FAR = 0.96;
 
-type Edge = 'top' | 'bottom' | 'left' | 'right';
-interface EdgeSample { canvas: OffscreenCanvas | HTMLCanvasElement; context: Context2D }
+/** A band's tile is this many pixels deep (from the frame's edge outward); the edge colours are EDGE_POINTS across. */
+const WASH_STEPS = 24;
 
-/** A tiny canvas holding the colours along one edge of a frame (one pixel thick, EDGE_POINTS long). */
-function edgeSample(edge: Edge): EdgeSample | null {
+type Edge = 'top' | 'bottom' | 'left' | 'right';
+/**
+ * One band of the wash as a tiny canvas: the frame's edge colours already darkened toward the maroon with distance
+ * from the frame. Drawing it, stretched over the band, is the whole cost of painting the band.
+ */
+interface WashTile { canvas: OffscreenCanvas | HTMLCanvasElement; context: Context2D; shade: CanvasGradient | null; ambient: number }
+
+function washTile(edge: Edge): WashTile | null {
   const horizontal = edge === 'top' || edge === 'bottom';
-  const width = horizontal ? EDGE_POINTS : 1, height = horizontal ? 1 : EDGE_POINTS;
+  const width = horizontal ? EDGE_POINTS : WASH_STEPS, height = horizontal ? WASH_STEPS : EDGE_POINTS;
   const canvas = typeof OffscreenCanvas === 'function' ? new OffscreenCanvas(width, height) : Object.assign(document.createElement('canvas'), { width, height });
   const context = canvas.getContext('2d');
   if (!context) return null;
   context.imageSmoothingEnabled = true;
   context.imageSmoothingQuality = 'high';
-  return { canvas, context };
+  return { canvas, context, shade: null, ambient: -1 };
 }
 /** Seconds of playback that must already be decoded ahead of the playhead; its speed is limited to what that allows. */
 const LOOKAHEAD = 0.12;
@@ -429,11 +435,10 @@ export class FrameRenderer {
   private drawn = -1;
   private drawnSharp = false;
   private force = true;
-  /** Edge colours for the letterbox wash (phones and tablets): the sampled edges, the frame they came from and the layout they fit. */
-  private edges: Partial<Record<Edge, EdgeSample>> = {};
+  /** The letterbox wash (phones and tablets): a tile per band, the frame its colours came from, and the layout it was painted for. */
+  private tiles: Partial<Record<Edge, WashTile>> = {};
   private edgeFrame = -1000;
   private edgeLayout = '';
-  private washes: Partial<Record<Edge, CanvasGradient>> = {};
   /** Time of the previous step; 0 while the playhead is at rest. */
   private clock = 0;
   private pending = 0;
@@ -536,9 +541,10 @@ export class FrameRenderer {
     const frame = this.store.nearest(this.target);
     if (!frame) return;
     if (!this.force && frame.position === this.drawn && frame.sharp === this.drawnSharp) return;
+    const repaint = this.force;
     this.force = false;
     if (layout.cover) { /* the frame fills the canvas: nothing to paint around it */ }
-    else if (layout.ambient > 0) this.paintWash(layout, frame.bitmap, frame.position);
+    else if (layout.ambient > 0) this.paintWash(layout, frame.bitmap, frame.position, repaint);
     else { this.context.fillStyle = LETTERBOX; this.context.fillRect(0, 0, layout.canvasWidth, layout.canvasHeight); }
     // At the decoded size this is a 1:1 copy: no decode and no resampling at draw time.
     this.context.drawImage(frame.bitmap, layout.x, layout.y, layout.w, layout.h);
@@ -550,54 +556,62 @@ export class FrameRenderer {
   /**
    * Phones and tablets: the frame is shown whole, so a landscape frame on a tall screen leaves space above and below
    * it (or beside it on a landscape phone). Fill that space with a wash of the frame's own edge colours that fades
-   * into the maroon the further it is from the frame, so the picture does not float in an empty screen. The edge
-   * colours come from a few tiny samples, refreshed every few frames (the wash is soft; it need not track every
-   * frame), so the cost per draw is a handful of band fills, with no readback of the decoded frame.
+   * into the maroon the further it is from the frame, so the picture does not float in an empty screen.
+   *
+   * The canvas keeps its pixels between draws, so the bands are painted only when the layout changes or their colours
+   * refresh (every EDGE_REFRESH frames; the wash is soft and need not track every frame). A refresh composes each
+   * band's small tile from the frame's edge strip, and painting a band is one stretched blit of that tile. Most draws
+   * are therefore just the frame, as on desktop.
    */
-  private paintWash(layout: RenderLayout, bitmap: ImageBitmap, position: number) {
-    const context = this.context;
-    const { canvasWidth, canvasHeight, x, y, w, h } = layout;
+  private paintWash(layout: RenderLayout, bitmap: ImageBitmap, position: number, repaint: boolean) {
+    const { canvasWidth, canvasHeight, x, y, w, h, ambient } = layout;
+    const key = `${canvasWidth}x${canvasHeight}:${x},${y},${w},${h}:${ambient}`;
+    if (key !== this.edgeLayout) { this.edgeLayout = key; this.edgeFrame = -1000; repaint = true; }
+    // Stale after a layout change (edgeFrame was reset) or once the playhead has moved a few frames on.
+    const stale = Math.abs(position - this.edgeFrame) >= EDGE_REFRESH;
+    if (!repaint && !stale) return;
+
     const bands: [Edge, number, number, number, number][] = [];
     if (y > 0) bands.push(['top', 0, 0, canvasWidth, y]);
     if (y + h < canvasHeight) bands.push(['bottom', 0, y + h, canvasWidth, canvasHeight - y - h]);
     if (x > 0) bands.push(['left', 0, 0, x, canvasHeight]);
     if (x + w < canvasWidth) bands.push(['right', x + w, 0, canvasWidth - x - w, canvasHeight]);
 
-    const key = `${canvasWidth}x${canvasHeight}:${x},${y},${w},${h}:${layout.ambient}`;
-    if (key !== this.edgeLayout) { this.edgeLayout = key; this.edgeFrame = -1000; this.washes = {}; }
-    // Stale after a layout change (edgeFrame was reset) or once the playhead has moved a few frames on.
-    const stale = Math.abs(position - this.edgeFrame) >= EDGE_REFRESH;
-
-    context.fillStyle = LETTERBOX;
     for (const [edge, bx, by, bw, bh] of bands) {
-      context.fillRect(bx, by, bw, bh);
-      let sample = this.edges[edge];
+      let tile = this.tiles[edge];
       let fresh = stale;
-      if (!sample) { const made = edgeSample(edge); if (!made) continue; sample = this.edges[edge] = made; fresh = true; }
-      if (fresh) {
-        const sw = bitmap.width, sh = bitmap.height;
-        const ex = Math.max(1, Math.round(sw * EDGE_SHARE)), ey = Math.max(1, Math.round(sh * EDGE_SHARE));
-        if (edge === 'top') sample.context.drawImage(bitmap, 0, 0, sw, ey, 0, 0, EDGE_POINTS, 1);
-        else if (edge === 'bottom') sample.context.drawImage(bitmap, 0, sh - ey, sw, ey, 0, 0, EDGE_POINTS, 1);
-        else if (edge === 'left') sample.context.drawImage(bitmap, 0, 0, ex, sh, 0, 0, 1, EDGE_POINTS);
-        else sample.context.drawImage(bitmap, sw - ex, 0, ex, sh, 0, 0, 1, EDGE_POINTS);
+      if (!tile) {
+        const made = washTile(edge);
+        if (!made) { this.context.fillStyle = LETTERBOX; this.context.fillRect(bx, by, bw, bh); continue; }
+        tile = this.tiles[edge] = made;
+        fresh = true;
       }
-      // The edge colours stretched across the band, then darkened toward the maroon with distance from the frame.
-      context.drawImage(sample.canvas, bx, by, bw, bh);
-      let wash = this.washes[edge];
-      if (!wash) {
-        const near = layout.ambient, far = WASH_FAR;
-        const from = edge === 'top' ? [0, by + bh, 0, by] : edge === 'bottom' ? [0, by, 0, by + bh] : edge === 'left' ? [bx + bw, 0, bx, 0] : [bx, 0, bx + bw, 0];
-        wash = context.createLinearGradient(from[0], from[1], from[2], from[3]);
-        wash.addColorStop(0, `rgba(${LETTERBOX_RGB},${near})`);
-        wash.addColorStop(0.5, `rgba(${LETTERBOX_RGB},${(near + (far - near) * 0.6).toFixed(3)})`);
-        wash.addColorStop(1, `rgba(${LETTERBOX_RGB},${far})`);
-        this.washes[edge] = wash;
-      }
-      context.fillStyle = wash;
-      context.fillRect(bx, by, bw, bh);
-      context.fillStyle = LETTERBOX;
+      if (fresh) this.composeTile(tile, edge, bitmap, ambient);
+      this.context.drawImage(tile.canvas, bx, by, bw, bh);
     }
     if (stale) this.edgeFrame = position;
+  }
+
+  /** The frame's edge strip stretched over the tile, then darkened toward the maroon with distance from the frame. */
+  private composeTile(tile: WashTile, edge: Edge, bitmap: ImageBitmap, ambient: number) {
+    const t = tile.context, tw = tile.canvas.width, th = tile.canvas.height;
+    const sw = bitmap.width, sh = bitmap.height;
+    const ex = Math.max(1, Math.round(sw * EDGE_SHARE)), ey = Math.max(1, Math.round(sh * EDGE_SHARE));
+    if (edge === 'top') t.drawImage(bitmap, 0, 0, sw, ey, 0, 0, tw, th);
+    else if (edge === 'bottom') t.drawImage(bitmap, 0, sh - ey, sw, ey, 0, 0, tw, th);
+    else if (edge === 'left') t.drawImage(bitmap, 0, 0, ex, sh, 0, 0, tw, th);
+    else t.drawImage(bitmap, sw - ex, 0, ex, sh, 0, 0, tw, th);
+    if (!tile.shade || tile.ambient !== ambient) {
+      // Strongest at the frame's edge (`ambient`), fading to WASH_FAR at the far end of the band.
+      const [x0, y0, x1, y1] = edge === 'top' ? [0, th, 0, 0] : edge === 'bottom' ? [0, 0, 0, th] : edge === 'left' ? [tw, 0, 0, 0] : [0, 0, tw, 0];
+      const shade = t.createLinearGradient(x0, y0, x1, y1);
+      shade.addColorStop(0, `rgba(${LETTERBOX_RGB},${ambient})`);
+      shade.addColorStop(0.5, `rgba(${LETTERBOX_RGB},${(ambient + (WASH_FAR - ambient) * 0.6).toFixed(3)})`);
+      shade.addColorStop(1, `rgba(${LETTERBOX_RGB},${WASH_FAR})`);
+      tile.shade = shade;
+      tile.ambient = ambient;
+    }
+    t.fillStyle = tile.shade;
+    t.fillRect(0, 0, tw, th);
   }
 }
