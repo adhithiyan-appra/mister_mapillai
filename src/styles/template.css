@@ -911,10 +911,12 @@ html.mm-menu-open body{position:fixed;left:0;right:0;width:100%}
    odd last button centred. Scoped by section: the shared .mm-tab look (maroon active state, gold border) is unchanged. */
 @media (max-width:900px){
   .mm-ba-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:1fr;gap:10px;width:100%;max-width:560px;margin:28px auto 0}
-  .mm-ba-tabs .mm-tab,#looks .mm-tabs .mm-tab{display:flex;align-items:center;justify-content:center;min-width:0;min-height:48px;padding:10px 8px;text-align:center;line-height:1.25;font-size:clamp(10px,2.75vw,12px);letter-spacing:clamp(.4px,.3vw,1.4px)}
+  .mm-ba-tabs .mm-tab{display:flex;align-items:center;justify-content:center;min-width:0;min-height:48px;padding:10px 8px;text-align:center;line-height:1.25;font-size:clamp(10px,2.75vw,12px);letter-spacing:clamp(.4px,.3vw,1.4px)}
 }
 @media (max-width:767px){
+  /* Collections: the five buttons fit one row from 768 px up, so the grid (and its compact buttons) is for phones only. */
   #looks .mm-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:1fr;gap:10px;max-width:520px;margin-right:auto;margin-bottom:40px;margin-left:auto}
+  #looks .mm-tabs .mm-tab{display:flex;align-items:center;justify-content:center;min-width:0;min-height:48px;padding:10px 8px;text-align:center;line-height:1.25;font-size:clamp(10px,2.75vw,12px);letter-spacing:clamp(.4px,.3vw,1.4px)}
   #looks .mm-tabs .mm-tab:last-child:nth-child(odd){grid-column:1/-1;justify-self:center;width:calc(50% - 5px)}
 }
 @media (max-width:359px){
