@@ -7,8 +7,8 @@ export const ceremonyTransformations: readonly CeremonyTransformation[] = [
     category: 'Engagement',
     title: 'Nichayathartham',
     subtitle: 'The engagement',
-    beforeImage: 'engagement-before',
-    afterImage: 'bandhgala-navy',
+    beforeImage: 'nichayathartham-before',
+    afterImage: 'nichayathartham-after',
     description: 'A refined ceremonial look designed for the first celebration, with gold aari work on deep navy.',
     details: [
       { label: 'Outfit', before: 'Plain formal shirt', after: 'Navy bandhgala with gold aari work' },
@@ -24,8 +24,8 @@ export const ceremonyTransformations: readonly CeremonyTransformation[] = [
     category: 'Wedding',
     title: 'Muhurtham',
     subtitle: 'The wedding',
-    beforeImage: 'wedding-before',
-    afterImage: 'silk-veshti',
+    beforeImage: 'muhurtham-before',
+    afterImage: 'muhurtham-after',
     description: 'Golden pure silk paired with a broad zari-border veshti for the sacred wedding hour.',
     details: [
       { label: 'Outfit', before: 'Plain cream shirt', after: 'Golden silk shirt and zari-border veshti' },
@@ -41,8 +41,8 @@ export const ceremonyTransformations: readonly CeremonyTransformation[] = [
     category: 'Reception',
     title: 'Reception',
     subtitle: 'The celebration',
-    beforeImage: 'reception-before',
-    afterImage: 'double-breasted',
+    beforeImage: 'reception-transform-before',
+    afterImage: 'reception-transform-after',
     description: 'Sharp peak lapels and gold buttons in tailored ivory for the evening reception stage.',
     details: [
       { label: 'Outfit', before: 'Plain grey shirt', after: 'Ivory double-breasted suit' },

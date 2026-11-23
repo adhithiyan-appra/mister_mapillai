@@ -14,7 +14,7 @@ function tilt(event: ReactPointerEvent<HTMLElement>) {
   const rect = card.getBoundingClientRect();
   const x = (event.clientX - rect.left) / rect.width - 0.5;
   const y = (event.clientY - rect.top) / rect.height - 0.5;
-  card.style.transform = `rotateY(${(x * 14).toFixed(2)}deg) rotateX(${(-y * 14).toFixed(2)}deg) translateY(-6px)`;
+  card.style.transform = `perspective(1200px) rotateY(${(x * 14).toFixed(2)}deg) rotateX(${(-y * 14).toFixed(2)}deg) translateY(-6px)`;
 }
 
 function LookCard({ outfit, index, onOpen }: { outfit: Outfit; index: number; onOpen: (id: string) => void }) {
@@ -44,13 +44,13 @@ export function LookGrid({ filter, onFilter, onOpen }: LookGridProps) {
   const looks = outfitsFor(filter);
   return <section className="mm-sec" id="looks" aria-labelledby="looks-title">
     <div className="mm-container">
-      <SectionHeading id="looks-title" eyebrow="Browse All" title={<>Find Your <em>Look</em></>} lead="Each look is a starting point. Every piece is tailored to you." className="mm-looks-head" />
+      <SectionHeading id="looks-title" eyebrow="Browse All" title={<>Find Your <em>Look</em></>} lead="Five ceremonies. Five distinct expressions of the Tamil groom." className="mm-looks-head" />
       <div className="mm-tabs mm-looks-tabs" role="group" aria-label="Filter by occasion">
         {outfitFilters.map(item => <button type="button" className="mm-tab" key={item.id} aria-pressed={item.id === filter} onClick={() => onFilter(item.id)}>{item.label}</button>)}
       </div>
       <p className="mm-sr" aria-live="polite">{looks.length} looks shown</p>
       {looks.length
-        ? <ul className="mm-looks" key={filter}>{looks.map((outfit, i) => <LookCard outfit={outfit} index={i} onOpen={onOpen} key={outfit.id} />)}</ul>
+        ? <ul className="mm-looks" data-count={looks.length} key={filter}>{looks.map((outfit, i) => <LookCard outfit={outfit} index={i} onOpen={onOpen} key={outfit.id} />)}</ul>
         : <p className="mm-empty">No looks for this occasion yet. <a className="mm-link" href={bookingHref()}>We can design one for you</a>.</p>}
     </div>
   </section>;

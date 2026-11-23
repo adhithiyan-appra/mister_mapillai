@@ -9,6 +9,13 @@ import familyFunctionsBefore from '../../assets/images/home/before-after/family-
 import weddingBefore from '../../assets/images/home/before-after/wedding-before.webp';
 import receptionBefore from '../../assets/images/home/before-after/reception-before.webp';
 
+import nichayatharthamBefore from '../../assets/images/collections/looks/before-after/nichayathartham-before.webp';
+import nichayatharthamAfter from '../../assets/images/collections/looks/before-after/nichayathartham-after.webp';
+import receptionTransformBefore from '../../assets/images/collections/looks/before-after/reception-before.webp';
+import receptionTransformAfter from '../../assets/images/collections/looks/before-after/reception-after.webp';
+import muhurthamBefore from '../../assets/images/collections/looks/before-after/muhurtham-before.webp';
+import muhurthamAfter from '../../assets/images/collections/looks/before-after/muhurtham-after.webp';
+
 export const transformationAssets = {
   engagement: engagementBefore,
   sangeet: sangeetBefore,
@@ -16,4 +23,10 @@ export const transformationAssets = {
   familyFunctions: familyFunctionsBefore,
   wedding: weddingBefore,
   reception: receptionBefore,
+  nichayatharthamBefore,
+  nichayatharthamAfter,
+  receptionTransformBefore,
+  receptionTransformAfter,
+  muhurthamBefore,
+  muhurthamAfter,
 } as const;

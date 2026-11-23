@@ -26,7 +26,7 @@ export function LookDialog({ outfit, onClose }: { outfit: Outfit | undefined; on
     onClick={event => { if (event.target === event.currentTarget) onClose(); }}
   >
     {outfit ? <div className="mm-dialog__grid">
-      <div className="mm-dialog__media"><SourceImage asset={outfit.image} alt={`${outfit.title}: ${outfit.description}`} /></div>
+      <div className="mm-dialog__media"><SourceImage asset={outfit.image} responsive sizes="(max-width: 767px) calc(100vw - 32px), 440px" alt={`${outfit.title}: ${outfit.description}`} /></div>
       <div className="mm-dialog__body">
         <button type="button" className="mm-dialog__close" aria-label="Close details" onClick={onClose}>✕</button>
         <span className="mm-eyebrow">{occasionText(outfit)}</span>

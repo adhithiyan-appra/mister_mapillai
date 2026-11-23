@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import type { KeyboardEvent, PointerEvent as ReactPointerEvent, Ref } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import type { KeyboardEvent, PointerEvent as ReactPointerEvent } from 'react';
+import { flushSync } from 'react-dom';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { SectionHeading } from '../../components/common/SectionHeading';
@@ -11,7 +12,12 @@ import { comparisonPanels } from '../../data/showcase';
 
 gsap.registerPlugin(ScrollTrigger);
 
-const clamp = (value: number) => Math.min(100, Math.max(0, value));
+const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
+
+/** Movement (px) before a touch or pen gesture on the image counts as a divider drag instead of a page scroll. */
+const TOUCH_DRAG_SLOP = 6;
+/** How long (s) the divider takes to catch up with the scroll position. */
+const FOLLOW_SECONDS = 0.45;
 
 function decodePair(index: number) {
   const item = ceremonyTransformations[index];
@@ -23,72 +29,139 @@ function decodePair(index: number) {
   }));
 }
 
-/** Cinematic before/after comparison: scroll-scrubbed, with manual drag priority. */
+/**
+ * The scroll offset (px) at which the pinned range says `value`. It is kept one pixel inside the range: landing on the
+ * range's very edge can fall just outside it after the browser rounds the offset, and the stage would then leave its
+ * pinned position (a visible jump) instead of staying where it is.
+ */
+function offsetFor(trigger: ScrollTrigger, value: number) {
+  const target = trigger.start + value * (trigger.end - trigger.start);
+  return Math.min(Math.floor(trigger.end) - 1, Math.max(Math.ceil(trigger.start) + 1, target));
+}
+
+/** Scroll positions within this fraction of either end of the range read as exactly BEFORE / AFTER. */
+const END_SNAP = 0.0015;
+const snapEnds = (value: number) => (value < END_SNAP ? 0 : value > 1 - END_SNAP ? 1 : value);
+
+interface Drag {
+  pointerId: number;
+  startX: number;
+  startY: number;
+  left: number;
+  width: number;
+  active: boolean;
+}
+
+/**
+ * Cinematic before/after comparison.
+ *
+ * One value rules the whole component: `progress` (0 = all BEFORE, 1 = all AFTER). `render()` is the only writer of
+ * the visuals (image clip and divider share the `--p` variable, plus the tags and aria values), and there are only
+ * three inputs to it:
+ *
+ *  - scroll: a single pinned ScrollTrigger (no scrub tween to lose) feeds `progress` through a short follow tween;
+ *  - dragging / keys: the pointer sets `progress` directly and takes priority while it is down;
+ *  - choosing a ceremony: progress, scroll position and image pair are reset together in one synchronous step.
+ *
+ * Scroll position and progress stay two views of the same number. Whenever a manual input (or a reset) changes
+ * `progress`, `alignScroll()` moves the scroll offset to the matching point of the pinned range, so scrolling carries
+ * on from there in both directions. While the stage is pinned that move is invisible; when it is not pinned the
+ * value waits (`handoffRef`) and is applied the moment the pin engages, so the page never jumps under the visitor.
+ */
 export function TransformationSection() {
   const [active, setActive] = useState(0);
-  const [pair, setPair] = useState<{ current: number; previous: number | null }>({ current: 0, previous: null });
+  const [shown, setShown] = useState(0);
   const stageRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
   const handleRef = useRef<HTMLDivElement>(null);
   const beforeTagRef = useRef<HTMLSpanElement>(null);
   const afterTagRef = useRef<HTMLSpanElement>(null);
-  const currentPairRef = useRef<HTMLDivElement>(null);
-  const outgoingPairRef = useRef<HTMLDivElement>(null);
+  const pairRef = useRef<HTMLDivElement>(null);
 
-  const positionRef = useRef(0);
-  const pendingRef = useRef<number | null>(null);
-  const rafRef = useRef<number | null>(null);
-  const manualRef = useRef(false);
-  const scrollProgressRef = useRef(0);
-  const scrollActiveRef = useRef(false);
-  const syncTweenRef = useRef<gsap.core.Tween | null>(null);
-  const loadedRef = useRef(new Set<number>([0]));
+  const progress = useRef({ value: 0 });
+  const triggerRef = useRef<ScrollTrigger | null>(null);
+  const handoffRef = useRef<number | null>(null);
+  const dragRef = useRef<Drag | null>(null);
+  const draggingRef = useRef(false);
+  const switchingRef = useRef(false);
+  const queuedRef = useRef<number | null>(null);
+  const frameQueueRef = useRef<number | null>(null);
+  const activeRef = useRef(0);
   const requestRef = useRef(0);
+  const loadedRef = useRef(new Set<number>([0]));
+  const mountedRef = useRef(false);
 
-  const paint = useCallback((value: number) => {
-    const node = frameRef.current;
-    if (!node) return;
-    const next = clamp(value);
-    positionRef.current = next;
-    node.style.setProperty('--p', `${next}%`);
+  /** The single writer of every visual that depends on `progress`. */
+  const render = (value: number) => {
+    const next = clamp01(value);
+    progress.current.value = next;
+    const percent = next * 100;
+    frameRef.current?.style.setProperty('--p', `${percent}%`);
     const handle = handleRef.current;
     if (handle) {
-      handle.setAttribute('aria-valuenow', String(Math.round(next)));
-      handle.setAttribute('aria-valuetext', `${Math.round(100 - next)}% before, ${Math.round(next)}% with Mister Mapillai`);
+      handle.setAttribute('aria-valuenow', String(Math.round(percent)));
+      handle.setAttribute('aria-valuetext', `${Math.round(100 - percent)}% before, ${Math.round(percent)}% with Mister Mapillai`);
     }
-    if (afterTagRef.current) afterTagRef.current.style.opacity = next < 14 ? '0' : '1';
-    if (beforeTagRef.current) beforeTagRef.current.style.opacity = next > 86 ? '0' : '1';
-  }, []);
+    if (afterTagRef.current) afterTagRef.current.style.opacity = percent < 14 ? '0' : '1';
+    if (beforeTagRef.current) beforeTagRef.current.style.opacity = percent > 86 ? '0' : '1';
+  };
 
-  const paintOnFrame = useCallback((value: number) => {
-    const next = clamp(value);
-    positionRef.current = next;
-    pendingRef.current = next;
-    if (rafRef.current !== null) return;
-    rafRef.current = requestAnimationFrame(() => {
-      rafRef.current = null;
-      if (pendingRef.current !== null) {
-        paint(pendingRef.current);
-        pendingRef.current = null;
-      }
+  /** Ease towards a value (scroll input). */
+  const follow = (target: number) => {
+    gsap.to(progress.current, {
+      value: clamp01(target),
+      duration: FOLLOW_SECONDS,
+      ease: 'power3.out',
+      overwrite: true,
+      onUpdate: () => render(progress.current.value),
     });
-  }, [paint]);
+  };
 
-  const syncToScroll = useCallback(() => {
-    if (!scrollActiveRef.current) return;
-    syncTweenRef.current?.kill();
-    const proxy = { value: positionRef.current };
-    syncTweenRef.current = gsap.to(proxy, {
-      value: scrollProgressRef.current * 100,
-      duration: 0.45,
-      ease: 'power2.out',
-      onUpdate: () => paint(proxy.value),
-      onComplete: () => { syncTweenRef.current = null; },
+  /** Set a value at once, stopping any easing in flight (manual input, reset). */
+  const jump = (value: number) => {
+    gsap.killTweensOf(progress.current);
+    cancelQueued();
+    render(value);
+  };
+
+  /** Pointer moves arrive faster than frames: remember the latest value and paint it once per frame. */
+  const queueRender = (value: number) => {
+    const next = clamp01(value);
+    progress.current.value = next;
+    queuedRef.current = next;
+    if (frameQueueRef.current !== null) return;
+    frameQueueRef.current = requestAnimationFrame(() => {
+      frameQueueRef.current = null;
+      const queued = queuedRef.current;
+      queuedRef.current = null;
+      if (queued !== null) render(queued);
     });
-  }, [paint]);
+  };
+
+  const cancelQueued = () => {
+    if (frameQueueRef.current !== null) cancelAnimationFrame(frameQueueRef.current);
+    frameQueueRef.current = null;
+    queuedRef.current = null;
+  };
+
+  /**
+   * Make the scroll offset say the same thing as `value`, so the scroll animation continues from it.
+   * Inside the pinned range this only moves the offset (the pinned stage does not move on screen). Outside it,
+   * moving the offset would shift the page, so the value is held and applied when the pin engages.
+   */
+  const alignScroll = (value: number) => {
+    const trigger = triggerRef.current;
+    if (!trigger) return;
+    const y = window.scrollY;
+    if (y < trigger.start) { handoffRef.current = value > 0.001 ? value : null; return; }
+    if (y > trigger.end) { handoffRef.current = value < 0.999 ? value : null; return; }
+    handoffRef.current = null;
+    const target = offsetFor(trigger, value);
+    if (Math.abs(target - y) > 0.5) window.scrollTo({ top: target, behavior: 'instant' as ScrollBehavior });
+  };
 
   useEffect(() => {
-    paint(0);
+    render(0);
     // On a first home visit these twelve images wait for the hero's opening frames.
     let timers: number[] = [];
     const stopWaiting = onHeroReady(() => {
@@ -98,38 +171,32 @@ export function TransformationSection() {
     });
 
     const media = gsap.matchMedia();
+    /** One ScrollTrigger for the section's whole life: choosing a ceremony resets `progress`, never the trigger. */
     const build = (start: string, end: string) => {
-      const proxy = { value: 0 };
-      const tween = gsap.to(proxy, {
-        value: 100,
-        ease: 'none',
-        onUpdate: () => {
-          if (manualRef.current || syncTweenRef.current?.isActive()) return;
-          paint(proxy.value);
+      const trigger = ScrollTrigger.create({
+        trigger: stageRef.current,
+        start,
+        end,
+        pin: true,
+        pinSpacing: true,
+        invalidateOnRefresh: true,
+        onUpdate: self => {
+          // Manual input wins; a waiting handoff means the divider holds a value the scroll offset does not say yet.
+          if (switchingRef.current || draggingRef.current || handoffRef.current !== null) return;
+          follow(snapEnds(self.progress));
         },
-        scrollTrigger: {
-          trigger: stageRef.current,
-          start,
-          end,
-          pin: true,
-          pinSpacing: true,
-          scrub: 0.65,
-          invalidateOnRefresh: true,
-          onToggle: self => { scrollActiveRef.current = self.isActive; },
-          onUpdate: self => {
-            scrollProgressRef.current = self.progress;
-            if (syncTweenRef.current?.isActive()) {
-              syncTweenRef.current.kill();
-              syncTweenRef.current = null;
-            }
-          },
+        onToggle: self => {
+          const waiting = handoffRef.current;
+          if (!self.isActive || waiting === null) return;
+          handoffRef.current = null;
+          window.scrollTo({ top: offsetFor(self, waiting), behavior: 'instant' as ScrollBehavior });
         },
+        // Scrolled clean through the range without ever being pinned: the scroll position has the final word.
+        onLeave: self => { if (handoffRef.current !== null) { handoffRef.current = null; follow(snapEnds(self.progress)); } },
+        onLeaveBack: self => { if (handoffRef.current !== null) { handoffRef.current = null; follow(snapEnds(self.progress)); } },
       });
-      return () => {
-        scrollActiveRef.current = false;
-        tween.scrollTrigger?.kill();
-        tween.kill();
-      };
+      triggerRef.current = trigger;
+      return () => { triggerRef.current = null; };
     };
     media.add('(prefers-reduced-motion: no-preference) and (min-width: 641px)', () => build('top 90px', '+=140%'));
     media.add('(prefers-reduced-motion: no-preference) and (max-width: 640px)', () => build('top 72px', '+=80%'));
@@ -144,86 +211,133 @@ export function TransformationSection() {
       stopWaiting();
       timers.forEach(window.clearTimeout);
       media.revert();
-      syncTweenRef.current?.kill();
-      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+      gsap.killTweensOf(progress.current);
+      cancelQueued();
     };
-  }, [paint]);
+    // render, follow and cancelQueued only touch refs, so the first render's copies stay correct: one setup is right.
+  }, []);
 
+  /** A swapped-in pair whose images are somehow not ready stays hidden (never a wrong or half-drawn image). */
   useLayoutEffect(() => {
-    const incoming = currentPairRef.current;
-    const outgoing = outgoingPairRef.current;
-    if (!incoming || !outgoing) return;
-    const timeline = gsap.timeline({
-      onComplete: () => setPair(current => ({ current: current.current, previous: null })),
+    if (!mountedRef.current) { mountedRef.current = true; return; }
+    const pair = pairRef.current;
+    if (!pair) return;
+    const waiting = Array.from(pair.querySelectorAll('img')).filter(image => !image.complete);
+    if (!waiting.length) return;
+    pair.style.visibility = 'hidden';
+    let left = waiting.length;
+    const reveal = () => { left -= 1; if (left <= 0) pair.style.visibility = ''; };
+    waiting.forEach(image => {
+      image.addEventListener('load', reveal, { once: true });
+      image.addEventListener('error', reveal, { once: true });
     });
-    timeline.fromTo(incoming, { opacity: 0 }, { opacity: 1, duration: 0.55, ease: 'power2.out' }, 0)
-      .to(outgoing, { opacity: 0, duration: 0.55, ease: 'power2.inOut' }, 0);
-    return () => { timeline.kill(); };
-  }, [pair.current, pair.previous]);
+    const timer = window.setTimeout(() => { pair.style.visibility = ''; }, 2500);
+    return () => {
+      window.clearTimeout(timer);
+      pair.style.visibility = '';
+      waiting.forEach(image => { image.removeEventListener('load', reveal); image.removeEventListener('error', reveal); });
+    };
+  }, [shown]);
 
+  /**
+   * Choose a ceremony. Its pair is decoded first; then pair, progress and scroll position change in one synchronous
+   * step, so the previous ceremony's image or divider is never on screen next to the new state.
+   */
   const select = (index: number) => {
-    if (index === active) return;
-    const token = ++requestRef.current;
+    if (index === activeRef.current) return;
+    activeRef.current = index;
     setActive(index);
-    void (async () => {
-      if (!loadedRef.current.has(index)) {
-        await decodePair(index);
-        loadedRef.current.add(index);
-      }
-      if (requestRef.current !== token) return;
-      syncTweenRef.current?.kill();
-      syncTweenRef.current = null;
-      paint(0);
-      setPair(current => ({ current: index, previous: current.current }));
-    })();
+    const token = ++requestRef.current;
+    switchingRef.current = true;
+    dragRef.current = null;
+    draggingRef.current = false;
+
+    const commit = () => {
+      if (requestRef.current !== token) return; // a newer choice took over
+      flushSync(() => setShown(index));
+      jump(0);
+      alignScroll(0);
+      switchingRef.current = false;
+    };
+    if (loadedRef.current.has(index)) commit();
+    else void decodePair(index).then(() => { loadedRef.current.add(index); commit(); });
   };
 
-  const fromPointer = (clientX: number) => {
-    const rect = frameRef.current?.getBoundingClientRect();
-    if (rect) paintOnFrame(clamp(((clientX - rect.left) / rect.width) * 100));
-  };
-  const onDown = (event: ReactPointerEvent<HTMLDivElement>) => {
-    manualRef.current = true;
-    syncTweenRef.current?.kill();
-    syncTweenRef.current = null;
+  const valueAt = (drag: Drag, clientX: number) => clamp01((clientX - drag.left) / drag.width);
+
+  const beginDrag = (event: ReactPointerEvent<HTMLDivElement>, drag: Drag) => {
+    drag.active = true;
+    draggingRef.current = true;
+    gsap.killTweensOf(progress.current);
+    handoffRef.current = null;
     event.currentTarget.setPointerCapture(event.pointerId);
-    fromPointer(event.clientX);
+    queueRender(valueAt(drag, event.clientX));
   };
-  const onUp = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (!manualRef.current) return;
-    manualRef.current = false;
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
-    syncToScroll();
+
+  /** The divider is where the visitor let go: that exact value becomes the scroll position too. */
+  const endDrag = (value: number) => {
+    dragRef.current = null;
+    draggingRef.current = false;
+    jump(value);
+    alignScroll(value);
   };
+
+  const onDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (switchingRef.current) return;
+    if (event.pointerType === 'mouse' ? event.button !== 0 : dragRef.current) return; // a second finger is ignored
+    const rect = event.currentTarget.getBoundingClientRect();
+    const drag: Drag = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, left: rect.left, width: rect.width, active: false };
+    dragRef.current = drag;
+    // A mouse press is unambiguous. A finger may be starting a page scroll, so it has to move sideways first.
+    if (event.pointerType === 'mouse') beginDrag(event, drag);
+  };
+
   const onMove = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (!manualRef.current) return;
-    if (event.pointerType === 'mouse' && event.buttons === 0) {
-      onUp(event);
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    if (event.pointerType === 'mouse' && event.buttons === 0) { onUp(event); return; }
+    if (!drag.active) {
+      const dx = Math.abs(event.clientX - drag.startX);
+      const dy = Math.abs(event.clientY - drag.startY);
+      if (dx < TOUCH_DRAG_SLOP || dx < dy) return;
+      beginDrag(event, drag);
       return;
     }
-    fromPointer(event.clientX);
-  };
-  const onKey = (event: KeyboardEvent<HTMLDivElement>) => {
-    const step = event.shiftKey ? 20 : 5;
-    const next = { ArrowLeft: positionRef.current - step, ArrowRight: positionRef.current + step, Home: 0, End: 100 }[event.key];
-    if (next === undefined) return;
-    event.preventDefault();
-    manualRef.current = true;
-    paint(clamp(next));
-    manualRef.current = false;
+    queueRender(valueAt(drag, event.clientX));
   };
 
-  const renderPair = (index: number, ref?: Ref<HTMLDivElement>) => {
-    const look = ceremonyTransformations[index];
-    return <div className="mm-ba__pair" ref={ref}>
-      <div className="mm-ba__layer mm-ba__layer--after">
-        <SourceImage asset={look.afterImage} alt={`${look.title} with Mister Mapillai`} draggable={false} />
-      </div>
-      <div className="mm-ba__layer mm-ba__layer--before">
-        <SourceImage asset={look.beforeImage} alt={`${look.title} before`} draggable={false} />
-      </div>
-    </div>;
+  const onUp = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    endDrag(valueAt(drag, event.clientX)); // also a tap with a finger: the divider goes to the tapped point
   };
+
+  /**
+   * The browser took the gesture (a vertical page scroll) or the frame's own capture was lost: keep what is on screen.
+   * (A touch also hands the pointer's implicit capture back from the image under the finger; that event bubbles up
+   * here too, and is not the end of the drag.)
+   */
+  const onCancel = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    if (drag.active) endDrag(progress.current.value);
+    else dragRef.current = null;
+  };
+
+  const onKey = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (switchingRef.current) return;
+    const step = event.shiftKey ? 0.2 : 0.05;
+    const current = progress.current.value;
+    const next = { ArrowLeft: current - step, ArrowRight: current + step, Home: 0, End: 1 }[event.key];
+    if (next === undefined) return;
+    event.preventDefault();
+    handoffRef.current = null;
+    jump(next);
+    alignScroll(clamp01(next));
+  };
+
+  const look = ceremonyTransformations[shown];
 
   return <section className="mm-sec mm-sec--white mm-ba-sec" aria-labelledby="ba-title">
     <div className="mm-container">
@@ -250,10 +364,17 @@ export function TransformationSection() {
             onPointerDown={onDown}
             onPointerMove={onMove}
             onPointerUp={onUp}
-            onPointerCancel={onUp}
+            onPointerCancel={onCancel}
+            onLostPointerCapture={event => { if (event.target === event.currentTarget) onCancel(event); }}
           >
-            {pair.previous !== null ? renderPair(pair.previous, outgoingPairRef) : null}
-            {renderPair(pair.current, currentPairRef)}
+            <div className="mm-ba__pair" data-ceremony={look.id} key={look.id} ref={pairRef}>
+              <div className="mm-ba__layer mm-ba__layer--after">
+                <SourceImage asset={look.afterImage} alt={`${look.title} with Mister Mapillai`} draggable={false} />
+              </div>
+              <div className="mm-ba__layer mm-ba__layer--before">
+                <SourceImage asset={look.beforeImage} alt={`${look.title} before`} draggable={false} />
+              </div>
+            </div>
             <span className="mm-ba__tag mm-ba__tag--after" ref={afterTagRef} aria-hidden="true">With Mister Mapillai</span>
             <span className="mm-ba__tag mm-ba__tag--before" ref={beforeTagRef} aria-hidden="true">Before</span>
             <div

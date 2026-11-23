@@ -40,6 +40,17 @@ import shirtWide from '../../assets/images/collections/wide/shirt-wide.webp';
 import silkVeshtiSm from '../../assets/images/collections/looks/silk-veshti-sm.webp';
 import veshtiWide from '../../assets/images/collections/wide/veshti-wide.webp';
 
+import royalEngagementSangeet from '../../assets/images/collections/high_quality_webp/mister_mapillai_navy_groom_8k.webp';
+import royalEngagementSangeetSm from '../../assets/images/collections/high_quality_webp/mister_mapillai_navy_groom_8k-sm.webp';
+import grandTamilReception from '../../assets/images/collections/high_quality_webp/mister_mapillai_burgundy_groom_8k.webp';
+import grandTamilReceptionSm from '../../assets/images/collections/high_quality_webp/mister_mapillai_burgundy_groom_8k-sm.webp';
+import traditionalMuhurthamCollection from '../../assets/images/collections/high_quality_webp/mister_mapillai_muhurtham_8k.webp';
+import traditionalMuhurthamCollectionSm from '../../assets/images/collections/high_quality_webp/mister_mapillai_muhurtham_8k-sm.webp';
+import traditionalMapillaiAzhaippu from '../../assets/images/collections/high_quality_webp/mister_mapillai_muhurtham_exact_8k.webp';
+import traditionalMapillaiAzhaippuSm from '../../assets/images/collections/high_quality_webp/mister_mapillai_muhurtham_exact_8k-sm.webp';
+import elegantNalanguCollection from '../../assets/images/collections/high_quality_webp/mister_mapillai_ivory_muhurtham_8k.webp';
+import elegantNalanguCollectionSm from '../../assets/images/collections/high_quality_webp/mister_mapillai_ivory_muhurtham_8k-sm.webp';
+
 import devatanSketch from '../../assets/images/shared/devatan-shirt/devatan-sketch.webp';
 import devatanShirtLegacy from '../../assets/images/shared/devatan-shirt/devatan-shirt.webp';
 import moodboard from '../../assets/images/shared/design-boards/moodboard.webp';
@@ -75,6 +86,16 @@ export const collectionAssets = {
   shirtWide,
   silkVeshtiSm,
   veshtiWide,
+  royalEngagementSangeet,
+  royalEngagementSangeetSm,
+  grandTamilReception,
+  grandTamilReceptionSm,
+  traditionalMuhurthamCollection,
+  traditionalMuhurthamCollectionSm,
+  traditionalMapillaiAzhaippu,
+  traditionalMapillaiAzhaippuSm,
+  elegantNalanguCollection,
+  elegantNalanguCollectionSm,
   devatanSketch,
   devatanShirtLegacy,
   moodboard,

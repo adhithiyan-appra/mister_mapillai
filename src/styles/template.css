@@ -218,6 +218,9 @@
 .mm-ba__pair{position:absolute;inset:0;will-change:opacity}
 .mm-ba__layer{position:absolute;inset:0}
 .mm-ba__layer img{display:block;width:100%;height:100%;object-fit:contain;object-position:center center;pointer-events:none}
+.mm-ba__pair[data-ceremony="engagement"] .mm-ba__layer img{object-fit:cover;object-position:52% center}
+.mm-ba__pair[data-ceremony="wedding"] .mm-ba__layer img,
+.mm-ba__pair[data-ceremony="reception"] .mm-ba__layer img{object-fit:cover;object-position:50% center}
 .mm-ba__layer--after{z-index:0}
 .mm-ba__layer--before{z-index:1;clip-path:inset(0 0 0 var(--p,0%))}
 .mm-ba__tag{position:absolute;top:16px;z-index:2;font-size:10px;letter-spacing:2px;text-transform:uppercase;padding:6px 10px;font-weight:600;transition:opacity .35s ease}
@@ -401,14 +404,27 @@
 .mm-cinfo p{opacity:.8;font-size:14px;margin:6px 0 20px}
 
 /* ---------- look grid + cards ---------- */
-.mm-looks-tabs{margin-top:34px}
-.mm-looks{display:grid;grid-template-columns:repeat(3,1fr);gap:30px;perspective:1200px}
+/* Find Your Look vertical rhythm, one place for every breakpoint: the section's top and bottom padding are the same
+   (balanced), and the gaps heading > filters > first row are kept short so the cards start high on the screen. */
+#looks.mm-sec{--looks-pad:64px;--looks-tabs-top:28px;--looks-tabs-bottom:36px;padding-top:var(--looks-pad);padding-bottom:var(--looks-pad)}
+.mm-looks-tabs{margin-top:var(--looks-tabs-top,28px);margin-bottom:var(--looks-tabs-bottom,36px)}
+/* Every look photo is a full-length portrait (head near the top edge, shoes near the bottom). One 2:3 frame shows
+   100% of each photo's height at every breakpoint, so no head or footwear is ever cropped; the wider 4:5 and 3:4
+   photos only lose a sliver of empty backdrop at the sides. Do not cap this frame with max-height. */
+/* The hover tilt gets its perspective per card (see tilt() in LookGrid.tsx). A perspective on this grid would use the
+   centre of the whole grid as its origin and push every card body (translateZ) away from it at rest: up over the photo
+   on the top rows and into a gap on the bottom rows. */
+.mm-looks{--mm-look-ratio:2/3;display:grid;grid-template-columns:repeat(3,1fr);column-gap:clamp(28px,3vw,36px);row-gap:clamp(36px,3.4vw,44px)}
+.mm-looks[data-count="5"]{grid-template-columns:repeat(6,minmax(0,1fr))}
+.mm-looks[data-count="5"] .mm-look{grid-column:span 2}
+.mm-looks[data-count="5"] .mm-look:nth-child(4){grid-column:2/span 2}
+.mm-looks[data-count="1"]{grid-template-columns:minmax(0,380px);justify-content:center}
 .mm-look{background:#fff;transform-style:preserve-3d;transition:transform .2s,box-shadow .4s;animation:mmPopIn .6s both;animation-delay:var(--d,0s);display:flex;flex-direction:column}
 @keyframes mmPopIn{from{opacity:0;transform:translateY(30px) scale(.95)}to{opacity:1;transform:none}}
 .mm-look:hover{box-shadow:0 30px 60px rgba(58,8,17,.18)}
-.mm-look__media{height:400px;position:relative;overflow:hidden;background:var(--mm-ph);display:block;width:100%;padding:0;border:0;cursor:pointer}
-.mm-look__media img{width:100%;height:100%;object-fit:cover;object-position:center 18%;transition:transform 1s var(--mm-ease)}
-.mm-look:hover .mm-look__media img{transform:scale(1.05)}
+.mm-look__media{height:auto;aspect-ratio:var(--mm-look-ratio,2/3);position:relative;overflow:hidden;background:var(--mm-ph);display:block;width:100%;padding:0;border:0;cursor:pointer}
+.mm-look__media img{width:100%;height:100%;object-fit:cover;object-position:center top;transition:transform 1s var(--mm-ease)}
+.mm-look:hover .mm-look__media img{transform:scale(1.02)}
 .mm-look__body{padding:24px;transform:translateZ(30px);display:flex;flex-direction:column;flex:1}
 .mm-look__tag{font-size:11px;letter-spacing:2px;color:var(--mm-gold-deep);text-transform:uppercase;font-weight:600}
 .mm-look h3{font-size:27px;color:var(--mm-maroon);margin:4px 0 8px}
@@ -866,7 +882,6 @@ html.mm-menu-open body{position:fixed;left:0;right:0;width:100%}
   .mm-foot__grid{grid-template-columns:1fr}
   .mm-look-pick{grid-template-columns:repeat(2,1fr)}
   .mm-form-nav .mm-btn{padding:14px 18px}
-  .mm-look__media{height:420px}
   .mm-hero__sub{font-size:16px}
   .mm-stat b{font-size:44px}
   .mm-marquee__track{font-size:22px}
@@ -909,25 +924,28 @@ html.mm-menu-open body{position:fixed;left:0;right:0;width:100%}
 
 /* Collections: preserve the desktop composition while refining the touch layouts. */
 @media (max-width:1023px){
-  #looks .mm-looks-tabs{gap:8px;margin-top:30px;margin-bottom:44px}
+  #looks.mm-sec{--looks-pad:48px;--looks-tabs-top:24px;--looks-tabs-bottom:32px}
+  #looks .mm-looks-tabs{gap:8px}
   #looks .mm-tab{padding-right:16px;padding-left:16px}
-  #looks .mm-looks{gap:24px}
-  #looks .mm-look__media{height:auto;aspect-ratio:4/5;max-height:500px}
+  #looks .mm-looks[data-count]{grid-template-columns:repeat(2,minmax(0,1fr));gap:32px 28px}
+  #looks .mm-looks[data-count] .mm-look{grid-column:auto}
+  #looks .mm-looks[data-count="1"]{grid-template-columns:minmax(0,500px);justify-content:center}
+  #looks .mm-look__media{height:auto;aspect-ratio:var(--mm-look-ratio,2/3)}
   #looks .mm-look__body{padding:22px}
   #looks .mm-look .mm-btns{gap:8px}
 }
 @media (max-width:767px){
   #looks .mm-looks-head .mm-lead{max-width:34ch}
-  #looks .mm-looks-tabs{max-width:680px;margin-right:auto;margin-bottom:40px;margin-left:auto}
+  #looks .mm-looks-tabs{max-width:680px;margin-right:auto;margin-left:auto}
   #looks .mm-tab{padding-right:12px;padding-left:12px;font-size:11px;letter-spacing:1.1px}
-  #looks .mm-looks{grid-template-columns:1fr;max-width:500px;margin-right:auto;margin-left:auto;gap:24px}
-  #looks .mm-look__media{aspect-ratio:2/3;max-height:580px}
+  #looks .mm-looks[data-count]{grid-template-columns:1fr;max-width:500px;margin-right:auto;margin-left:auto;gap:32px}
+  #looks .mm-look__media{height:auto;aspect-ratio:var(--mm-look-ratio,2/3)}
   #looks .mm-look .mm-btns{display:grid;grid-template-columns:minmax(0,.82fr) minmax(0,1.35fr);gap:10px}
   #looks .mm-look .mm-btn{width:100%;padding-right:12px;padding-left:12px;font-size:11.5px;letter-spacing:1.4px}
 }
 @media (max-width:430px){
   #looks .mm-container{padding-right:16px;padding-left:16px}
-  #looks .mm-looks-tabs{gap:8px;margin-top:28px;margin-bottom:36px}
+  #looks .mm-looks-tabs{gap:8px}
   #looks .mm-tab{padding-right:10px;padding-left:10px;font-size:10.5px;letter-spacing:1px}
   #looks .mm-look__body{padding:20px}
   #looks .mm-look h3{font-size:25px}
@@ -945,8 +963,8 @@ html.mm-menu-open body{position:fixed;left:0;right:0;width:100%}
 }
 @media (max-width:767px){
   /* Collections: the five buttons fit one row from 768 px up, so the grid (and its compact buttons) is for phones only. */
-  #looks .mm-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:1fr;gap:10px;max-width:520px;margin-right:auto;margin-bottom:40px;margin-left:auto}
-  #looks .mm-tabs .mm-tab{display:flex;align-items:center;justify-content:center;min-width:0;min-height:48px;padding:10px 8px;text-align:center;line-height:1.25;font-size:clamp(10px,2.75vw,12px);letter-spacing:clamp(.4px,.3vw,1.4px)}
+  #looks .mm-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:1fr;gap:10px;max-width:520px;margin-right:auto;margin-bottom:var(--looks-tabs-bottom,32px);margin-left:auto}
+  #looks .mm-tabs .mm-tab{display:flex;align-items:center;justify-content:center;min-width:0;min-height:44px;padding:10px 8px;text-align:center;line-height:1.25;font-size:clamp(10px,2.75vw,12px);letter-spacing:clamp(.4px,.3vw,1.4px)}
   #looks .mm-tabs .mm-tab:last-child:nth-child(odd){grid-column:1/-1;justify-self:center;width:calc(50% - 5px)}
 }
 @media (max-width:359px){
