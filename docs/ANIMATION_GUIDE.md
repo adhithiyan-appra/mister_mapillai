@@ -123,6 +123,6 @@ The **Orbit Accessories** showcase in `src/sections/Collections/StylingOrbit.tsx
 ## 7. Reduced Motion Guidelines
 
 The application strictly honors `prefers-reduced-motion: reduce`:
-1. **Hero Sequence**: Disabled; pins are released, no sequence is downloaded, and the static high-res poster (`frame-0001.webp`) is rendered.
+1. **Hero Sequence**: Disabled; pins are released, no sequence is downloaded, and the static high-res poster (`frame_0001.webp`) is rendered.
 2. **GSAP**: `createSafeMotionContext` automatically skips ScrollTrigger executions.
 3. **CSS**: In `src/styles/accessibility.css` and `src/styles/template.css`, animations and transitions are set to `none`, and transform states immediately snap to their final visible resting coordinates.

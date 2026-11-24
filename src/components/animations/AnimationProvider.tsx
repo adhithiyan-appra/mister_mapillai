@@ -178,6 +178,8 @@ function createController(): AnimationController & { start: () => () => void } {
       };
       window.addEventListener('scroll', schedule, { passive: true });
       window.addEventListener('resize', invalidate);
+      window.addEventListener('orientationchange', invalidate);
+      window.visualViewport?.addEventListener('resize', invalidate);
       document.addEventListener('visibilitychange', visibility);
       media.addEventListener('change', motionChange);
       const observer = new ResizeObserver(invalidate);
@@ -191,6 +193,8 @@ function createController(): AnimationController & { start: () => () => void } {
         raf = 0;
         window.removeEventListener('scroll', schedule);
         window.removeEventListener('resize', invalidate);
+        window.removeEventListener('orientationchange', invalidate);
+        window.visualViewport?.removeEventListener('resize', invalidate);
         document.removeEventListener('visibilitychange', visibility);
         media.removeEventListener('change', motionChange);
         observer.disconnect();

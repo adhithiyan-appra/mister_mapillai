@@ -29,6 +29,8 @@ export interface RenderProfile {
    * only the frames around the scroll position are ever fetched, never the whole sequence.
    */
   prefetch: number;
+  /** Encoded frames retained behind the decoded window so reverse scrolling decodes immediately without network re-fetches. */
+  prefetchBehind: number;
   /** Frames after the opening ones that are fetched while the page is idle, before the visitor has scrolled (0: none). */
   warm: number;
   /**
@@ -112,6 +114,10 @@ export class FrameStore {
   private fetching = 0;
   private decoding = 0;
   private focusAt = 0;
+  /** The window's centre when the plan was last made (see centre()). */
+  private lastCentre = -1;
+  /** False right after the playhead was moved straight to the scroll position: the window is then centred on it, not on the last decoded frame. */
+  private sequential = true;
   private direction = 1;
   private width = 0;
   private height = 0;
@@ -121,7 +127,8 @@ export class FrameStore {
   private wanted = new Set<number>();
   /** undefined: not provided yet (wait); null: fetch frame 1 like the others. */
   private first: FirstFrame | undefined;
-  /** The hero is off screen: only the keyframes are kept decoded. */
+  private firstConsumed = false;
+  /** The hero is off screen: only the keyframes and endpoints are kept decoded. */
   private resting = false;
 
   constructor(
@@ -183,6 +190,46 @@ export class FrameStore {
     this.pump();
   }
 
+  /**
+   * Distance from `position` back (against `direction`) to the nearest decoded frame, looking at most `limit` frames;
+   * Infinity if there is none that close.
+   */
+  decodedGap(position: number, direction: number, limit: number): number {
+    const n = this.unique.length;
+    for (let d = 0; d <= limit; d++) {
+      const p = position - d * direction;
+      if (p < 0 || p >= n) break;
+      if (this.frames[this.unique[p]].bitmap) return d;
+    }
+    return Infinity;
+  }
+
+  /**
+   * The playhead is already as far past the decoded frames as the window reaches: it should wait for the frames behind it to
+   * arrive instead of creeping on. (A playhead that outruns a slow connection would leave the frames being fetched behind it,
+   * show the same old frame for seconds and then jump; waiting shows every frame, in order, at the pace they arrive.) A playhead
+   * far from any decoded frame has just jumped (a scroll jump, an anchor): it is not held back, so it can travel to the new place.
+   */
+  shouldWait(position: number, direction: number): boolean {
+    if (!this.sequential) return false;
+    const { ahead } = this.profile;
+    const gap = this.decodedGap(position, direction, 3 * ahead);
+    return gap >= ahead && gap !== Infinity;
+  }
+
+  /**
+   * Where the fetching and decoding window is centred: on the playhead's frame, or, while the playhead is ahead of frames that
+   * have not arrived yet, on the last decoded frame behind it, so the next missing frame is always the next one fetched.
+   */
+  private centre(): number {
+    if (!this.sequential) return this.focusAt;
+    const gap = this.decodedGap(this.focusAt, this.direction, 3 * this.profile.ahead);
+    return gap === Infinity ? this.focusAt : this.focusAt - gap * this.direction;
+  }
+
+  /** The playhead was moved straight to the scroll position: fetch around it until frames there have arrived. */
+  jumped() { this.sequential = false; this.lastCentre = -1; }
+
   /** Re-prioritise around the frame being shown and the scroll direction. */
   focus(position: number, direction: number) {
     const turned = direction !== 0 && Math.sign(direction) !== this.direction;
@@ -213,18 +260,24 @@ export class FrameStore {
   }
 
   /**
-   * How many frames in a row, starting next to `position` and heading in
-   * `direction`, are decoded and ready to draw. The end of the sequence has
-   * nothing further to wait for, so it counts as ready.
+   * How many frames ahead of `position` in `direction` are decoded and ready to draw.
+   * Tolerates a single-frame decode bubble if the frame immediately after it is ready, so
+   * minor decode variance never stalls the playhead abruptly to CREEP.
    */
   readyRun(position: number, direction: number): number {
     const n = this.unique.length, limit = this.profile.ahead;
+    let gaps = 0;
+    let ready = 0;
     for (let d = 1; d <= limit; d++) {
       const p = position + d * direction;
       if (p < 0 || p >= n) return limit;
-      if (!this.frames[this.unique[p]].bitmap) return d - 1;
+      if (this.frames[this.unique[p]].bitmap) {
+        ready++;
+      } else if (++gaps > 1) {
+        return ready;
+      }
     }
-    return limit;
+    return ready;
   }
 
   /** The visitor has scrolled into the sequence: from now on the frames around the playhead are fetched. */
@@ -237,7 +290,7 @@ export class FrameStore {
   dispose() {
     this.disposed = true;
     this.frames.forEach(frame => { frame.controller?.abort(); frame.bitmap?.close(); frame.bitmap = undefined; frame.blob = undefined; });
-    if (this.first && 'close' in this.first) this.first.close();
+    if (this.first && !this.firstConsumed && 'close' in this.first) this.first.close();
   }
 
   /** Frames to keep decoded: the window around the focus, keyframes, first and last. */
@@ -245,14 +298,19 @@ export class FrameStore {
     const { ahead, behind, keyStride } = this.profile;
     const n = this.unique.length;
     const wanted = new Set<number>();
+    const centre = this.centre();
     if (!this.resting) {
       for (let d = -behind; d <= ahead; d++) {
-        const p = this.focusAt + d * this.direction;
+        const p = centre + d * this.direction;
         if (p >= 0 && p < n) wanted.add(this.unique[p]);
       }
     }
     for (let p = 0; p < n; p += keyStride) wanted.add(this.unique[p]);
-    if (n) { wanted.add(this.unique[0]); wanted.add(this.unique[n - 1]); }
+    if (n) {
+      wanted.add(this.unique[0]);
+      wanted.add(this.unique[n - 1]);
+      if (n > 1) wanted.add(this.unique[n - 2]);
+    }
     this.wanted = wanted;
     // Release frames that left the set; the canvas keeps what it last drew.
     this.frames.forEach((frame, u) => {
@@ -266,8 +324,12 @@ export class FrameStore {
     const { ahead, behind } = this.profile;
     const n = this.unique.length, order: number[] = [];
     const push = (p: number) => { if (p >= 0 && p < n) order.push(this.unique[p]); };
-    push(this.focusAt);
-    for (let d = 1; d <= ahead; d++) { push(this.focusAt + d * this.direction); if (d <= behind) push(this.focusAt - d * this.direction); }
+    const centre = this.centre();
+    push(centre);
+    for (let d = 1; d <= Math.max(ahead, behind); d++) {
+      if (d <= ahead) push(centre + d * this.direction);
+      if (d <= behind) push(centre - d * this.direction);
+    }
     return order;
   }
 
@@ -281,9 +343,8 @@ export class FrameStore {
 
   /**
    * The frames worth holding encoded, most urgent first, and how many of them are urgent. Before the visitor scrolls: the
-   * opening frames, then (idle, one request at a time) a short warm-up. Once they scroll: the decoded window, the
-   * keyframes nearest the playhead, then `prefetch` frames beyond the window in the direction of travel. Off screen
-   * (resting): the keyframes only.
+   * opening frames, then a gentle background warm-up. Once they scroll: the bidirectional decoded window, the keyframes
+   * nearest the playhead, then `prefetch` ahead and `prefetchBehind` behind so forward and reverse scrolling stay instant.
    */
   private plan(): { order: number[]; urgent: number } {
     const n = this.unique.length;
@@ -301,10 +362,15 @@ export class FrameStore {
     }
     for (const u of this.windowOrder()) if (!seen.has(u)) { seen.add(u); order.push(u); }
     const urgent = order.length;
-    [...this.keyPositions].sort((a, b) => Math.abs(a - this.focusAt) - Math.abs(b - this.focusAt)).forEach(add);
+    const centre = this.centre();
+    [...this.keyPositions].sort((a, b) => Math.abs(a - centre) - Math.abs(b - centre)).forEach(add);
     if (!this.resting) {
-      const { ahead, prefetch } = this.profile;
-      for (let d = ahead + 1; d <= ahead + prefetch; d++) add(this.focusAt + d * this.direction);
+      const { ahead, behind, prefetch, prefetchBehind } = this.profile;
+      const span = Math.max(prefetch, prefetchBehind);
+      for (let d = 1; d <= span; d++) {
+        if (d <= prefetch) add(centre + (ahead + d) * this.direction);
+        if (d <= prefetchBehind) add(centre - (behind + d) * this.direction);
+      }
     }
     return { order, urgent };
   }
@@ -314,6 +380,10 @@ export class FrameStore {
     // Frame 1 (the poster) gets the network to itself first: on slow connections it
     // arrives seconds sooner, and it is the frame on screen when the sequence starts.
     if (this.first === undefined) return;
+    // A frame arriving behind a playhead that is waiting moves the window on to the next missing frame.
+    if (!this.sequential && this.decodedGap(this.focusAt, this.direction, Math.max(1, this.profile.ahead - 1)) !== Infinity) this.sequential = true;
+    const centred = this.centre();
+    if (centred !== this.lastCentre) { this.lastCentre = centred; this.updateWanted(); }
     const order = this.windowOrder();
     const plan = this.plan();
     // Frames outside the plan: cancel a request still in flight, drop an encoded file already held.
@@ -323,9 +393,10 @@ export class FrameStore {
       if (frame.fetching && frame.controller) { frame.cancelled = true; frame.controller.abort(); }
       else if (frame.blob) frame.blob = undefined;
     });
-    // Fetch in plan order. The idle warm-up runs one request at a time so it never competes with the page's own images.
+    // Fetch in plan order. Post-critical idle warm-up runs up to 2 gentle requests so opening frames are ready fast without starving page images.
+    const warmCap = Math.min(2, this.profile.fetchConcurrency);
     for (let i = 0; i < plan.order.length; i++) {
-      const cap = this.engaged || i < plan.urgent ? this.profile.fetchConcurrency : 1;
+      const cap = this.engaged || i < plan.urgent ? this.profile.fetchConcurrency : warmCap;
       if (this.fetching >= cap) break;
       const u = plan.order[i];
       const frame = this.frames[u];
@@ -335,12 +406,21 @@ export class FrameStore {
     if (!this.width) return;
     // Decode: wanted frames missing or decoded at an old size; window first, then keyframes nearest first.
     const inWindow = new Set(order);
-    const centre = this.unique[this.focusAt] ?? 0;
+    const centre = this.unique[this.centre()] ?? 0;
     const rest = [...this.wanted].filter(u => !inWindow.has(u)).sort((a, b) => Math.abs(a - centre) - Math.abs(b - centre));
     for (const u of [...order, ...rest]) {
       if (this.decoding >= this.profile.decodeConcurrency) break;
       const frame = this.frames[u];
       if (frame.decoding || (frame.bitmap && frame.bitmapSize === this.sizeKey)) continue;
+      // Fast zero-copy path for Frame 1 when the worker already received a full-size ImageBitmap from the poster.
+      if (u === 0 && !this.resize && !this.firstConsumed && typeof ImageBitmap !== 'undefined' && this.first instanceof ImageBitmap) {
+        this.firstConsumed = true;
+        frame.bitmap?.close();
+        frame.bitmap = this.first;
+        frame.bitmapSize = this.sizeKey;
+        this.unique.forEach((v, p) => { if (v === 0) this.onFrame(p); });
+        continue;
+      }
       const source = this.sourceFor(u);
       if (source) this.decode(u, frame, source);
     }
@@ -422,6 +502,8 @@ function washTile(edge: Edge): WashTile | null {
 const LOOKAHEAD = 0.12;
 /** The slowest the playhead creeps when hardly anything ahead is decoded yet (frames per second). */
 const CREEP = 10;
+/** How long (ms) the scroll position must have been still before a held-up playhead is moved to it. */
+const SETTLE_MS = 1200;
 /**
  * Most the playhead's speed may change, in frames per second per second. A start from rest reaches full speed
  * in ~0.1 s; turning round at full speed takes ~0.2 s (the picture coasts a few frames on before it reverses)
@@ -466,6 +548,8 @@ export class FrameRenderer {
   private speed = 0;
   private dir = 1;
   private seeded = false;
+  /** When the scroll position last changed (the renderer's own clock), and the value it had. */
+  private goalChanged = 0;
   /** The frame wanted: the playhead rounded. */
   private target = 0;
   private drawn = -1;
@@ -529,6 +613,7 @@ export class FrameRenderer {
     }
     if (next === this.goal && !this.store.isResting) return;
     this.goal = next;
+    this.goalChanged = performance.now();
     this.wake();
   }
 
@@ -554,7 +639,23 @@ export class FrameRenderer {
     if (this.goal !== this.head) this.dir = this.goal > this.head ? 1 : -1;
     // The glide may not outrun the decoded frames: its speed limit follows the decoded run ahead of it.
     const run = this.store.readyRun(Math.round(this.head), this.dir);
-    const limit = Math.min(this.profile.maxSpeed, Math.max(CREEP, run / LOOKAHEAD));
+    const waiting = this.store.shouldWait(Math.round(this.head), this.dir);
+    // Stopped scrolling a while ago, and the playhead is still held up far behind: show the frame for the scroll position now
+    // (the nearest decoded one at once, the frames around it as they arrive) instead of playing the gap out frame by frame.
+    if (waiting && now - this.goalChanged > SETTLE_MS && Math.abs(this.goal - this.head) > this.profile.ahead * 2) {
+      this.head = this.goal; this.speed = 0;
+      this.store.jumped();
+    }
+    // Never creep on over frames that have not arrived: wait for the decoded frames behind (see FrameStore.shouldWait).
+    // When nearing either endpoint with decoded frames ready ahead, gently raise catch-up speed so the sequence always reaches
+    // frame 1 or the final frame before the sticky stage releases on brisk scrolls or mobile swipes.
+    const stillWaiting = this.store.shouldWait(Math.round(this.head), this.dir);
+    let limit = stillWaiting ? 0 : Math.min(this.profile.maxSpeed, Math.max(CREEP, run / LOOKAHEAD));
+    const last = Math.max(0, this.store.length - 1);
+    const distance = Math.abs(this.goal - this.head);
+    if (!stillWaiting && (this.goal >= last - 1.5 || this.goal <= 0.5) && distance > 2 && run >= Math.min(distance, 4)) {
+      limit = Math.max(limit, Math.min(this.profile.maxSpeed * 1.5, distance / 0.25));
+    }
     [this.head, this.speed] = follow(this.head, this.goal, this.speed, this.profile.glide, limit, dt);
     if (Math.abs(this.goal - this.head) < 0.004 && Math.abs(this.speed) < 0.2) { this.head = this.goal; this.speed = 0; }
     this.show();

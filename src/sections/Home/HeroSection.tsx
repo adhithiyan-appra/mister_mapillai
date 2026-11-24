@@ -12,11 +12,12 @@ const lines: readonly (readonly [word: string, gold?: boolean][])[] = [
 ];
 
 /**
- * Share of the pinned scroll that is animated; the rest holds the last frame before release. The playhead trails the scroll by
- * about half a second (its glide plus the decode of the frames still to come), so the hold is long enough (~0.7 of a screen of
- * scrolling) for it to arrive at the final frame while the stage is still pinned, at scroll speeds up to ~1.5 screens a second.
+ * Share of the pinned scroll that is animated; the rest holds the final frame before release.
+ * At 0.88, the last ~12% of the pinned scroll holds frame 202 cleanly while still pinned, so even
+ * brisk desktop scrolls or rapid mobile/tablet swipes always complete the full sequence before
+ * the hero unsticks and reveals the next section.
  */
-const PLAY = 0.91;
+const PLAY = 0.88;
 /** Phase 2: the introduction lifts away (opacity, -50px, scale 0.96) as soon as scrolling starts… */
 const TEXT_OUT: readonly [number, number] = [0.004, 0.1];
 /** …while the cinematic frames fade in over the maroon… */
@@ -31,11 +32,11 @@ const ENGAGE_AT = 0.004;
  */
 const FRAME_SHARE = PLAY * (1 - FRAMES_START);
 /**
- * Glide (1/s) of the introduction's fade and lift: small scroll steps ease in over
- * ~150 ms. The frames do not use this: their playhead glides inside the renderer,
+ * Glide (1/s) of the introduction's fade and lift: small scroll steps ease in smoothly over
+ * ~125 ms. The frames do not use this: their playhead glides inside the renderer,
  * on its own clock, at a speed the decoded frames can sustain (see frameRenderer.ts).
  */
-const GLIDE_RESPONSE = 6.5;
+const GLIDE_RESPONSE = 8;
 
 const smoothstep = (value: number, from: number, to: number) => {
   const t = clamp((value - from) / (to - from));

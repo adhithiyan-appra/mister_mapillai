@@ -48,25 +48,24 @@ export function deviceProfile(): RenderProfile & { maxDpr: number; maxArea: numb
     maxDpr: lowPower ? 1.5 : 2,
     /** Canvas backing-store budget in device pixels. */
     maxArea: lowPower ? 2_300_000 : 4_200_000,
-    fetchConcurrency: slowLink ? 2 : 4,
-    // Encoded frames kept ready beyond the decoded window (fetched, not decoded: ~0.85 MB each), and the opening frames
-    // fetched while the page is idle, before any scrolling, so the first scroll finds them ready.
-    prefetch: slowLink ? 6 : lowPower ? 14 : phone ? 24 : 40,
-    warm: slowLink ? 0 : phone ? 10 : 24,
-    // Tablets and small desktop windows on a capable machine decode at full size too (same memory budget as a desktop).
+    fetchConcurrency: slowLink ? 2 : lowPower ? 4 : 6,
+    // Encoded frames kept ready beyond the decoded window (ahead and behind the playhead) so forward
+    // and reverse scrolling never stall waiting on cold network fetches, while capping RAM safely.
+    prefetch: slowLink ? 8 : lowPower ? 18 : phone ? 28 : 48,
+    prefetchBehind: slowLink ? 4 : lowPower ? 8 : phone ? 14 : 20,
+    warm: slowLink ? 0 : lowPower ? 12 : phone ? 18 : 36,
+    // Tablets and desktop windows on capable machines decode at full size; phones & low-power decode at drawn size to save RAM.
     fullDecode: !lowPower && !phone,
-    // Lossless frames cost ~40 ms of decoding each; throughput scales with the cores (measured: ~27 frames/s at 1, ~70 at 4).
+    // Lossless frames decode concurrently off the main thread in the worker, scaling with CPU cores.
     decodeConcurrency: lowPower ? 2 : (nav.hardwareConcurrency ?? 8) >= 8 ? 6 : 4,
-    // ~27 decoded frames on desktop (full resolution, ~225 MB); ~17 smaller ones on low-power devices.
-    // The window ahead covers the renderer's lookahead plus the frames still in the decoder at the top playhead speed.
-    ahead: lowPower ? (touchSized ? 14 : 10) : phone ? 22 : touchSized ? 16 : 14,
-    behind: lowPower ? 2 : 3,
-    keyStride: lowPower ? 40 : 32,
-    // The footage never plays faster than ~3x its natural pace on desktop, however hard the page is flung; on phones and
-    // tablets it may go to ~5x so the sequence can keep up with a swipe (it still never outruns the decoded frames).
-    maxSpeed: lowPower ? (touchSized ? 72 : 48) : phone ? 130 : touchSized ? 110 : 72,
-    // ~0.32 s glide: the picture starts, eases and stops softly (cinematic), and trails the scroll by about a third of a second.
-    glide: 0.32,
+    // Bounded bidirectional decoded bitmap window: generous ahead lookahead + instant reverse-scroll buffer behind.
+    ahead: lowPower ? (touchSized ? 14 : 12) : phone ? 22 : touchSized ? 16 : 18,
+    behind: lowPower ? 5 : phone ? 10 : 8,
+    keyStride: lowPower ? 28 : 20,
+    // Smooth cinematic top speed during normal scroll; phones/tablets allow higher catch-up speed for fast swipes.
+    maxSpeed: lowPower ? (touchSized ? 90 : 60) : phone ? 150 : touchSized ? 125 : 84,
+    // Responsive cinematic glide: buttery start/stop without lagging noticeably behind the user's scroll.
+    glide: touchSized ? 0.2 : 0.26,
   };
 }
 
@@ -111,7 +110,7 @@ function startWorker(canvas: HTMLCanvasElement, poster: HTMLImageElement, profil
   const post = (message: WorkerMessage, transfer: Transferable[] = []) => worker.postMessage(message, transfer);
   worker.onmessage = ({ data }: MessageEvent<WorkerReply>) => {
     if (data.type === 'ready') onReady();
-    else if (data.type === 'critical') onCritical();
+    else if (data.type === 'critical' || data.type === 'failed') onCritical();
   };
   const offscreen = canvas.transferControlToOffscreen();
   post({ type: 'init', canvas: offscreen, urls: frameUrls, profile }, [offscreen]);
