@@ -1,6 +1,17 @@
 import { SourceImage } from '../../components/common/SourceImage';
+import { images } from '../../data/images';
 import type { ImageKey } from '../../data/images';
 import './CeremonyComparison.css';
+
+/**
+ * The display-size file of a photo where one exists (`<key>-view`, as the home page's Transformation section uses). The "after"
+ * photos' own files are 6144x7680 (15-18 MB each, lossless); their -view files are 1120x1400 (1.3-1.8 MB, lossless), more than the
+ * 240-400 CSS px this comparison is shown at needs even on a 3x screen. Measured: /ceremonies downloaded 53.5 MB for them.
+ */
+const viewKey = (asset: ImageKey): ImageKey => {
+  const key = `${asset}-view`;
+  return Object.hasOwn(images, key) ? key as ImageKey : asset;
+};
 
 interface CeremonyComparisonProps {
   id: string;
@@ -45,7 +56,7 @@ export function CeremonyComparison({
   >
     <div className="ceremony-compare__layer ceremony-compare__layer--before">
       <SourceImage
-        asset={beforeImage}
+        asset={viewKey(beforeImage)}
         sizes={sizes}
         className="ceremony-compare__image ceremony-compare__image--before"
         alt={`${title} before: ${beforeDescription}`}
@@ -56,7 +67,7 @@ export function CeremonyComparison({
     <div className="ceremony-compare__layer ceremony-compare__layer--after">
       <div className="ceremony-compare__after-inner">
         <SourceImage
-          asset={afterImage}
+          asset={viewKey(afterImage)}
           sizes={sizes}
           className="ceremony-compare__image ceremony-compare__image--after"
           alt={`${title} with Mister Mapillai: ${afterDescription}`}

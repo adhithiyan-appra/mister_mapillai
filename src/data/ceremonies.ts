@@ -37,7 +37,7 @@ export const ceremonyTransformations: readonly CeremonyTransformation[] = [
   },
   {
     id: 'reception',
-    outfitId: 'ivory-double-breasted',
+    outfitId: 'grand-tamil-reception',
     category: 'Reception',
     title: 'Reception',
     subtitle: 'The celebration',

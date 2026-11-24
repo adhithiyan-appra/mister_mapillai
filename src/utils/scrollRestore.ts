@@ -13,6 +13,8 @@
  * adds a spacer after mount, and fonts and images settle later. So the position is re-applied from the anchor while
  * the page's height settles, and given up the moment the visitor scrolls or touches anything.
  */
+import { heroCompleted } from './heroState';
+
 const KEY = 'mmScroll';
 /** Longest the restored position is held while the page settles. */
 const MAX_HOLD_MS = 5000;
@@ -24,11 +26,14 @@ const SAVE_DELAY_MS = 500;
 interface Saved { y: number; i: number; o: number; h: number }
 
 let armed = false;       // the next location belongs to a reload or a back/forward step
+let restoreMode: 'document' | 'traversal' | null = null;
 let active: { saved: Saved; stop: () => void } | null = null;
 let saveTimer = 0;
+const navigationType = (performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined)?.type;
 
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null;
-const sections = () => Array.from(document.querySelectorAll<HTMLElement>('main > section'));
+// Pages render a `.mm` shell inside <main>; keep direct sections as a fallback for pages that do not use that shell.
+const sections = () => Array.from(document.querySelectorAll<HTMLElement>('main > section, main > .mm > section'));
 
 function readSaved(): Saved | null {
   const state = history.state;
@@ -67,6 +72,9 @@ function targetFor(saved: Saved) {
   const section = sections()[saved.i];
   if (!section) return saved.y;
   const top = section.getBoundingClientRect().top + window.scrollY;
+  // Saved above the first section (at the very top of the page, where the first section starts below the fixed navigation):
+  // restore that offset itself. Anchoring it to the section would push the page down by the navigation's height on reload.
+  if (saved.o === 0 && saved.y < top) return Math.max(0, saved.y);
   const height = section.offsetHeight;
   // The section is the same one but its height may differ (another viewport, a late layout): keep the proportion.
   const offset = saved.h > 0 && height > 0 && Math.abs(height - saved.h) > saved.h * 0.1 ? (saved.o / saved.h) * height : saved.o;
@@ -125,6 +133,7 @@ function hold(saved: Saved) {
 export function initScrollRestoration() {
   if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
   armed = true; // the first location of a visit is a load or a reload: restore it if this entry has a position
+  restoreMode = 'document';
   window.addEventListener('scroll', scheduleSave, { passive: true });
   window.addEventListener('pagehide', saveScroll);
   window.addEventListener('beforeunload', saveScroll);
@@ -135,6 +144,7 @@ export function initScrollRestoration() {
 export function expectTraversal() {
   active?.stop();
   armed = true;
+  restoreMode = 'traversal';
 }
 
 /** The visitor is navigating somewhere new: remember this entry's position, and start the new one fresh. */
@@ -142,6 +152,7 @@ export function leavingForNewLocation() {
   saveScroll();
   active?.stop();
   armed = false;
+  restoreMode = null;
 }
 
 /**
@@ -153,8 +164,21 @@ export function restoreScroll(): boolean {
   if (active) return true;
   if (!armed) return false;
   armed = false;
+  const mode = restoreMode;
+  restoreMode = null;
   const saved = readSaved();
   if (!saved) return false;
+  const anchor = sections()[saved.i];
+  // A reload inside the home hero while its animation is unfinished starts it again from frame 1, at the top of the page. Keep
+  // the site's normal restoration for every other section, for browser history traversal, and for a hero already played to the
+  // end (utils/heroState.ts): that one stays complete and the visitor is put back exactly where they were.
+  if (mode === 'document' && navigationType === 'reload' && anchor?.classList.contains('mm-hero-seq') && !heroCompleted()) {
+    jump(0);
+    try {
+      history.replaceState({ ...(isRecord(history.state) ? history.state : {}), [KEY]: { y: 0, i: saved.i, o: 0, h: anchor.offsetHeight } satisfies Saved }, '');
+    } catch { /* the top position is already applied; failing to rewrite history is harmless */ }
+    return true;
+  }
   hold(saved);
   return true;
 }

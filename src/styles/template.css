@@ -139,18 +139,13 @@
     linear-gradient(to bottom,var(--mm-maroon-dark) var(--mm-gy),rgba(58,8,17,0) calc(var(--mm-gy) + var(--mm-fy)),rgba(58,8,17,0) calc(100% - var(--mm-gy) - var(--mm-fy)),var(--mm-maroon-dark) calc(100% - var(--mm-gy))),
     linear-gradient(to right,var(--mm-maroon-dark) var(--mm-gx),rgba(58,8,17,0) calc(var(--mm-gx) + var(--mm-fx)),rgba(58,8,17,0) calc(100% - var(--mm-gx) - var(--mm-fx)),var(--mm-maroon-dark) calc(100% - var(--mm-gx)))}
 .mm-hero__veil{position:absolute;inset:0;z-index:1;pointer-events:none;background:radial-gradient(ellipse at center,rgba(58,8,17,.45),rgba(58,8,17,.92))}
-/* Scroll-driven sequence: starts directly below the fixed navigation so the groom's head and stage are never covered. */
-/* The pinned scroll is derived from the frame count: (frame steps) x (scroll per frame) / (share of the scroll that plays frames).
-   HeroSection.tsx sets --mm-hero-steps and --mm-hero-share; the pace is deliberately slow and cinematic (about 38px of scroll per
-   frame on a 900px-tall desktop screen) so the footage plays smoothly from frame 1 to the final frame. Phones and tablets use
-   100dvh (with 100svh fallback) on the sticky viewport so collapsing mobile toolbars never expose a bottom maroon gap, while
-   --mm-hero-scroll stays anchored to svh for consistent scroll distance. */
-.mm-hero-seq{--mm-hero-pace:4.2svh;--mm-hero-scroll:calc(var(--mm-hero-steps,201) * var(--mm-hero-pace) / var(--mm-hero-share,.774));position:relative;height:calc(100svh - var(--mm-nav-h) + var(--mm-hero-scroll));height:calc(100dvh - var(--mm-nav-h) + var(--mm-hero-scroll));background:var(--mm-maroon-dark);overflow-x:clip}
-/* Phase 1 shows only the maroon introduction: the frames fade in once scrolling starts. */
+/* Staged cinematic sequence: directly below the fixed navigation, so the groom's head and stage are never covered, and exactly one
+   screen tall. The page stays at the top while the eight stages play (HeroSection.tsx), so there is no pinned scroll to size.
+   100dvh (with a 100svh fallback) follows mobile toolbars as they show and hide, so the frame never leaves a maroon gap below it. */
+.mm-hero-seq{position:relative;height:calc(100svh - var(--mm-nav-h));height:calc(100dvh - var(--mm-nav-h));background:var(--mm-maroon-dark);overflow-x:clip}
+/* The maroon introduction comes first: the frames fade in as the first stage starts. */
 .mm-hero-seq .mm-hero__media{opacity:0}
-.mm-hero-seq > .mm-hero{position:sticky;top:var(--mm-nav-h);height:calc(100svh - var(--mm-nav-h));height:calc(100dvh - var(--mm-nav-h));min-height:0;background:var(--mm-maroon-dark);will-change:transform}
-@media (max-width:1023px){.mm-hero-seq{--mm-hero-pace:3.5svh}}
-@media (max-width:640px){.mm-hero-seq{--mm-hero-pace:3svh}}
+.mm-hero-seq > .mm-hero{height:calc(100svh - var(--mm-nav-h));height:calc(100dvh - var(--mm-nav-h));min-height:0;background:var(--mm-maroon-dark)}
 /* Phones and tablets. The footage is a 16:9 picture on a tall screen, so every frame is still shown whole (the sign, the poster
    and the groom are spread across its width and must not be cropped), but the space around it is the footage itself: a soft mirror
    image of the frame's edge (painted by the renderer, see frameRenderer.ts) that fades into the maroon, not an empty screen.

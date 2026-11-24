@@ -1,0 +1,4 @@
+# Netlify / Cloudflare Pages. Vite fingerprints everything in /assets (the name changes with the content), so it can be cached
+# for good. The hero frame loader drops encoded frames it is not using and relies on the browser cache to serve them again.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable

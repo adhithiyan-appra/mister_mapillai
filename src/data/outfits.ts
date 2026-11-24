@@ -44,7 +44,7 @@ export const outfitFilters: readonly { id: OutfitFilter; label: string }[] = [
 type Row = [kind: DetailKind, label: string, value: string];
 const rows = (...items: Row[]): OutfitDetail[] => items.map(([kind, label, value]) => ({ kind, label, value }));
 
-/** All 18 collection looks arranged so categories alternate evenly across the grid. */
+/** All 15 collection looks arranged so categories alternate evenly across the grid. */
 export const outfits: readonly Outfit[] = [
   {
     id: 'traditional-muhurtham-collection',
@@ -64,21 +64,22 @@ export const outfits: readonly Outfit[] = [
     ),
   },
   {
-    id: 'grand-tamil-reception',
-    image: 'grand-tamil-reception',
-    thumbnail: 'grand-tamil-reception-sm',
+    id: 'midnight-embroidered-suit',
+    image: 'tuxedo',
+    thumbnail: 'tuxedo-sm',
     occasions: ['reception'],
-    title: 'Grand Tamil Reception',
-    price: '',
-    description: 'Maroon velvet-style bandhgala · Gold floral and temple embroidery · Brooch and pocket square · Matching trousers · Brown oxfords',
+    title: 'Midnight Embroidered Suit',
+    price: 'From ₹68,000',
+    description: 'Navy three-piece suit · Matching waistcoat · White shirt with dotted tie · Floral lapel pin with chain · Brown oxfords',
     garment: 'Reception',
-    summary: 'Maroon velvet-style bandhgala · Gold floral and temple embroidery · Brooch and pocket square · Matching trousers · Brown oxfords',
+    summary: 'Navy three-piece suit · Matching waistcoat · White shirt with dotted tie · Floral lapel pin with chain · Brown oxfords',
     details: rows(
-      ['clothing', 'Bandhgala', 'Maroon velvet-style bandhgala with gold floral embroidery across the chest and shoulder, embroidered collar and cuffs, and temple and elephant motifs at the hem'],
-      ['clothing', 'Bottom', 'Matching maroon tailored trousers'],
-      ['accessory', 'Accessories', 'Gold brooch with hanging drops, gold pocket square and a metal-bracelet wristwatch'],
-      ['footwear', 'Footwear', 'Dark brown leather lace-up oxfords'],
-      ['finish', 'Finish', 'Gold-tone buttons down the front'],
+      ['clothing', 'Jacket', 'Navy tailored jacket'],
+      ['clothing', 'Waistcoat', 'Matching navy waistcoat'],
+      ['clothing', 'Shirt', 'White shirt with a navy dotted tie'],
+      ['clothing', 'Bottom', 'Matching navy trousers'],
+      ['accessory', 'Finish', 'Floral lapel pin with chain, pocket square and wristwatch'],
+      ['footwear', 'Footwear', 'Brown leather oxfords'],
     ),
   },
   {
@@ -184,24 +185,6 @@ export const outfits: readonly Outfit[] = [
     ),
   },
   {
-    id: 'charcoal-waistcoat-suit',
-    image: 'charcoal-suit',
-    thumbnail: 'charcoal-suit-sm',
-    occasions: ['family'],
-    title: 'Charcoal Waistcoat Suit',
-    price: '',
-    description: 'Tailored charcoal three-piece suit · Matching waistcoat · Pale-blue shirt and black tie · White pocket square · Black loafers',
-    garment: 'Waistcoat suit',
-    summary: 'Charcoal three-piece with waistcoat, tie and pocket square',
-    details: rows(
-      ['clothing', 'Jacket', 'Charcoal single-breasted jacket'],
-      ['clothing', 'Waistcoat', 'Double-breasted charcoal waistcoat'],
-      ['clothing', 'Shirt', 'Pale blue shirt with a black tie'],
-      ['footwear', 'Footwear', 'Black leather loafers'],
-      ['finish', 'Finish', 'White pocket square'],
-    ),
-  },
-  {
     id: 'engagement-ivory-jacket',
     image: 'bandhgala-ivory',
     thumbnail: 'bandhgala-ivory-sm',
@@ -255,23 +238,6 @@ export const outfits: readonly Outfit[] = [
     ),
   },
   {
-    id: 'grooms-family-coordinated',
-    image: 'ceremonial-shirt',
-    thumbnail: 'ceremonial-shirt-sm',
-    occasions: ['family'],
-    title: "Groom's Family Coordinated",
-    price: 'From ₹12,000 / person',
-    description: 'Cream shirt with gold front embroidery · Embroidered collar and cuffs · Black tailored trousers · Ornate belt buckle · Black oxfords',
-    garment: "Groom's Family",
-    summary: 'Cream shirt with gold front embroidery · Embroidered collar and cuffs · Black tailored trousers · Ornate belt buckle · Black oxfords',
-    details: rows(
-      ['clothing', 'Shirt', 'Cream shirt with gold embroidery down the front placket and across the collar, shoulders and cuffs'],
-      ['clothing', 'Bottom', 'Black tailored trousers'],
-      ['accessory', 'Belt', 'Black belt with an ornate gold-tone buckle'],
-      ['footwear', 'Footwear', 'Black leather oxfords'],
-    ),
-  },
-  {
     id: 'navy-bandhgala',
     image: 'bandhgala-navy',
     thumbnail: 'bandhgala-navy-sm',
@@ -287,24 +253,6 @@ export const outfits: readonly Outfit[] = [
       ['accessory', 'Layer', 'Gold pocket square'],
       ['footwear', 'Footwear', 'Brown leather loafers'],
       ['finish', 'Finish', 'Gold-tone buttons down the front'],
-    ),
-  },
-  {
-    id: 'ivory-double-breasted',
-    image: 'double-breasted',
-    thumbnail: 'double-breasted-sm',
-    occasions: ['reception'],
-    title: 'Wedding Reception Look',
-    price: '',
-    description: 'Ivory double-breasted suit · Gold buttons · Champagne tie and pocket square · Brown leather oxfords',
-    garment: 'Double-breasted suit',
-    summary: 'Peak lapels for the reception',
-    details: rows(
-      ['clothing', 'Jacket', 'Ivory double-breasted suit, peak lapel, gold buttons'],
-      ['clothing', 'Shirt', 'White shirt, spread collar'],
-      ['accessory', 'Watch', 'Silver-tone wristwatch'],
-      ['footwear', 'Footwear', 'Chestnut brown oxfords'],
-      ['finish', 'Finish', 'Champagne tie and pocket square'],
     ),
   },
   {
@@ -325,22 +273,21 @@ export const outfits: readonly Outfit[] = [
     ),
   },
   {
-    id: 'midnight-embroidered-suit',
-    image: 'tuxedo',
-    thumbnail: 'tuxedo-sm',
+    id: 'grand-tamil-reception',
+    image: 'grand-tamil-reception',
+    thumbnail: 'grand-tamil-reception-sm',
     occasions: ['reception'],
-    title: 'Midnight Embroidered Suit',
-    price: 'From ₹68,000',
-    description: 'Navy three-piece suit · Matching waistcoat · White shirt with dotted tie · Floral lapel pin with chain · Brown oxfords',
+    title: 'Grand Tamil Reception',
+    price: '',
+    description: 'Maroon velvet-style bandhgala · Gold floral and temple embroidery · Brooch and pocket square · Matching trousers · Brown oxfords',
     garment: 'Reception',
-    summary: 'Navy three-piece suit · Matching waistcoat · White shirt with dotted tie · Floral lapel pin with chain · Brown oxfords',
+    summary: 'Maroon velvet-style bandhgala · Gold floral and temple embroidery · Brooch and pocket square · Matching trousers · Brown oxfords',
     details: rows(
-      ['clothing', 'Jacket', 'Navy tailored jacket'],
-      ['clothing', 'Waistcoat', 'Matching navy waistcoat'],
-      ['clothing', 'Shirt', 'White shirt with a navy dotted tie'],
-      ['clothing', 'Bottom', 'Matching navy trousers'],
-      ['accessory', 'Finish', 'Floral lapel pin with chain, pocket square and wristwatch'],
-      ['footwear', 'Footwear', 'Brown leather oxfords'],
+      ['clothing', 'Bandhgala', 'Maroon velvet-style bandhgala with gold floral embroidery across the chest and shoulder, embroidered collar and cuffs, and temple and elephant motifs at the hem'],
+      ['clothing', 'Bottom', 'Matching maroon tailored trousers'],
+      ['accessory', 'Accessories', 'Gold brooch with hanging drops, gold pocket square and a metal-bracelet wristwatch'],
+      ['footwear', 'Footwear', 'Dark brown leather lace-up oxfords'],
+      ['finish', 'Finish', 'Gold-tone buttons down the front'],
     ),
   },
   {
@@ -371,7 +318,6 @@ const legacyLookAliases: Record<string, string> = {
   'blush-indo-western': 'sangeet-pastel-kurta',
   'ivory-bandhgala': 'engagement-ivory-jacket',
   'jodhpuri-suit': 'best-men-edit',
-  'ceremonial-shirt': 'grooms-family-coordinated',
 };
 
 export function outfitsFor(filter: OutfitFilter): readonly Outfit[] {

@@ -4,65 +4,60 @@ import { fittingHref } from '../../data/navigation';
 import { clamp, writeStyle } from '../../utils/animation';
 import { cssVars } from '../../utils/style';
 import { markHeroReady } from '../../utils/heroReady';
+import { heroCompleted, rememberHeroCompleted } from '../../utils/heroState';
 import { SOURCE_SIZE, createHeroRenderer, deviceProfile, frameScale, frameUrls } from './heroFrames';
+import { CROSSFADE, HERO_STAGES, buildStageMap } from './heroStages';
 
 const lines: readonly (readonly [word: string, gold?: boolean][])[] = [
   [['Crafted'], ['for'], ['the'], ['Groom.', true]],
   [['Styled'], ['Head'], ['to'], ['Toe.']],
 ];
 
+/** The eight stages (heroStages.ts): which frames each one plays and for how long. */
+const STAGES = buildStageMap(HERO_STAGES, frameUrls.length);
+/** The introduction lifts away and the frames fade in over this long (ms) as the first stage starts, and the reverse after the first stage is played back. */
+const INTRO_MS = 1000;
+/** The first stage starts moving once its frame 1 has mostly faded in (ms after the scroll). */
+const FIRST_STAGE_DELAY_MS = 800;
 /**
- * Share of the pinned scroll that is animated; the rest holds the final frame before release.
- * At 0.88, the last ~12% of the pinned scroll holds frame 202 cleanly while still pinned, so even
- * brisk desktop scrolls or rapid mobile/tablet swipes always complete the full sequence before
- * the hero unsticks and reveals the next section.
+ * Wheel and trackpad: events closer together than this (ms) are one gesture, which starts at most one stage. Trackpad momentum
+ * and a wheel spun on through a stage are part of the gesture that started it, so they never start the next one.
  */
-const PLAY = 0.88;
-/** Phase 2: the introduction lifts away (opacity, -50px, scale 0.96) as soon as scrolling starts… */
-const TEXT_OUT: readonly [number, number] = [0.004, 0.1];
-/** …while the cinematic frames fade in over the maroon… */
-const FRAMES_IN: readonly [number, number] = [0.03, 0.12];
-/** …and only then (phase 3) do the frames start to advance with the scroll. */
-const FRAMES_START = 0.12;
-/** Scroll progress at which the visitor is taken to be scrolling into the sequence: its frames start to be fetched. */
-const ENGAGE_AT = 0.004;
-/**
- * The pinned scroll is as long as the frame count needs (template.css: frame steps × a pace in svh per frame, divided by the share
- * of the scroll that plays frames), so a longer or shorter sequence keeps the same, slow pace instead of racing or crawling.
- */
-const FRAME_SHARE = PLAY * (1 - FRAMES_START);
-/**
- * Glide (1/s) of the introduction's fade and lift: small scroll steps ease in smoothly over
- * ~125 ms. The frames do not use this: their playhead glides inside the renderer,
- * on its own clock, at a speed the decoded frames can sustain (see frameRenderer.ts).
- */
-const GLIDE_RESPONSE = 8;
-/**
- * The pinned scroll only releases the stage once the final frame is on the canvas. A scroll that outruns the playhead (a hard fling,
- * the End key, frames still arriving) keeps the stage held in place, over the next section, until the last frame has been drawn;
- * then the stage glides away. The hold gives up when the picture stalls or after a cap, so a sequence that cannot finish (offline, a failed fetch) never traps the visitor.
- */
-const HOLD_STALL_MS = 2500;
-const HOLD_CAP_MS = 15000;
-/** Glide (1/s) of the released stage, and its top speed in stage heights per second. */
-const RELEASE_RESPONSE = 5;
-const RELEASE_MAX_SPEED = 2.5;
+const GESTURE_GAP_MS = 220;
+/** Touch: how far (px) a finger must travel in one swipe to start a stage. */
+const SWIPE_PX = 28;
+/** The hero takes scroll input only while it is fully in view, at the top of the page (px of tolerance). */
+const TOP_PX = 2;
+/** A stage held up this long (ms) beyond the renderer's stall report, waiting for frames that do not arrive, stops blocking the scroll. */
+const RELEASE_AFTER_STALL_MS = 4000;
+/** After a reload of a completed hero, its final frame fades in over this long (ms) once it is drawn. */
+const RESTORE_FADE_MS = 400;
 
 const smoothstep = (value: number, from: number, to: number) => {
   const t = clamp((value - from) / (to - from));
   return t * t * (3 - 2 * t);
 };
 
+/** Keys that scroll the page, and which way. */
+const KEYS: Record<string, 1 | -1> = { ArrowDown: 1, PageDown: 1, ' ': 1, ArrowUp: -1, PageUp: -1 };
+
 /**
- * Scroll-driven hero: the section is pinned while the page scrolls through it
- * and the scroll position selects the frame. It runs as one scene on the
- * site's shared animation scheduler (no second scroll loop): frames are drawn
- * to a canvas only when the frame index changes, never through React state.
+ * Staged cinematic hero. The page stays at the top while the eight stages play: one deliberate scroll starts the next stage, which
+ * plays on the renderer's own clock to its last frame and holds there until the next scroll; scrolling up plays the current stage
+ * back. After the last stage the next scroll goes to the page as usual. The hero is one scene on the site's shared animation
+ * scheduler (no second loop); the frames are drawn by the renderer (a worker where supported), never through React state.
+ *
+ * Input that is not a scroll gesture (the scrollbar, an anchor link, Home/End) is not intercepted, and a stage that cannot get its
+ * frames (offline) stops blocking the scroll after a while, so the visitor is never trapped. With reduced motion there are no stages:
+ * the introduction is the hero, as before.
+ *
+ * Reload: a hero played to the end stays complete (utils/heroState.ts): it comes back on its final frame, the page is restored to
+ * where the visitor was (scrollRestore.ts) and scrolls on freely. A hero reloaded part-way through starts again from frame 1.
  */
 export function HeroSection() {
   const trackRef = useRef<HTMLElement>(null);
 
-  useSceneAnimation(trackRef, track => {
+  useSceneAnimation(trackRef, (track, controller) => {
     const stage = track.querySelector<HTMLElement>('.mm-hero')!;
     const canvas = stage.querySelector<HTMLCanvasElement>('.mm-hero__canvas')!;
     const poster = stage.querySelector<HTMLImageElement>('.mm-hero__poster')!;
@@ -72,62 +67,168 @@ export function HeroSection() {
     const hint = stage.querySelector<HTMLElement>('.mm-scroll-hint')!;
     const profile = deviceProfile();
     const reducedAtStart = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const count = frameUrls.length;
+    const total = STAGES.stages.length;
 
-    let pinStart = 0, range = 1;
-    let progress = 0, synced = false;
+    /** This history entry's hero was played to the end before a reload (or a back/forward step): it comes back complete. */
+    const restored = !reducedAtStart && frameUrls.length > 1 && heroCompleted();
+    /** Stages completed (0: the introduction on frame 1; total: the final frame, and the page scrolls on). */
+    let done = 0;
+    /** The stage being played: its direction and the count of completed stages once it ends. */
+    let playing: { dir: 1 | -1; done: number } | null = null;
+    /** 0: introduction shown, frames hidden; 1: frames shown. Eases between the two. */
+    let intro = restored ? 1 : 0;
+    /** A restored hero waits, text hidden, until its final frame is drawn (never flashing frame 1), then fades it in. */
+    let restoring = restored, restoreReveal = restored ? 0 : 1;
     let textHidden = false;
-    // Hold on release: `held` is how far (px) the stage is kept below where the scroll has carried it.
-    let ended = false, shownAt = 0, held = 0, holdSince = 0, forced = false, placed = false, holding = false;
+    let failed = false, stalledOut = false, stallTimer = 0;
 
-    // Reduced motion: no pinned sequence and no frame downloads; the maroon introduction is the hero.
-    const renderer = !reducedAtStart && count > 1
+    // Reduced motion: no stages and no frame downloads; the maroon introduction is the hero.
+    const renderer = !reducedAtStart && frameUrls.length > 1
       ? createHeroRenderer(canvas, poster, profile, {
         onReady: () => canvas.classList.add('is-ready'),
-        // The opening frames are decoded: the site loader may lift.
-        onCritical: markHeroReady,
-        // A new frame is on the canvas; once it is the final one the stage may be released (and it is held again if it leaves).
-        onShown: value => { ended = value; shownAt = performance.now(); },
+        // Frame 1 is decoded: the site loader may lift, and the frames after it may start to load.
+        onCritical: () => { markHeroReady(); warm(); },
+        onPlayed: () => finish(),
+        onStall: stalled => stall(stalled),
+        onFailed: () => { failed = true; },
       })
       : null;
     if (!renderer) markHeroReady();
+    if (renderer && restored) {
+      // Bring the final frame back (a stage of no length that ends on it): the hero is complete again once it is on the canvas.
+      playing = { dir: 1, done: total };
+      renderer.play(STAGES.rest(total), STAGES.rest(total), 1, 0, false);
+    } else renderer?.seek(STAGES.rest(0));
 
-    // The warm-up of the frames after the opening ones waits until the page has loaded its own resources and the browser is idle,
-    // so the hero never competes with fonts and images during the first seconds. (Scrolling engages the loader sooner.)
-    let stopWarm = () => {};
+    // The warm-up of the frames after frame 1 starts once frame 1 is drawn (the site loader lifts then) and the browser is idle:
+    // frame 1 has the network to itself until it has arrived, and the frames after it load while the visitor reads the introduction.
+    let idle = 0, warmed = false;
+    const warm = () => {
+      if (warmed || !renderer) return;
+      warmed = true;
+      idle = typeof window.requestIdleCallback === 'function' ? window.requestIdleCallback(() => renderer.allowWarm(), { timeout: 1500 }) : window.setTimeout(() => renderer.allowWarm(), 300);
+    };
+
+    /** Have the stages either side of the frame at rest ready to play. */
+    const prepare = () => {
+      const ranges: [number, number][] = [];
+      if (done < total) ranges.push([STAGES.rest(done), STAGES.rest(done + 1)]);
+      if (done > 0) ranges.push([STAGES.rest(done), STAGES.rest(done - 1)]);
+      renderer?.prepare(ranges);
+    };
+
+    /** Start the next stage (dir 1) or play the current one back (dir -1). A playing stage is never interrupted. */
+    const start = (dir: 1 | -1) => {
+      if (!renderer || playing || (dir > 0 ? done >= total : done <= 0)) return;
+      const k = dir > 0 ? done : done - 1;
+      const { start: first, end: last, ms } = STAGES.stages[k];
+      playing = { dir, done: done + dir };
+      // Playing back from the end: the hero is no longer complete, so a reload from here starts it again.
+      if (dir < 0) rememberHeroCompleted(false);
+      renderer.play(dir > 0 ? first : last, dir > 0 ? last : first, ms, dir > 0 && k === 0 ? FIRST_STAGE_DELAY_MS : 0, CROSSFADE);
+      controller.invalidate();
+    };
+    /** The stage's last frame is on the canvas: hold it until the next scroll. */
+    const finish = () => {
+      if (!playing) return;
+      done = playing.done;
+      playing = null;
+      restoring = false;
+      rememberHeroCompleted(done === total);
+      stall(false);
+      prepare();
+      controller.invalidate();
+    };
+    /** Frames not arriving: after a while, stop holding the scroll (the stage keeps trying, and carries on when they come). */
+    const stall = (stalled: boolean) => {
+      window.clearTimeout(stallTimer);
+      stallTimer = stalled ? window.setTimeout(() => { stalledOut = true; }, RELEASE_AFTER_STALL_MS) : 0;
+      if (!stalled) stalledOut = false;
+    };
+
+    /**
+     * Whether a scroll in this direction belongs to the hero rather than the page: the hero is fully in view at the top, and a
+     * stage is playing (every scroll is held then) or there is a stage to play that way.
+     */
+    const owns = (dir: 1 | -1) => !!renderer && !failed && !stalledOut && window.scrollY <= TOP_PX
+      && (playing !== null || (dir > 0 ? done < total : done > 0));
+
+    // Wheel and trackpad.
+    let wheelAt = -Infinity, wheelSize = 0, gestureSpent = false;
+    const onWheel = (event: WheelEvent) => {
+      if (event.ctrlKey) return; // pinch-zoom
+      const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? window.innerHeight : 1;
+      const dy = event.deltaY * unit, dx = event.deltaX * unit;
+      if (!dy || Math.abs(dy) < Math.abs(dx)) return;
+      const now = performance.now(), size = Math.abs(dy);
+      // A new gesture: after a pause, or a fresh swipe that is clearly stronger than the momentum still running.
+      if (now - wheelAt > GESTURE_GAP_MS || (size >= 24 && size > wheelSize * 2.5)) gestureSpent = false;
+      wheelAt = now;
+      wheelSize = size;
+      const dir = dy > 0 ? 1 : -1;
+      // Scrolling the page instead (e.g. coming back up from the sections below): its momentum must not start a stage on arrival.
+      if (!owns(dir)) { gestureSpent = true; return; }
+      event.preventDefault();
+      if (playing || gestureSpent) return;
+      gestureSpent = true;
+      start(dir);
+    };
+
+    // Touch: one swipe, one stage. Whether a swipe belongs to the hero is decided on its first movement, so the page never
+    // starts scrolling under a stage; a tap (no movement) is left alone, so the buttons work.
+    let touch: { y: number; owned: boolean | null; used: boolean } | null = null;
+    const onTouchStart = (event: TouchEvent) => {
+      touch = event.touches.length === 1 ? { y: event.touches[0].clientY, owned: null, used: false } : null;
+    };
+    const onTouchMove = (event: TouchEvent) => {
+      if (!touch || event.touches.length !== 1) return;
+      const dy = touch.y - event.touches[0].clientY;
+      if (touch.owned === null) {
+        if (Math.abs(dy) < 2) return;
+        touch.owned = owns(dy > 0 ? 1 : -1);
+      }
+      if (!touch.owned) return;
+      if (event.cancelable) event.preventDefault();
+      if (touch.used || Math.abs(dy) < SWIPE_PX) return;
+      touch.used = true;
+      if (!playing) start(dy > 0 ? 1 : -1);
+    };
+    const onTouchEnd = () => { touch = null; };
+
+    // Keyboard: the keys that scroll the page step through the stages instead (not while typing, or on a focused button).
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) return;
+      let dir = KEYS[event.key];
+      if (!dir) return;
+      if (event.key === ' ' && event.shiftKey) dir = -1;
+      const target = event.target as HTMLElement | null;
+      if (target && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(target.tagName))) return;
+      if (!owns(dir)) return;
+      event.preventDefault();
+      if (playing || event.repeat) return;
+      start(dir);
+    };
+
     if (renderer) {
-      let idle = 0;
-      const warm = () => {
-        idle = typeof window.requestIdleCallback === 'function' ? window.requestIdleCallback(() => renderer.allowWarm(), { timeout: 2500 }) : window.setTimeout(() => renderer.allowWarm(), 400);
-      };
-      if (document.readyState === 'complete') warm();
-      else window.addEventListener('load', warm, { once: true });
-      stopWarm = () => {
-        window.removeEventListener('load', warm);
-        if (idle) { if (typeof window.cancelIdleCallback === 'function') window.cancelIdleCallback(idle); else window.clearTimeout(idle); }
-      };
+      window.addEventListener('wheel', onWheel, { passive: false });
+      window.addEventListener('touchstart', onTouchStart, { passive: true });
+      window.addEventListener('touchmove', onTouchMove, { passive: false });
+      window.addEventListener('touchend', onTouchEnd, { passive: true });
+      window.addEventListener('touchcancel', onTouchEnd, { passive: true });
+      window.addEventListener('keydown', onKeyDown);
     }
 
     return {
       id: 'hero-sequence',
       element: track,
-      scrollDriven: true,
-      // A held stage is still on screen after its track has scrolled away.
-      keepAlive: () => holding || held > 0,
-      layout(frame) {
-        const box = track.getBoundingClientRect();
-        const stageHeight = stage.offsetHeight;
+      layout() {
+        if (!renderer) return;
         const stageStyle = getComputedStyle(stage);
-        const stickyTop = parseFloat(stageStyle.top) || 0;
         // Phones and tablets (template.css) set --mm-hero-ambient: the space around the whole frame is then a soft wash
         // of its own edge colours instead of flat maroon. Desktop leaves it unset (0).
         const ambient = Math.min(1, Math.max(0, parseFloat(stageStyle.getPropertyValue('--mm-hero-ambient')) || 0));
-        // The stage sticks once the track reaches the bottom of the fixed navigation.
-        pinStart = box.top + frame.scrollY - stickyTop;
-        range = Math.max(1, track.offsetHeight - stageHeight);
-        if (!renderer) return;
         // Canvas backing store in device pixels, capped by DPR and an area budget.
-        const width = stage.clientWidth, height = stageHeight;
+        const width = stage.clientWidth, height = stage.offsetHeight;
         // Never more canvas pixels than the source has: the frames hold no more detail, so a larger backing store (a 2560 px
         // screen, or a high-DPR laptop) would only cost fill rate and memory; the compositor scales the canvas to the stage.
         const sourceScale = frameScale(width, height, poster.naturalWidth || SOURCE_SIZE.width, poster.naturalHeight || SOURCE_SIZE.height);
@@ -151,74 +252,52 @@ export function HeroSection() {
         });
       },
       update(_, frame) {
-        const goal = clamp((frame.scrollY - pinStart) / range / PLAY);
-        if (!synced || frame.reducedMotion) { progress = goal; synced = true; }
-        else {
-          // Frame-rate independent glide toward the scroll position (introduction only). Snapping
-          // inside a third of a frame lands exactly on the scroll position.
-          progress += (goal - progress) * (1 - Math.exp(-frame.deltaTime * GLIDE_RESPONSE));
-          if (Math.abs(goal - progress) * (count - 1) < 0.35) progress = goal;
-        }
+        // The introduction gives way to the frames as the first stage starts, and comes back once it has been played back.
+        const target = renderer && !failed && (done > 0 || playing?.dir === 1) ? 1 : 0;
+        if (frame.reducedMotion) intro = target;
+        else intro = target > intro ? Math.min(target, intro + frame.deltaTime * 1000 / INTRO_MS) : Math.max(target, intro - frame.deltaTime * 1000 / INTRO_MS);
 
-        // Phase 2: the introduction lifts away; hidden (not removed) only once fully transparent.
-        const out = frame.reducedMotion || !renderer ? 0 : smoothstep(progress, TEXT_OUT[0], TEXT_OUT[1]);
+        if (!restoring && restoreReveal < 1) restoreReveal = frame.reducedMotion ? 1 : Math.min(1, restoreReveal + frame.deltaTime * 1000 / RESTORE_FADE_MS);
+        // The introduction lifts away; hidden (not removed) only once fully transparent.
+        const out = smoothstep(intro, 0, 0.75);
         writeStyle(content, 'opacity', (1 - out).toFixed(3));
         writeStyle(content, 'transform', out ? `translate3d(0,${(-50 * out).toFixed(1)}px,0) scale(${(1 - 0.04 * out).toFixed(4)})` : '');
         writeStyle(hint, 'opacity', (1 - clamp(out * 3)).toFixed(3));
         const hidden = out > 0.995;
         if (hidden !== textHidden) { textHidden = hidden; writeStyle(content, 'visibility', hidden ? 'hidden' : 'visible'); }
         // The frames fade in over the maroon; the veil eases to a light vignette.
-        const reveal = renderer ? smoothstep(progress, FRAMES_IN[0], FRAMES_IN[1]) : 0;
+        const reveal = smoothstep(intro, 0.2, 1) * smoothstep(restoreReveal, 0, 1);
         writeStyle(media, 'opacity', reveal.toFixed(3));
         writeStyle(veil, 'opacity', (1 - 0.7 * reveal).toFixed(3));
-
-        // Phase 3: frames follow the scroll. The renderer's playhead glides to this (fractional) frame itself.
-        // Fetching starts with the first scroll (phase 2), well before the playhead leaves frame 1.
-        if (goal > ENGAGE_AT) renderer?.engage();
-        renderer?.seek(clamp((goal - FRAMES_START) / (1 - FRAMES_START)) * (count - 1));
-
-        // Release: the stage unsticks at the end of the pinned scroll, but never before the final frame has been drawn.
-        const over = Math.max(0, frame.scrollY - (pinStart + range));
-        if (!renderer || frame.reducedMotion || over === 0) { forced = false; holdSince = 0; held = 0; holding = false; }
-        else {
-          // A page opened already scrolled past the hero (reload, deep link) is not scrolling through it: no hold.
-          if (!placed) forced = true;
-          holding = !forced && !ended;
-          if (holding) {
-            const now = performance.now();
-            holdSince ||= now;
-            // Still playing out: hold. Nothing new on the canvas for a while (frames cannot be fetched), or far too long: let go.
-            if (now - Math.max(holdSince, shownAt) > HOLD_STALL_MS || now - holdSince > HOLD_CAP_MS) { forced = true; holding = false; }
-          }
-          if (holding) held = over;
-          else if (held > 0) {
-            // Released: the stage glides on up from where it was held, at most a few stage heights per second.
-            const stageHeight = stage.offsetHeight;
-            held -= Math.min(held * (1 - Math.exp(-frame.deltaTime * RELEASE_RESPONSE)) + 0.5, stageHeight * RELEASE_MAX_SPEED * frame.deltaTime);
-            held = held < 1 ? 0 : Math.min(held, over);
-          }
-        }
-        placed = true;
-        writeStyle(stage, 'transform', held > 0 ? `translate3d(0,${held.toFixed(1)}px,0)` : '');
-        writeStyle(stage, 'zIndex', held > 0 ? '20' : '');
-        return progress !== goal || holding || held > 0;
+        return intro !== target || (!restoring && restoreReveal < 1);
+      },
+      // Back in view: decode the frames around the one at rest again.
+      enter() {
+        if (!playing) renderer?.seek(STAGES.rest(done));
       },
       // Scrolled past the hero: free the decoded frames (the next visit to the hero decodes them again in ~0.1 s).
       leave() {
         renderer?.rest();
       },
       dispose() {
-        stopWarm();
+        window.removeEventListener('wheel', onWheel);
+        window.removeEventListener('touchstart', onTouchStart);
+        window.removeEventListener('touchmove', onTouchMove);
+        window.removeEventListener('touchend', onTouchEnd);
+        window.removeEventListener('touchcancel', onTouchEnd);
+        window.removeEventListener('keydown', onKeyDown);
+        window.clearTimeout(stallTimer);
+        if (idle) { if (typeof window.cancelIdleCallback === 'function') window.cancelIdleCallback(idle); else window.clearTimeout(idle); }
         renderer?.dispose();
       },
     };
   });
 
   let index = 0;
-  return <section className="mm-hero-seq" ref={trackRef} aria-labelledby="hero-title" style={cssVars({ '--mm-hero-steps': Math.max(1, frameUrls.length - 1), '--mm-hero-share': FRAME_SHARE })}>
+  return <section className="mm-hero-seq" ref={trackRef} aria-labelledby="hero-title">
     <div className="mm-hero">
       <div className="mm-hero__media" aria-hidden="true">
-        {/* Frame 1: the canvas's first frame, and the frame shown if the sequence cannot load. Hidden until scrolling starts. */}
+        {/* Frame 1: the canvas's first frame, and the frame shown if the sequence cannot load. Hidden until the first stage starts. */}
         <img className="mm-hero__poster" src={frameUrls[0]} alt="" width={1920} height={1088} fetchPriority="high" decoding="async" data-frame-sequence="" />
         <canvas className="mm-hero__canvas" />
       </div>

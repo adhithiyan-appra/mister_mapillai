@@ -43,8 +43,6 @@ export interface RenderProfile {
   /** Decoded window around the current frame, in the scroll direction and behind it. */
   ahead: number;
   behind: number;
-  /** Keyframes kept decoded across the sequence, so a fast jump always has a close neighbour. */
-  keyStride: number;
   /** Fastest the playhead travels, in frames per second (the sequence never plays faster than this). */
   maxSpeed: number;
   /** How far the playhead trails a steadily moving scroll position, in seconds (its response time). */
@@ -77,8 +75,12 @@ export interface RenderLayout {
 /** Frame 1 from the page (the poster): an element on the main thread, a bitmap in the worker. null = fetch it. */
 export type FirstFrame = ImageBitmap | HTMLImageElement | null;
 
+/** First pause before a failed frame is tried again (ms); it doubles on each further failure, for up to MAX_RETRIES tries. */
+const RETRY_MS = 600;
+const MAX_RETRIES = 4;
+
 /** Frames decoded before the sequence counts as ready: frame 1 (drawn immediately) and frame 2 (ready for the first scroll). */
-export const CRITICAL_FRAMES = 2;
+export const CRITICAL_FRAMES = 1;
 
 interface Frame {
   url: string;
@@ -88,8 +90,11 @@ interface Frame {
   /** The request in flight, and whether it was cancelled because the playhead moved away (not a failure). */
   controller?: AbortController;
   cancelled?: boolean;
+  /** Gave up after MAX_RETRIES failed attempts (until the device comes back online): its neighbours are shown instead. */
   failed: boolean;
+  /** Failed attempts (download or decode) since the frame last succeeded, and when the next attempt may start. */
   retries: number;
+  retryAt?: number;
   /** Decoded pixels at `bitmapSize`; only a bounded set is kept. */
   bitmap?: ImageBitmap;
   bitmapSize?: string;
@@ -108,7 +113,10 @@ export class FrameStore {
   /** Position in the sequence → unique frame (the footage repeats a few frames). */
   private readonly unique: number[] = [];
   private readonly frames: Frame[] = [];
-  /** Sequence positions of the keyframes: the first and last frames and every `keyStride`th. */
+  /**
+   * Frames kept at hand wherever the playhead is: the first and the last (the stages only ever step from one frame to its
+   * neighbour, so nothing else needs to be kept for a jump).
+   */
   private readonly keyPositions: number[] = [];
   /** The visitor has scrolled into the sequence: fetch around the playhead, not just the opening frames. */
   private engaged = false;
@@ -133,6 +141,9 @@ export class FrameStore {
   private firstConsumed = false;
   /** The hero is off screen: only the keyframes and endpoints are kept decoded. */
   private resting = false;
+  /** The stage being played (positions, in playing order), and the stages to have ready next (e.g. the next and previous ones). */
+  private stage: [number, number] | null = null;
+  private upcoming: [number, number][] = [];
 
   constructor(
     urls: readonly string[],
@@ -152,10 +163,16 @@ export class FrameStore {
     });
     if (urls.length) {
       this.keyPositions.push(0, urls.length - 1);
-      for (let p = profile.keyStride; p < urls.length - 1; p += profile.keyStride) this.keyPositions.push(p);
     }
     this.updateWanted();
+    // Back online after an outage: frames that were given up on are tried again (worker and page scopes both fire 'online').
+    globalThis.addEventListener?.('online', this.reconnected);
   }
+
+  private readonly reconnected = () => {
+    this.frames.forEach(frame => { if (frame.failed || frame.retries) { frame.failed = false; frame.retries = 0; frame.retryAt = 0; } });
+    this.pump();
+  };
 
   /** Number of positions in the sequence. */
   get length() { return this.unique.length; }
@@ -184,9 +201,10 @@ export class FrameStore {
    */
   setDrawSize(width: number, height: number, sourceWidth: number, sourceHeight: number) {
     const resize = !this.profile.fullDecode && width * height < 0.5 * sourceWidth * sourceHeight;
-    // Ignore tiny mobile browser toolbar height adjustments (<12% width shift) when staying in resized mode,
-    // so collapsing the URL bar mid-scroll never invalidates and re-decodes the entire bitmap cache.
-    if (this.sizeKey && resize === this.resize && (!resize || Math.abs(width - this.width) <= this.width * 0.12)) {
+    // Ignore small mobile toolbar adjustments that make the frame up to 12% smaller while staying in resized mode, so collapsing
+    // the URL bar never re-decodes the whole window: the frames are then drawn slightly downscaled, which stays sharp. A frame
+    // drawn larger than it was decoded would be stretched (soft), so any growth re-decodes at the new size.
+    if (this.sizeKey && resize === this.resize && (!resize || (width <= this.width && width >= this.width * 0.88))) {
       return;
     }
     const key = resize ? `${width}x${height}` : 'full';
@@ -250,6 +268,50 @@ export class FrameStore {
     this.pump();
   }
 
+  /** A stage is about to play (or has finished: null): every one of its frames is fetched first and kept until it has played. */
+  setStage(range: [number, number] | null) {
+    this.stage = range;
+    this.pump();
+  }
+
+  /** Stages that may be played next: their frames are fetched, at lower priority, once the playing stage has what it needs. */
+  setUpcoming(ranges: [number, number][]) {
+    this.upcoming = ranges;
+    this.pump();
+  }
+
+  /**
+   * A stage may start: every frame from `from` to `to` has arrived (a frame given up on counts, its neighbours stand in) and
+   * the opening run of it, as far as the decoded window reaches, is decoded. Later frames decode faster than they are played.
+   */
+  stageReady(from: number, to: number): boolean {
+    const dir = to >= from ? 1 : -1, n = Math.abs(to - from);
+    for (let d = 0; d <= n; d++) {
+      const frame = this.frames[this.unique[from + d * dir]];
+      if (!frame.blob && !frame.bitmap && !frame.failed) return false;
+    }
+    return this.decodedBetween(from, from + dir * Math.min(n, this.profile.ahead - 1));
+  }
+
+  /**
+   * Every frame from `a` to `b` (either order) is decoded at the size it is drawn, so it can be shown sharp (a frame given up on
+   * is skipped). A bitmap left from before a resize does not count: drawn at the new size it would be resampled.
+   */
+  decodedBetween(a: number, b: number): boolean {
+    const dir = b >= a ? 1 : -1;
+    for (let p = a; ; p += dir) {
+      const frame = this.frames[this.unique[p]];
+      if (frame && !frame.failed && !(frame.bitmap && frame.bitmapSize === this.sizeKey)) return false;
+      if (p === b) return true;
+    }
+  }
+
+  /** The decoded frame at exactly `position`, or null. */
+  exact(position: number): { position: number; bitmap: ImageBitmap; sharp: boolean } | null {
+    const frame = position >= 0 && position < this.unique.length ? this.frames[this.unique[position]] : undefined;
+    return frame?.bitmap ? { position, bitmap: frame.bitmap, sharp: frame.bitmapSize === this.sizeKey } : null;
+  }
+
   /** The decoded frame closest to `position`, preferring the side already scrolled past. */
   nearest(position: number): { position: number; bitmap: ImageBitmap; sharp: boolean } | null {
     const n = this.unique.length;
@@ -307,13 +369,14 @@ export class FrameStore {
 
   dispose() {
     this.disposed = true;
+    globalThis.removeEventListener?.('online', this.reconnected);
     this.frames.forEach(frame => { frame.controller?.abort(); frame.bitmap?.close(); frame.bitmap = undefined; frame.blob = undefined; });
     if (this.first && !this.firstConsumed && 'close' in this.first) this.first.close();
   }
 
   /** Frames to keep decoded: the window around the focus, keyframes, first and last. */
   private updateWanted() {
-    const { ahead, behind, keyStride } = this.profile;
+    const { ahead, behind } = this.profile;
     const n = this.unique.length;
     const wanted = new Set<number>();
     const centre = this.centre();
@@ -323,7 +386,6 @@ export class FrameStore {
         if (p >= 0 && p < n) wanted.add(this.unique[p]);
       }
     }
-    for (let p = 0; p < n; p += keyStride) wanted.add(this.unique[p]);
     if (n) {
       wanted.add(this.unique[0]);
       wanted.add(this.unique[n - 1]);
@@ -379,7 +441,11 @@ export class FrameStore {
       return { order, urgent };
     }
     for (const u of this.windowOrder()) if (!seen.has(u)) { seen.add(u); order.push(u); }
+    const range = ([a, b]: [number, number]) => { const dir = b >= a ? 1 : -1; for (let p = a; ; p += dir) { add(p); if (p === b) break; } };
+    // The playing stage needs all of its frames: they are as urgent as the decoded window.
+    if (this.stage) range(this.stage);
     const urgent = order.length;
+    this.upcoming.forEach(range);
     const centre = this.centre();
     [...this.keyPositions].sort((a, b) => Math.abs(a - centre) - Math.abs(b - centre)).forEach(add);
     if (!this.resting) {
@@ -395,10 +461,10 @@ export class FrameStore {
 
   private pump() {
     if (this.disposed) return;
-    // On slow links Frame 1 gets the network strictly to itself; on normal/fast links Frame 2 (preloaded in <head>)
-    // may be fetched in parallel while Frame 1 decodes so both critical frames finish in one round-trip.
-    const waitingForFirst = this.first === undefined;
-    if (waitingForFirst && this.profile.warm === 0) return;
+    // Frame 1 (the poster, already on its way as an <img>) gets the network strictly to itself: the site loader lifts as soon as it is
+    // drawn, and a second lossless frame fetched beside it would only delay it (measured: ~1.6 s on a 5 Mbit/s link). The frames
+    // after it start the moment the poster has loaded (provideFirst), which is within a few ms of it arriving.
+    if (this.first === undefined) return;
     // A frame arriving behind a playhead that is waiting moves the window on to the next missing frame.
     if (!this.sequential && this.decodedGap(this.focusAt, this.direction, Math.max(1, this.profile.ahead - 1)) !== Infinity) this.sequential = true;
     const centred = this.centre();
@@ -414,14 +480,13 @@ export class FrameStore {
     });
     // Fetch in plan order. Post-critical idle warm-up runs up to 2 gentle requests so opening frames are ready fast without starving page images.
     const warmCap = Math.min(2, this.profile.fetchConcurrency);
+    const now = performance.now();
     for (let i = 0; i < plan.order.length; i++) {
-      if (waitingForFirst && i >= plan.urgent) break;
       const cap = this.engaged || i < plan.urgent ? this.profile.fetchConcurrency : warmCap;
       if (this.fetching >= cap) break;
       const u = plan.order[i];
-      if (waitingForFirst && u === 0) continue;
       const frame = this.frames[u];
-      if (frame.blob || frame.fetching || frame.failed || (u === 0 && this.first !== null)) continue;
+      if (frame.blob || frame.fetching || frame.failed || (frame.retryAt ?? 0) > now || (u === 0 && this.first !== null)) continue;
       this.fetch(frame, i < plan.urgent ? 'high' : 'low');
     }
     if (!this.width) return;
@@ -432,7 +497,7 @@ export class FrameStore {
     for (const u of [...order, ...rest]) {
       if (this.decoding >= this.profile.decodeConcurrency) break;
       const frame = this.frames[u];
-      if (frame.decoding || (frame.bitmap && frame.bitmapSize === this.sizeKey)) continue;
+      if (frame.decoding || frame.failed || (frame.retryAt ?? 0) > now || (frame.bitmap && frame.bitmapSize === this.sizeKey)) continue;
       // Fast zero-copy path for Frame 1 when the worker already received a full-size ImageBitmap from the poster.
       if (u === 0 && !this.resize && !this.firstConsumed && typeof ImageBitmap !== 'undefined' && this.first instanceof ImageBitmap) {
         this.firstConsumed = true;
@@ -453,13 +518,21 @@ export class FrameStore {
     const controller = frame.controller = new AbortController();
     fetch(frame.url, { signal: controller.signal, priority } as RequestInit)
       .then(response => { if (!response.ok) throw new Error(String(response.status)); return response.blob(); })
-      .then(blob => { frame.blob = blob; frame.retries = 0; }, () => {
-        if (!this.disposed && !frame.cancelled) {
-          frame.retries++;
-          if (frame.retries >= 2) frame.failed = true;
-        }
-      })
+      .then(blob => { frame.blob = blob; }, () => { if (!this.disposed && !frame.cancelled) this.attemptFailed(frame); })
       .finally(() => { this.fetching--; frame.fetching = false; frame.cancelled = false; frame.controller = undefined; this.pump(); });
+  }
+
+  /**
+   * A download or decode failed: try again after a pause that doubles each time (RETRY_MS, 2x, 4x, 8x: ~9 s in all), so a
+   * brief outage is ridden out instead of the frame being dropped for the rest of the visit; after MAX_RETRIES the frame is
+   * given up on until the device reports it is back online. A frame the playhead never returns to is simply not retried.
+   */
+  private attemptFailed(frame: Frame) {
+    frame.retries++;
+    if (frame.retries > MAX_RETRIES) { frame.failed = true; frame.retryAt = 0; return; }
+    const delay = RETRY_MS * 2 ** (frame.retries - 1);
+    frame.retryAt = performance.now() + delay;
+    setTimeout(() => this.pump(), delay + 5);
   }
 
   private decode(u: number, frame: Frame, source: ImageBitmapSource) {
@@ -473,8 +546,15 @@ export class FrameStore {
         frame.bitmap?.close();
         frame.bitmap = bitmap;
         frame.bitmapSize = size;
+        frame.retries = 0;
         this.unique.forEach((v, p) => { if (v === u) this.onFrame(p); });
-      }, () => { /* undecodable: its neighbours are shown instead */ })
+      }, () => {
+        // Undecodable (a damaged download, or a host answering a stale URL with a page): drop the file and fetch it again later,
+        // instead of decoding the same bad bytes on every pass. Its neighbours are shown meanwhile.
+        if (this.disposed) return;
+        frame.blob = undefined;
+        this.attemptFailed(frame);
+      })
       .finally(() => { this.decoding--; frame.decoding = false; this.pump(); });
   }
 
@@ -490,8 +570,12 @@ type Context2D = CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D;
 const LETTERBOX = '#3a0811';
 /** The letterbox colour as rgb, for the wash's fade into it. */
 const LETTERBOX_RGB = '58,8,17';
-/** The wash follows the footage loosely: its colours are refreshed every few frames, not on every draw. */
-const EDGE_REFRESH = 3;
+/**
+ * The wash is refreshed with every frame. (It used to follow every third frame while moving, which in the stages, where frames
+ * change about ten times a second, left the bands visibly lagging and then jumping against the frame they surround. A refresh is two
+ * tiny tile composites, ~16 a second at most.)
+ */
+const EDGE_REFRESH = 1;
 /** Wash strength at the far end of a band, as a share of maroon (it is `layout.ambient` at the frame's edge). */
 const WASH_FAR = 0.6;
 
@@ -536,8 +620,38 @@ const SETTLE_MS = 1200;
  * instead of snapping from forward to backward.
  */
 const ACCEL = 700;
-/** Most often the page is told which frame is showing (ms): enough to tell a stalled playhead from a moving one. */
-const SHOWN_EVERY_MS = 100;
+/** A playing stage that has not moved for this long (ms), waiting for frames to arrive, is reported as stalled. */
+const STALL_MS = 2000;
+/** Share of a stage spent easing in at its start, and again easing out at its end; in between it plays at an even pace. */
+const RAMP = 0.18;
+
+/**
+ * Progress through a stage (0-1) after a share `x` of its time: eases in from rest, plays at an even pace, eases out to rest. The
+ * even part is 1/(1 - RAMP) times the average pace (~1.2x), so no stretch of a stage is much faster than another.
+ */
+function cinematic(x: number): number {
+  if (x <= 0) return 0;
+  if (x >= 1) return 1;
+  const v = 1 / (1 - RAMP);
+  if (x < RAMP) return v * x * x / (2 * RAMP);
+  if (x <= 1 - RAMP) return v * (x - RAMP / 2);
+  return 1 - v * (1 - x) ** 2 / (2 * RAMP);
+}
+
+interface Playing {
+  /** Positions (0-based) the stage starts on and stops on. */
+  from: number;
+  to: number;
+  /** Playing time and the share of it played (ms), and a pause before it starts (ms). */
+  ms: number;
+  t: number;
+  delay: number;
+  blend: boolean;
+  /** Its frames have arrived and its opening run is decoded; when it last could not move on; whether that was reported. */
+  ready: boolean;
+  waitingSince: number;
+  stalled: boolean;
+}
 
 /**
  * One step of the playhead. Its speed aims for (distance to the goal) / time, which is an exponential approach
@@ -582,9 +696,11 @@ export class FrameRenderer {
   private target = 0;
   private drawn = -1;
   private drawnSharp = false;
-  /** The final frame is on the canvas, decoded at the drawn size. */
-  private ended = false;
-  private shownAt = 0;
+  /** The frame dissolving in over the drawn one (-1: none) and its strength (0-1, in steps of 1/64). */
+  private mixWith = -1;
+  private mixDrawn = 0;
+  /** The stage being played (see play), or null between stages. */
+  private playing: Playing | null = null;
   private force = true;
   /** The letterbox wash (phones and tablets): a tile per band, the frame its colours came from, and the layout it was painted for. */
   private tiles: Partial<Record<Edge, WashTile>> = {};
@@ -607,11 +723,10 @@ export class FrameRenderer {
     private readonly onFirstDraw: () => void,
     /** Called once, when the opening frames (CRITICAL_FRAMES) are decoded and ready to draw. */
     private readonly onCritical: () => void = () => {},
-    /**
-     * Called when the frame on the canvas changes (at most every SHOWN_EVERY_MS, and at once when the final frame, fully decoded,
-     * starts or stops being the one on the canvas): the page holds the pinned stage until that final frame is shown.
-     */
-    private readonly onShown: (ended: boolean) => void = () => {},
+    /** Called when a stage has finished: its last frame (`position`, 0-based) is on the canvas, whole and fully decoded. */
+    private readonly onPlayed: (position: number) => void = () => {},
+    /** Called when a playing stage has been held up for STALL_MS waiting for frames (true), and when it moves again (false). */
+    private readonly onStall: (stalled: boolean) => void = () => {},
   ) {
     this.criticalLeft = new Set(Array.from({ length: Math.min(CRITICAL_FRAMES, urls.length) }, (_, i) => i));
     this.store = new FrameStore(urls, profile, position => this.arrived(position));
@@ -642,8 +757,34 @@ export class FrameRenderer {
     this.draw();
   }
 
+  /**
+   * Plays a stage: from the frame at `from` (0-based; it is the one on screen at rest) to `to`, over `ms`, after `delayMs`, on this
+   * renderer's own clock, so it finishes however the visitor scrolls meanwhile. It starts once every frame of the stage has
+   * arrived and its opening run is decoded (the frame on screen stays until then), shows every frame in order, at most one per
+   * display frame, and holds rather than skipping a frame that is not decoded yet. With `blend`, neighbouring frames dissolve into
+   * each other. onPlayed reports the end; a stage cannot be interrupted, so a new play() is only sent after that.
+   */
+  play(from: number, to: number, ms: number, delayMs: number, blend: boolean) {
+    const last = Math.max(0, this.store.length - 1);
+    const start = Math.min(last, Math.max(0, Math.round(from))), end = Math.min(last, Math.max(0, Math.round(to)));
+    this.seeded = true;
+    this.goal = this.head = start;
+    this.speed = 0;
+    this.dir = end >= start ? 1 : -1;
+    this.store.engage();
+    this.store.setStage([start, end]);
+    this.store.focus(start, this.dir);
+    this.playing = { from: start, to: end, ms: Math.max(1, ms), t: 0, delay: Math.max(0, delayMs), blend, ready: false, waitingSince: 0, stalled: false };
+    this.wake();
+  }
+
+  /** Stages that may be played next (0-based position ranges): their frames are fetched ahead of time. */
+  prepare(ranges: [number, number][]) { this.store.setUpcoming(ranges); }
+
   /** Where the scroll position falls in the sequence, as a (fractional) frame number. The playhead glides there. */
   seek(goal: number) {
+    // A playing stage owns the playhead until it ends.
+    if (this.playing) return;
     const next = Math.min(Math.max(0, this.store.length - 1), Math.max(0, goal));
     if (next > 0) this.store.engage();
     if (!this.seeded) {
@@ -679,6 +820,7 @@ export class FrameRenderer {
     if (this.disposed) return;
     const dt = this.clock ? Math.min(0.1, Math.max(0.0005, (now - this.clock) / 1000)) : 1 / 60;
     this.clock = now;
+    if (this.playing) { this.stepPlay(now, dt); return; }
     if (this.goal !== this.head) this.dir = this.goal > this.head ? 1 : -1;
     // The glide may not outrun the decoded frames: its speed limit follows the decoded run ahead of it.
     const run = this.store.readyRun(Math.round(this.head), this.dir);
@@ -699,11 +841,62 @@ export class FrameRenderer {
     if (!stillWaiting && (this.goal >= last - 1.5 || this.goal <= 0.5) && distance > 2 && run >= Math.min(distance, 4)) {
       limit = Math.max(limit, Math.min(this.profile.maxSpeed * 1.5, distance / 0.25));
     }
+    const from = this.head;
     [this.head, this.speed] = follow(this.head, this.goal, this.speed, this.profile.glide, limit, dt);
+    // Never more than one frame per display frame: the frame shown changes by at most one, so even a hard fling plays every
+    // frame in order instead of leaping over some (at 60 Hz the old speed caps of 84-150 frames/s skipped 1-2 frames per draw).
+    // A slow display frame (jank) slows the playhead for that frame rather than letting it jump.
+    if (Math.abs(this.head - from) > 1) { this.head = from + Math.sign(this.head - from); this.speed = Math.sign(this.speed) * Math.min(Math.abs(this.speed), 1 / dt); }
     if (Math.abs(this.goal - this.head) < 0.004 && Math.abs(this.speed) < 0.2) { this.head = this.goal; this.speed = 0; }
     this.show();
     if (this.head !== this.goal) this.wake();
     else this.clock = 0;
+  }
+
+  /** One display frame of a playing stage (see play). */
+  private stepPlay(now: number, dt: number) {
+    const play = this.playing!;
+    const dir = play.to >= play.from ? 1 : -1;
+    const span = Math.abs(play.to - play.from);
+    this.dir = dir;
+    if (!play.ready) play.ready = this.store.stageReady(play.from, play.to);
+    let moved = false;
+    if (play.ready) {
+      if (play.delay > 0) { play.delay -= dt * 1000; moved = true; }
+      else if (play.t < play.ms) {
+        let t = Math.min(play.ms, play.t + dt * 1000);
+        let at = play.from + dir * span * cinematic(t / play.ms);
+        // At most one frame per display frame (a slow display frame slows the stage for that moment instead of skipping frames).
+        const step = Math.abs(at - this.head);
+        if (step > 1) { t = play.t + (t - play.t) / step; at = play.from + dir * span * cinematic(t / play.ms); }
+        // Never onto a frame that is not decoded yet: hold the picture instead (the clock waits too, so nothing is skipped).
+        const need = dir > 0 ? Math.ceil(at - 1e-6) : Math.floor(at + 1e-6);
+        if (this.store.decodedBetween(Math.round(this.head), need)) { play.t = t; this.head = t >= play.ms ? play.to : at; moved = true; }
+      }
+    }
+    if (moved || play.t >= play.ms) {
+      play.waitingSince = 0;
+      if (play.stalled) { play.stalled = false; this.onStall(false); }
+    } else {
+      play.waitingSince ||= now;
+      if (!play.stalled && now - play.waitingSince > STALL_MS) { play.stalled = true; this.onStall(true); }
+    }
+    // The frame the playhead has reached, and (dissolving in) the next one.
+    const base = dir > 0 ? Math.floor(this.head + 1e-6) : Math.ceil(this.head - 1e-6);
+    this.target = base;
+    this.store.focus(base, dir);
+    this.draw(play.blend ? base + dir : -1, play.blend ? Math.abs(this.head - base) : 0);
+    // Done once its last frame is on the canvas on its own, decoded at the drawn size.
+    if (play.t >= play.ms && this.drawn === play.to && this.drawnSharp && this.mixDrawn === 0) {
+      this.playing = null;
+      this.goal = this.head = play.to;
+      this.clock = 0;
+      this.store.setStage(null);
+      if (play.stalled) this.onStall(false);
+      this.onPlayed(play.to);
+      return;
+    }
+    this.wake();
   }
 
   /** Point the frame store at the playhead's frame and draw it. */
@@ -719,25 +912,36 @@ export class FrameRenderer {
     if (better) this.wake();
   }
 
-  private draw() {
+  /**
+   * Draws the target frame (or its nearest decoded neighbour) and, while a stage dissolves from one frame to the next, `next` over
+   * it at strength `mix`. Nothing is redrawn unless what it would show has changed (the strength moves in steps of 1/64).
+   */
+  private draw(next = -1, mix = 0) {
     const layout = this.layout;
     if (!layout || this.disposed) return;
     const frame = this.store.nearest(this.target);
     if (!frame) return;
-    if (!this.force && frame.position === this.drawn && frame.sharp === this.drawnSharp) return;
+    const over = next >= 0 && mix > 0 && frame.position === this.target ? this.store.exact(next) : null;
+    const strength = over ? Math.round(mix * 64) / 64 : 0;
+    const overAt = strength > 0 ? over!.position : -1;
+    if (!this.force && frame.position === this.drawn && frame.sharp === this.drawnSharp && strength === this.mixDrawn && overAt === this.mixWith) return;
     const repaint = this.force;
     this.force = false;
     if (layout.cover) { /* the frame fills the canvas: nothing to paint around it */ }
-    else if (layout.ambient > 0) this.paintWash(layout, frame.bitmap, frame.position, repaint, this.head === this.goal);
+    else if (layout.ambient > 0) this.paintWash(layout, frame.bitmap, frame.position, repaint, this.head === this.goal && !this.playing);
     else { this.context.fillStyle = LETTERBOX; this.context.fillRect(0, 0, layout.canvasWidth, layout.canvasHeight); }
     // At the decoded size this is a 1:1 copy: no decode and no resampling at draw time.
     this.context.drawImage(frame.bitmap, layout.x, layout.y, layout.w, layout.h);
+    if (strength > 0) {
+      this.context.globalAlpha = strength;
+      this.context.drawImage(over!.bitmap, layout.x, layout.y, layout.w, layout.h);
+      this.context.globalAlpha = 1;
+    }
     if (this.drawn < 0) this.onFirstDraw();
     this.drawn = frame.position;
     this.drawnSharp = frame.sharp;
-    const ended = frame.sharp && frame.position === this.store.length - 1;
-    const now = performance.now();
-    if (ended !== this.ended || now - this.shownAt >= SHOWN_EVERY_MS) { this.ended = ended; this.shownAt = now; this.onShown(ended); }
+    this.mixDrawn = strength;
+    this.mixWith = overAt;
   }
 
   /**
@@ -747,7 +951,7 @@ export class FrameRenderer {
    * picture does not float in an empty screen.
    *
    * The canvas keeps its pixels between draws, so the bands are painted only when the layout changes or their colours
-   * refresh (every EDGE_REFRESH frames while moving, exactly at rest; the wash is soft and need not track every frame). A refresh composes each
+   * refresh (with every new frame, see EDGE_REFRESH). A refresh composes each
    * band's small tile from the frame, and painting a band is one stretched blit of that tile. Most draws
    * are therefore just the frame, as on desktop.
    */

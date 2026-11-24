@@ -19,8 +19,6 @@ export interface AnimationRegistration {
   // Reads for all registrations run before any animation writes.
   read?: (frame: AnimationFrame) => void;
   active?: (frame: AnimationFrame) => boolean;
-  /** The scene is still on screen although its element has scrolled out of the viewport (e.g. a pinned stage held in place). */
-  keepAlive?: () => boolean;
   scrollDriven?: boolean;
   enter?: (frame: AnimationFrame) => void;
   leave?: () => void;
@@ -94,7 +92,7 @@ function createController(): AnimationController & { start: () => () => void } {
     updates.length = 0;
     exits.length = 0;
     for (const scene of entries) {
-      const inView = !scene.element || scene.keepAlive?.() === true || (scene.top + scene.height >= frame.scrollY - 50 && scene.top <= frame.scrollY + frame.height + 50);
+      const inView = !scene.element || (scene.top + scene.height >= frame.scrollY - 50 && scene.top <= frame.scrollY + frame.height + 50);
       const eligible = inView && (scene.active?.(frame) ?? true);
       const visible = scene.assetsReady && eligible;
       scene.entering = visible && !scene.visible;

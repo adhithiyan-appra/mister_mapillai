@@ -11,12 +11,19 @@ export type WorkerMessage =
   | { type: 'first'; bitmap: ImageBitmap | null }
   | { type: 'layout'; layout: RenderLayout }
   | { type: 'seek'; goal: number }
+  | { type: 'play'; from: number; to: number; ms: number; delay: number; blend: boolean }
+  | { type: 'prepare'; ranges: [number, number][] }
   | { type: 'engage' }
   | { type: 'warm' }
   | { type: 'rest' }
   | { type: 'dispose' };
 
-export type WorkerReply = { type: 'ready' } | { type: 'critical' } | { type: 'failed' } | { type: 'shown'; ended: boolean };
+export type WorkerReply =
+  | { type: 'ready' }
+  | { type: 'critical' }
+  | { type: 'failed' }
+  | { type: 'played'; at: number }
+  | { type: 'stall'; stalled: boolean };
 
 // Minimal worker-scope typing (the project's TS lib is DOM, not WebWorker).
 interface WorkerScope {
@@ -41,12 +48,14 @@ scope.onmessage = ({ data }) => {
         ? (callback: (now: number) => void) => scope.requestAnimationFrame!(callback)
         : (callback: (now: number) => void) => setTimeout(() => callback(performance.now()), 16) as unknown as number;
       const cancel = scope.cancelAnimationFrame ? (handle: number) => scope.cancelAnimationFrame!(handle) : (handle: number) => clearTimeout(handle);
-      renderer = new FrameRenderer(data.canvas, context, data.urls, data.profile, schedule, cancel, () => scope.postMessage({ type: 'ready' }), () => scope.postMessage({ type: 'critical' }), ended => scope.postMessage({ type: 'shown', ended }));
+      renderer = new FrameRenderer(data.canvas, context, data.urls, data.profile, schedule, cancel, () => scope.postMessage({ type: 'ready' }), () => scope.postMessage({ type: 'critical' }), at => scope.postMessage({ type: 'played', at }), stalled => scope.postMessage({ type: 'stall', stalled }));
       break;
     }
     case 'first': renderer?.provideFirst(data.bitmap); break;
     case 'layout': renderer?.resize(data.layout); break;
     case 'seek': renderer?.seek(data.goal); break;
+    case 'play': renderer?.play(data.from, data.to, data.ms, data.delay, data.blend); break;
+    case 'prepare': renderer?.prepare(data.ranges); break;
     case 'engage': renderer?.engage(); break;
     case 'warm': renderer?.allowWarm(); break;
     case 'rest': renderer?.rest(); break;
