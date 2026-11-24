@@ -12,10 +12,11 @@ export type WorkerMessage =
   | { type: 'layout'; layout: RenderLayout }
   | { type: 'seek'; goal: number }
   | { type: 'engage' }
+  | { type: 'warm' }
   | { type: 'rest' }
   | { type: 'dispose' };
 
-export type WorkerReply = { type: 'ready' } | { type: 'critical' } | { type: 'failed' };
+export type WorkerReply = { type: 'ready' } | { type: 'critical' } | { type: 'failed' } | { type: 'shown'; ended: boolean };
 
 // Minimal worker-scope typing (the project's TS lib is DOM, not WebWorker).
 interface WorkerScope {
@@ -40,13 +41,14 @@ scope.onmessage = ({ data }) => {
         ? (callback: (now: number) => void) => scope.requestAnimationFrame!(callback)
         : (callback: (now: number) => void) => setTimeout(() => callback(performance.now()), 16) as unknown as number;
       const cancel = scope.cancelAnimationFrame ? (handle: number) => scope.cancelAnimationFrame!(handle) : (handle: number) => clearTimeout(handle);
-      renderer = new FrameRenderer(data.canvas, context, data.urls, data.profile, schedule, cancel, () => scope.postMessage({ type: 'ready' }), () => scope.postMessage({ type: 'critical' }));
+      renderer = new FrameRenderer(data.canvas, context, data.urls, data.profile, schedule, cancel, () => scope.postMessage({ type: 'ready' }), () => scope.postMessage({ type: 'critical' }), ended => scope.postMessage({ type: 'shown', ended }));
       break;
     }
     case 'first': renderer?.provideFirst(data.bitmap); break;
     case 'layout': renderer?.resize(data.layout); break;
     case 'seek': renderer?.seek(data.goal); break;
     case 'engage': renderer?.engage(); break;
+    case 'warm': renderer?.allowWarm(); break;
     case 'rest': renderer?.rest(); break;
     case 'dispose':
       renderer?.dispose();

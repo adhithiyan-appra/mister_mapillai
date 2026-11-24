@@ -37,6 +37,16 @@ const FRAME_SHARE = PLAY * (1 - FRAMES_START);
  * on its own clock, at a speed the decoded frames can sustain (see frameRenderer.ts).
  */
 const GLIDE_RESPONSE = 8;
+/**
+ * The pinned scroll only releases the stage once the final frame is on the canvas. A scroll that outruns the playhead (a hard fling,
+ * the End key, frames still arriving) keeps the stage held in place, over the next section, until the last frame has been drawn;
+ * then the stage glides away. The hold gives up when the picture stalls or after a cap, so a sequence that cannot finish (offline, a failed fetch) never traps the visitor.
+ */
+const HOLD_STALL_MS = 2500;
+const HOLD_CAP_MS = 15000;
+/** Glide (1/s) of the released stage, and its top speed in stage heights per second. */
+const RELEASE_RESPONSE = 5;
+const RELEASE_MAX_SPEED = 2.5;
 
 const smoothstep = (value: number, from: number, to: number) => {
   const t = clamp((value - from) / (to - from));
@@ -67,6 +77,8 @@ export function HeroSection() {
     let pinStart = 0, range = 1;
     let progress = 0, synced = false;
     let textHidden = false;
+    // Hold on release: `held` is how far (px) the stage is kept below where the scroll has carried it.
+    let ended = false, shownAt = 0, held = 0, holdSince = 0, forced = false, placed = false, holding = false;
 
     // Reduced motion: no pinned sequence and no frame downloads; the maroon introduction is the hero.
     const renderer = !reducedAtStart && count > 1
@@ -74,14 +86,34 @@ export function HeroSection() {
         onReady: () => canvas.classList.add('is-ready'),
         // The opening frames are decoded: the site loader may lift.
         onCritical: markHeroReady,
+        // A new frame is on the canvas; once it is the final one the stage may be released (and it is held again if it leaves).
+        onShown: value => { ended = value; shownAt = performance.now(); },
       })
       : null;
     if (!renderer) markHeroReady();
+
+    // The warm-up of the frames after the opening ones waits until the page has loaded its own resources and the browser is idle,
+    // so the hero never competes with fonts and images during the first seconds. (Scrolling engages the loader sooner.)
+    let stopWarm = () => {};
+    if (renderer) {
+      let idle = 0;
+      const warm = () => {
+        idle = typeof window.requestIdleCallback === 'function' ? window.requestIdleCallback(() => renderer.allowWarm(), { timeout: 2500 }) : window.setTimeout(() => renderer.allowWarm(), 400);
+      };
+      if (document.readyState === 'complete') warm();
+      else window.addEventListener('load', warm, { once: true });
+      stopWarm = () => {
+        window.removeEventListener('load', warm);
+        if (idle) { if (typeof window.cancelIdleCallback === 'function') window.cancelIdleCallback(idle); else window.clearTimeout(idle); }
+      };
+    }
 
     return {
       id: 'hero-sequence',
       element: track,
       scrollDriven: true,
+      // A held stage is still on screen after its track has scrolled away.
+      keepAlive: () => holding || held > 0,
       layout(frame) {
         const box = track.getBoundingClientRect();
         const stageHeight = stage.offsetHeight;
@@ -144,13 +176,39 @@ export function HeroSection() {
         // Fetching starts with the first scroll (phase 2), well before the playhead leaves frame 1.
         if (goal > ENGAGE_AT) renderer?.engage();
         renderer?.seek(clamp((goal - FRAMES_START) / (1 - FRAMES_START)) * (count - 1));
-        return progress !== goal;
+
+        // Release: the stage unsticks at the end of the pinned scroll, but never before the final frame has been drawn.
+        const over = Math.max(0, frame.scrollY - (pinStart + range));
+        if (!renderer || frame.reducedMotion || over === 0) { forced = false; holdSince = 0; held = 0; holding = false; }
+        else {
+          // A page opened already scrolled past the hero (reload, deep link) is not scrolling through it: no hold.
+          if (!placed) forced = true;
+          holding = !forced && !ended;
+          if (holding) {
+            const now = performance.now();
+            holdSince ||= now;
+            // Still playing out: hold. Nothing new on the canvas for a while (frames cannot be fetched), or far too long: let go.
+            if (now - Math.max(holdSince, shownAt) > HOLD_STALL_MS || now - holdSince > HOLD_CAP_MS) { forced = true; holding = false; }
+          }
+          if (holding) held = over;
+          else if (held > 0) {
+            // Released: the stage glides on up from where it was held, at most a few stage heights per second.
+            const stageHeight = stage.offsetHeight;
+            held -= Math.min(held * (1 - Math.exp(-frame.deltaTime * RELEASE_RESPONSE)) + 0.5, stageHeight * RELEASE_MAX_SPEED * frame.deltaTime);
+            held = held < 1 ? 0 : Math.min(held, over);
+          }
+        }
+        placed = true;
+        writeStyle(stage, 'transform', held > 0 ? `translate3d(0,${held.toFixed(1)}px,0)` : '');
+        writeStyle(stage, 'zIndex', held > 0 ? '20' : '');
+        return progress !== goal || holding || held > 0;
       },
       // Scrolled past the hero: free the decoded frames (the next visit to the hero decodes them again in ~0.1 s).
       leave() {
         renderer?.rest();
       },
       dispose() {
+        stopWarm();
         renderer?.dispose();
       },
     };

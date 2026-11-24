@@ -77,8 +77,8 @@ export interface RenderLayout {
 /** Frame 1 from the page (the poster): an element on the main thread, a bitmap in the worker. null = fetch it. */
 export type FirstFrame = ImageBitmap | HTMLImageElement | null;
 
-/** Frames decoded before the sequence counts as ready: frame 1 and the next few. Nothing else is needed until the visitor scrolls. */
-export const CRITICAL_FRAMES = 4;
+/** Frames decoded before the sequence counts as ready: frame 1 (drawn immediately) and frame 2 (ready for the first scroll). */
+export const CRITICAL_FRAMES = 2;
 
 interface Frame {
   url: string;
@@ -89,6 +89,7 @@ interface Frame {
   controller?: AbortController;
   cancelled?: boolean;
   failed: boolean;
+  retries: number;
   /** Decoded pixels at `bitmapSize`; only a bounded set is kept. */
   bitmap?: ImageBitmap;
   bitmapSize?: string;
@@ -111,6 +112,8 @@ export class FrameStore {
   private readonly keyPositions: number[] = [];
   /** The visitor has scrolled into the sequence: fetch around the playhead, not just the opening frames. */
   private engaged = false;
+  /** The page has finished loading its own resources: the idle warm-up may start (see allowWarm). */
+  private warmAllowed = false;
   private fetching = 0;
   private decoding = 0;
   private focusAt = 0;
@@ -143,7 +146,7 @@ export class FrameStore {
       if (u === undefined) {
         u = this.frames.length;
         byUrl.set(url, u);
-        this.frames.push({ url, fetching: false, failed: false, decoding: false });
+        this.frames.push({ url, fetching: false, failed: false, retries: 0, decoding: false });
       }
       this.unique.push(u);
     });
@@ -181,6 +184,11 @@ export class FrameStore {
    */
   setDrawSize(width: number, height: number, sourceWidth: number, sourceHeight: number) {
     const resize = !this.profile.fullDecode && width * height < 0.5 * sourceWidth * sourceHeight;
+    // Ignore tiny mobile browser toolbar height adjustments (<12% width shift) when staying in resized mode,
+    // so collapsing the URL bar mid-scroll never invalidates and re-decodes the entire bitmap cache.
+    if (this.sizeKey && resize === this.resize && (!resize || Math.abs(width - this.width) <= this.width * 0.12)) {
+      return;
+    }
     const key = resize ? `${width}x${height}` : 'full';
     if (key === this.sizeKey) return;
     this.width = width;
@@ -287,6 +295,16 @@ export class FrameStore {
     this.pump();
   }
 
+  /**
+   * The page has loaded and gone idle: start the warm-up. Until then only the opening frames are fetched, so the hero's frames
+   * never compete with the page's own fonts and images for the connection during the first seconds of the visit.
+   */
+  allowWarm() {
+    if (this.warmAllowed) return;
+    this.warmAllowed = true;
+    this.pump();
+  }
+
   dispose() {
     this.disposed = true;
     this.frames.forEach(frame => { frame.controller?.abort(); frame.bitmap?.close(); frame.bitmap = undefined; frame.blob = undefined; });
@@ -357,7 +375,7 @@ export class FrameStore {
     if (!this.engaged) {
       for (let p = 0; p < CRITICAL_FRAMES; p++) add(p);
       const urgent = order.length;
-      for (let p = CRITICAL_FRAMES; p < CRITICAL_FRAMES + this.profile.warm; p++) add(p);
+      if (this.warmAllowed) for (let p = CRITICAL_FRAMES; p < CRITICAL_FRAMES + this.profile.warm; p++) add(p);
       return { order, urgent };
     }
     for (const u of this.windowOrder()) if (!seen.has(u)) { seen.add(u); order.push(u); }
@@ -377,9 +395,10 @@ export class FrameStore {
 
   private pump() {
     if (this.disposed) return;
-    // Frame 1 (the poster) gets the network to itself first: on slow connections it
-    // arrives seconds sooner, and it is the frame on screen when the sequence starts.
-    if (this.first === undefined) return;
+    // On slow links Frame 1 gets the network strictly to itself; on normal/fast links Frame 2 (preloaded in <head>)
+    // may be fetched in parallel while Frame 1 decodes so both critical frames finish in one round-trip.
+    const waitingForFirst = this.first === undefined;
+    if (waitingForFirst && this.profile.warm === 0) return;
     // A frame arriving behind a playhead that is waiting moves the window on to the next missing frame.
     if (!this.sequential && this.decodedGap(this.focusAt, this.direction, Math.max(1, this.profile.ahead - 1)) !== Infinity) this.sequential = true;
     const centred = this.centre();
@@ -396,12 +415,14 @@ export class FrameStore {
     // Fetch in plan order. Post-critical idle warm-up runs up to 2 gentle requests so opening frames are ready fast without starving page images.
     const warmCap = Math.min(2, this.profile.fetchConcurrency);
     for (let i = 0; i < plan.order.length; i++) {
+      if (waitingForFirst && i >= plan.urgent) break;
       const cap = this.engaged || i < plan.urgent ? this.profile.fetchConcurrency : warmCap;
       if (this.fetching >= cap) break;
       const u = plan.order[i];
+      if (waitingForFirst && u === 0) continue;
       const frame = this.frames[u];
       if (frame.blob || frame.fetching || frame.failed || (u === 0 && this.first !== null)) continue;
-      this.fetch(frame);
+      this.fetch(frame, i < plan.urgent ? 'high' : 'low');
     }
     if (!this.width) return;
     // Decode: wanted frames missing or decoded at an old size; window first, then keyframes nearest first.
@@ -426,13 +447,18 @@ export class FrameStore {
     }
   }
 
-  private fetch(frame: Frame) {
+  private fetch(frame: Frame, priority: 'high' | 'low') {
     this.fetching++;
     frame.fetching = true;
     const controller = frame.controller = new AbortController();
-    fetch(frame.url, { signal: controller.signal })
+    fetch(frame.url, { signal: controller.signal, priority } as RequestInit)
       .then(response => { if (!response.ok) throw new Error(String(response.status)); return response.blob(); })
-      .then(blob => { frame.blob = blob; }, () => { frame.failed = !this.disposed && !frame.cancelled; })
+      .then(blob => { frame.blob = blob; frame.retries = 0; }, () => {
+        if (!this.disposed && !frame.cancelled) {
+          frame.retries++;
+          if (frame.retries >= 2) frame.failed = true;
+        }
+      })
       .finally(() => { this.fetching--; frame.fetching = false; frame.cancelled = false; frame.controller = undefined; this.pump(); });
   }
 
@@ -510,6 +536,8 @@ const SETTLE_MS = 1200;
  * instead of snapping from forward to backward.
  */
 const ACCEL = 700;
+/** Most often the page is told which frame is showing (ms): enough to tell a stalled playhead from a moving one. */
+const SHOWN_EVERY_MS = 100;
 
 /**
  * One step of the playhead. Its speed aims for (distance to the goal) / time, which is an exponential approach
@@ -554,6 +582,9 @@ export class FrameRenderer {
   private target = 0;
   private drawn = -1;
   private drawnSharp = false;
+  /** The final frame is on the canvas, decoded at the drawn size. */
+  private ended = false;
+  private shownAt = 0;
   private force = true;
   /** The letterbox wash (phones and tablets): a tile per band, the frame its colours came from, and the layout it was painted for. */
   private tiles: Partial<Record<Edge, WashTile>> = {};
@@ -576,6 +607,11 @@ export class FrameRenderer {
     private readonly onFirstDraw: () => void,
     /** Called once, when the opening frames (CRITICAL_FRAMES) are decoded and ready to draw. */
     private readonly onCritical: () => void = () => {},
+    /**
+     * Called when the frame on the canvas changes (at most every SHOWN_EVERY_MS, and at once when the final frame, fully decoded,
+     * starts or stops being the one on the canvas): the page holds the pinned stage until that final frame is shown.
+     */
+    private readonly onShown: (ended: boolean) => void = () => {},
   ) {
     this.criticalLeft = new Set(Array.from({ length: Math.min(CRITICAL_FRAMES, urls.length) }, (_, i) => i));
     this.store = new FrameStore(urls, profile, position => this.arrived(position));
@@ -586,6 +622,9 @@ export class FrameRenderer {
   /** The visitor has started to scroll: begin fetching the frames the sequence will need (before the playhead moves). */
   engage() { this.store.engage(); }
 
+  /** The page has loaded and gone idle: the warm-up of the next frames may begin. */
+  allowWarm() { this.store.allowWarm(); }
+
   resize(layout: RenderLayout) {
     this.layout = layout;
     if (this.canvas.width !== layout.canvasWidth || this.canvas.height !== layout.canvasHeight) {
@@ -593,6 +632,10 @@ export class FrameRenderer {
       this.canvas.height = layout.canvasHeight;
       this.context.imageSmoothingEnabled = true;
       this.context.imageSmoothingQuality = 'high';
+      if (this.drawn < 0) {
+        this.context.fillStyle = LETTERBOX;
+        this.context.fillRect(0, 0, layout.canvasWidth, layout.canvasHeight);
+      }
     }
     this.store.setDrawSize(layout.decodeWidth, layout.decodeHeight, layout.sourceWidth, layout.sourceHeight);
     this.force = true;
@@ -692,6 +735,9 @@ export class FrameRenderer {
     if (this.drawn < 0) this.onFirstDraw();
     this.drawn = frame.position;
     this.drawnSharp = frame.sharp;
+    const ended = frame.sharp && frame.position === this.store.length - 1;
+    const now = performance.now();
+    if (ended !== this.ended || now - this.shownAt >= SHOWN_EVERY_MS) { this.ended = ended; this.shownAt = now; this.onShown(ended); }
   }
 
   /**

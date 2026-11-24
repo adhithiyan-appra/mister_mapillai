@@ -85,12 +85,14 @@ export interface HeroRenderer {
   seek(goal: number): void;
   /** The visitor has started to scroll: begin fetching the frames around the playhead (idempotent). */
   engage(): void;
+  /** The page has loaded and gone idle: begin the background warm-up of the next frames (idempotent). */
+  allowWarm(): void;
   /** The hero is off screen: release the decoded window; the next seek brings it back. */
   rest(): void;
   dispose(): void;
 }
 
-interface Shared { renderer: HeroRenderer; users: number; timer: number }
+interface Shared { renderer: HeroRenderer; users: number; timer: number; events: RendererEvents }
 /** One renderer per canvas: a canvas can be handed to a worker only once (StrictMode re-runs effects). */
 const shared = new WeakMap<HTMLCanvasElement, Shared>();
 
@@ -103,14 +105,17 @@ export interface RendererEvents {
   onReady: () => void;
   /** The opening frames are decoded: the sequence can start without waiting. */
   onCritical: () => void;
+  /** A new frame is on the canvas; `ended`: it is the final frame, fully decoded. */
+  onShown: (ended: boolean) => void;
 }
 
-function startWorker(canvas: HTMLCanvasElement, poster: HTMLImageElement, profile: RenderProfile, { onReady, onCritical }: RendererEvents): HeroRenderer {
+function startWorker(canvas: HTMLCanvasElement, poster: HTMLImageElement, profile: RenderProfile, { onReady, onCritical, onShown }: RendererEvents): HeroRenderer {
   const worker = new Worker(new URL('./frameRenderer.worker.ts', import.meta.url), { type: 'module' });
   const post = (message: WorkerMessage, transfer: Transferable[] = []) => worker.postMessage(message, transfer);
   worker.onmessage = ({ data }: MessageEvent<WorkerReply>) => {
     if (data.type === 'ready') onReady();
     else if (data.type === 'critical' || data.type === 'failed') onCritical();
+    else if (data.type === 'shown') onShown(data.ended);
   };
   const offscreen = canvas.transferControlToOffscreen();
   post({ type: 'init', canvas: offscreen, urls: frameUrls, profile }, [offscreen]);
@@ -120,12 +125,18 @@ function startWorker(canvas: HTMLCanvasElement, poster: HTMLImageElement, profil
     .then(bitmap => post({ type: 'first', bitmap }, [bitmap]), () => post({ type: 'first', bitmap: null }));
   let last = { goal: Number.NaN, layout: '' };
   let engaged = false;
+  let warmed = false;
   return {
     mode: 'worker',
     engage() {
       if (engaged) return;
       engaged = true;
       post({ type: 'engage' });
+    },
+    allowWarm() {
+      if (warmed) return;
+      warmed = true;
+      post({ type: 'warm' });
     },
     layout(layout) {
       const key = JSON.stringify(layout);
@@ -143,16 +154,17 @@ function startWorker(canvas: HTMLCanvasElement, poster: HTMLImageElement, profil
   };
 }
 
-function startOnPage(canvas: HTMLCanvasElement, poster: HTMLImageElement, profile: RenderProfile, { onReady, onCritical }: RendererEvents): HeroRenderer | null {
+function startOnPage(canvas: HTMLCanvasElement, poster: HTMLImageElement, profile: RenderProfile, { onReady, onCritical, onShown }: RendererEvents): HeroRenderer | null {
   const context = canvas.getContext('2d', { alpha: false });
   if (!context || typeof createImageBitmap !== 'function') return null;
-  const renderer = new FrameRenderer(canvas, context, frameUrls, profile, callback => requestAnimationFrame(callback), handle => cancelAnimationFrame(handle), onReady, onCritical);
+  const renderer = new FrameRenderer(canvas, context, frameUrls, profile, callback => requestAnimationFrame(callback), handle => cancelAnimationFrame(handle), onReady, onCritical, onShown);
   poster.decode().then(() => renderer.provideFirst(poster), () => renderer.provideFirst(null));
   return {
     mode: 'page',
     layout: layout => renderer.resize(layout),
     seek: goal => renderer.seek(goal),
     engage: () => renderer.engage(),
+    allowWarm: () => renderer.allowWarm(),
     rest: () => renderer.rest(),
     dispose: () => renderer.dispose(),
   };
@@ -163,10 +175,19 @@ export function createHeroRenderer(canvas: HTMLCanvasElement, poster: HTMLImageE
   let entry = shared.get(canvas);
   if (entry) {
     clearTimeout(entry.timer);
+    // A re-mount (StrictMode) listens through its own callbacks.
+    entry.events = events;
   } else {
-    const renderer = canUseWorker(canvas) ? startWorker(canvas, poster, profile, events) : startOnPage(canvas, poster, profile, events);
+    // The renderer outlives a re-mount, so it reports through whoever is currently attached.
+    const holder: { current?: Shared } = {};
+    const forward: RendererEvents = {
+      onReady: () => holder.current?.events.onReady(),
+      onCritical: () => holder.current?.events.onCritical(),
+      onShown: ended => holder.current?.events.onShown(ended),
+    };
+    const renderer = canUseWorker(canvas) ? startWorker(canvas, poster, profile, forward) : startOnPage(canvas, poster, profile, forward);
     if (!renderer) return null;
-    entry = { renderer, users: 0, timer: 0 };
+    entry = holder.current = { renderer, users: 0, timer: 0, events };
     shared.set(canvas, entry);
   }
   entry.users++;
@@ -177,6 +198,7 @@ export function createHeroRenderer(canvas: HTMLCanvasElement, poster: HTMLImageE
     layout: layout => current.renderer.layout(layout),
     seek: goal => current.renderer.seek(goal),
     engage: () => current.renderer.engage(),
+    allowWarm: () => current.renderer.allowWarm(),
     rest: () => current.renderer.rest(),
     dispose() {
       if (released) return;

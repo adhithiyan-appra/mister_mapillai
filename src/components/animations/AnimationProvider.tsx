@@ -19,6 +19,8 @@ export interface AnimationRegistration {
   // Reads for all registrations run before any animation writes.
   read?: (frame: AnimationFrame) => void;
   active?: (frame: AnimationFrame) => boolean;
+  /** The scene is still on screen although its element has scrolled out of the viewport (e.g. a pinned stage held in place). */
+  keepAlive?: () => boolean;
   scrollDriven?: boolean;
   enter?: (frame: AnimationFrame) => void;
   leave?: () => void;
@@ -92,7 +94,7 @@ function createController(): AnimationController & { start: () => () => void } {
     updates.length = 0;
     exits.length = 0;
     for (const scene of entries) {
-      const inView = !scene.element || (scene.top + scene.height >= frame.scrollY - 50 && scene.top <= frame.scrollY + frame.height + 50);
+      const inView = !scene.element || scene.keepAlive?.() === true || (scene.top + scene.height >= frame.scrollY - 50 && scene.top <= frame.scrollY + frame.height + 50);
       const eligible = inView && (scene.active?.(frame) ?? true);
       const visible = scene.assetsReady && eligible;
       scene.entering = visible && !scene.visible;
@@ -100,10 +102,10 @@ function createController(): AnimationController & { start: () => () => void } {
       if (scene.element) {
         const previous = scene.current;
         const target = clamp((frame.scrollY - scene.top) / Math.max(1, scene.height - frame.height));
-        // Keep offscreen scenes synchronized. A direct navigation must not replay
-        // stale progress. If an in-view scene is still decoding, retain its safe
-        // initial state and ease from there once its image group becomes ready.
-        if (reducedMotion || (!eligible && !visible) || (!visible && scene.assetsReady)) scene.current = target;
+        // Keep offscreen scenes synchronized. Scenes marked scrollDriven compute their own
+        // scroll progress directly from frame.scrollY, so skipping the shared smoothing loop
+        // avoids redundant main-thread rAF ticks after scroll settles.
+        if (reducedMotion || scene.scrollDriven || (!eligible && !visible) || (!visible && scene.assetsReady)) scene.current = target;
         else if (!initialized && scene.assetsReady) scene.current = target;
         else if (visible) {
           const gap = target - scene.current;
