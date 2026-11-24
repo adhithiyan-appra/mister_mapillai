@@ -6,6 +6,8 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { SectionHeading } from '../../components/common/SectionHeading';
 import { SourceImage } from '../../components/common/SourceImage';
 import { ceremonyTransformations } from '../../data/ceremonies';
+import { images } from '../../data/images';
+import type { ImageKey } from '../../data/images';
 import { imageSource } from '../../data/imageSources';
 import { onHeroReady } from '../../utils/heroReady';
 import { comparisonPanels } from '../../data/showcase';
@@ -19,9 +21,18 @@ const TOUCH_DRAG_SLOP = 6;
 /** How long (s) the divider takes to catch up with the scroll position. */
 const FOLLOW_SECONDS = 0.45;
 
+/**
+ * What the comparison frame shows for a photograph: its `-view` rendition when the registry has one (a lossless 1120x1400 copy of
+ * a 6144x7680 master, which is what a frame at most 440 CSS px wide can use), otherwise the photograph itself.
+ */
+const viewKey = (asset: ImageKey): ImageKey => {
+  const key = `${asset}-view`;
+  return Object.hasOwn(images, key) ? key as ImageKey : asset;
+};
+
 function decodePair(index: number) {
   const item = ceremonyTransformations[index];
-  return Promise.all([imageSource(item.beforeImage).src, imageSource(item.afterImage).src].map(source => {
+  return Promise.all([imageSource(viewKey(item.beforeImage)).src, imageSource(viewKey(item.afterImage)).src].map(source => {
     const image = new Image();
     image.decoding = 'async';
     image.src = source;
@@ -39,9 +50,15 @@ function offsetFor(trigger: ScrollTrigger, value: number) {
   return Math.min(Math.floor(trigger.end) - 1, Math.max(Math.ceil(trigger.start) + 1, target));
 }
 
-/** Scroll positions within this fraction of either end of the range read as exactly BEFORE / AFTER. */
+/**
+ * Scroll positions within this fraction (or within 2px, which covers the one-pixel inset of offsetFor on a short range) of
+ * either end of the range read as exactly BEFORE / AFTER.
+ */
 const END_SNAP = 0.0015;
-const snapEnds = (value: number) => (value < END_SNAP ? 0 : value > 1 - END_SNAP ? 1 : value);
+const snapEnds = (value: number, span: number) => {
+  const edge = Math.max(END_SNAP, 2 / Math.max(1, span));
+  return value < edge ? 0 : value > 1 - edge ? 1 : value;
+};
 
 interface Drag {
   pointerId: number;
@@ -89,6 +106,8 @@ export function TransformationSection() {
   const activeRef = useRef(0);
   const requestRef = useRef(0);
   const loadedRef = useRef(new Set<number>([0]));
+  /** Re-orders the idle preloading of the other ceremonies around the one just chosen (set by the effect below). */
+  const prioritiseRef = useRef<(center: number) => void>(() => {});
   const mountedRef = useRef(false);
 
   /** The single writer of every visual that depends on `progress`. */
@@ -102,7 +121,14 @@ export function TransformationSection() {
       handle.setAttribute('aria-valuenow', String(Math.round(percent)));
       handle.setAttribute('aria-valuetext', `${Math.round(100 - percent)}% before, ${Math.round(percent)}% with Mister Mapillai`);
     }
-    if (afterTagRef.current) afterTagRef.current.style.opacity = percent < 14 ? '0' : '1';
+    const afterTag = afterTagRef.current;
+    if (afterTag) {
+      const frameWidth = frameRef.current?.clientWidth ?? 0;
+      const revealThreshold = frameWidth
+        ? (afterTag.offsetLeft + afterTag.offsetWidth + 12) / frameWidth * 100
+        : 14;
+      afterTag.style.opacity = percent < revealThreshold ? '0' : '1';
+    }
     if (beforeTagRef.current) beforeTagRef.current.style.opacity = percent > 86 ? '0' : '1';
   };
 
@@ -146,15 +172,29 @@ export function TransformationSection() {
 
   /**
    * Make the scroll offset say the same thing as `value`, so the scroll animation continues from it.
-   * Inside the pinned range this only moves the offset (the pinned stage does not move on screen). Outside it,
-   * moving the offset would shift the page, so the value is held and applied when the pin engages.
+   * Inside the pinned range this only moves the offset (the pinned stage does not move on screen).
+   * Before the range the value is held and applied when the pin engages (the stage is still below the fold of its pin, so
+   * scrolling down reaches it). Past the range the stage is sliding up under the navbar, and scrolling further down could
+   * never reveal anything: if any of it is still on screen (the filter row and the slider can still be used) it is put back
+   * in its pinned position at `value`, which on screen is a few pixels, so the visitor stays in the section and can scroll
+   * on from there. Only a stage that has left the screen holds the value.
    */
   const alignScroll = (value: number) => {
     const trigger = triggerRef.current;
     if (!trigger) return;
     const y = window.scrollY;
     if (y < trigger.start) { handoffRef.current = value > 0.001 ? value : null; return; }
-    if (y > trigger.end) { handoffRef.current = value < 0.999 ? value : null; return; }
+    if (y > trigger.end) {
+      const stage = stageRef.current;
+      const navBottom = document.querySelector('.mm-nav')?.getBoundingClientRect().bottom ?? 0;
+      if (stage && stage.getBoundingClientRect().bottom > navBottom) {
+        handoffRef.current = null;
+        window.scrollTo({ top: offsetFor(trigger, value), behavior: 'instant' as ScrollBehavior });
+        return;
+      }
+      handoffRef.current = value < 0.999 ? value : null;
+      return;
+    }
     handoffRef.current = null;
     const target = offsetFor(trigger, value);
     if (Math.abs(target - y) > 0.5) window.scrollTo({ top: target, behavior: 'instant' as ScrollBehavior });
@@ -162,12 +202,58 @@ export function TransformationSection() {
 
   useEffect(() => {
     render(0);
-    // On a first home visit these twelve images wait for the hero's opening frames.
-    let timers: number[] = [];
+    // The photograph is sized from what is left of the screen below the filter row (template.css reads --ba-top), so the pinned
+    // stage always shows all of it. The filter row wraps to a different number of lines at different widths and when the web
+    // fonts arrive, hence the observer; a changed value re-measures the pin once, not on every resize event.
+    let topTimer = 0;
+    const measureTop = () => {
+      const stage = stageRef.current;
+      const wrap = stage?.querySelector<HTMLElement>('.mm-ba-wrap');
+      if (!stage || !wrap) return;
+      const top = `${wrap.offsetTop}px`;
+      if (stage.style.getPropertyValue('--ba-top') === top) return;
+      stage.style.setProperty('--ba-top', top);
+      window.clearTimeout(topTimer);
+      topTimer = window.setTimeout(() => ScrollTrigger.refresh(), 120);
+    };
+    measureTop();
+    const tabsObserver = typeof ResizeObserver === 'function' ? new ResizeObserver(measureTop) : null;
+    const tabsElement = stageRef.current?.querySelector('.mm-ba-tabs');
+    if (tabsElement) tabsObserver?.observe(tabsElement);
+    // Images. The six pairs are ~8.7 MB (Muhurtham and Reception ~3 MB each), so none is fetched while the visitor is still in the
+    // hero, where the frames need the bandwidth: the chosen pair is fetched and decoded when the section is within two screens,
+    // then the others one at a time while the browser is idle, the nearest ceremony first. (Choosing one that has not arrived
+    // yet waits for its own decode in select(), so a wrong or empty image is never shown.) Save-Data keeps to the chosen pair.
+    const saveData = Boolean((navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData);
+    let queue: number[] = [];
+    let idle = 0;
+    let observer: IntersectionObserver | null = null;
+    let stopped = false;
+    const schedule = () => {
+      if (stopped || idle || !queue.length) return;
+      const run = () => {
+        idle = 0;
+        const next = queue.shift();
+        if (stopped || next === undefined) return;
+        void decodePair(next).then(() => { loadedRef.current.add(next); schedule(); });
+      };
+      idle = typeof window.requestIdleCallback === 'function' ? window.requestIdleCallback(run, { timeout: 2500 }) : window.setTimeout(run, 250);
+    };
+    const prioritise = (center: number) => {
+      if (saveData || !observer && !loadedRef.current.size) return;
+      queue = ceremonyTransformations.map((_, index) => index).filter(index => index !== center && !loadedRef.current.has(index))
+        .sort((a, b) => Math.abs(a - center) - Math.abs(b - center) || a - b);
+      schedule();
+    };
+    prioritiseRef.current = prioritise;
     const stopWaiting = onHeroReady(() => {
-      timers = ceremonyTransformations.map((_, index) => window.setTimeout(() => {
-        void decodePair(index).then(() => loadedRef.current.add(index));
-      }, index === 0 ? 0 : 350 * index));
+      observer = new IntersectionObserver(entries => {
+        if (!entries.some(entry => entry.isIntersecting)) return;
+        observer?.disconnect();
+        const here = activeRef.current;
+        void decodePair(here).then(() => { loadedRef.current.add(here); prioritise(here); });
+      }, { rootMargin: '200% 0px' });
+      if (stageRef.current) observer.observe(stageRef.current);
     });
 
     const media = gsap.matchMedia();
@@ -183,7 +269,7 @@ export function TransformationSection() {
         onUpdate: self => {
           // Manual input wins; a waiting handoff means the divider holds a value the scroll offset does not say yet.
           if (switchingRef.current || draggingRef.current || handoffRef.current !== null) return;
-          follow(snapEnds(self.progress));
+          follow(snapEnds(self.progress, self.end - self.start));
         },
         onToggle: self => {
           const waiting = handoffRef.current;
@@ -192,8 +278,8 @@ export function TransformationSection() {
           window.scrollTo({ top: offsetFor(self, waiting), behavior: 'instant' as ScrollBehavior });
         },
         // Scrolled clean through the range without ever being pinned: the scroll position has the final word.
-        onLeave: self => { if (handoffRef.current !== null) { handoffRef.current = null; follow(snapEnds(self.progress)); } },
-        onLeaveBack: self => { if (handoffRef.current !== null) { handoffRef.current = null; follow(snapEnds(self.progress)); } },
+        onLeave: self => { if (handoffRef.current !== null) { handoffRef.current = null; follow(snapEnds(self.progress, self.end - self.start)); } },
+        onLeaveBack: self => { if (handoffRef.current !== null) { handoffRef.current = null; follow(snapEnds(self.progress, self.end - self.start)); } },
       });
       triggerRef.current = trigger;
       return () => { triggerRef.current = null; };
@@ -209,7 +295,12 @@ export function TransformationSection() {
       window.removeEventListener('load', refresh);
       window.clearTimeout(refreshTimer);
       stopWaiting();
-      timers.forEach(window.clearTimeout);
+      stopped = true;
+      tabsObserver?.disconnect();
+      window.clearTimeout(topTimer);
+      observer?.disconnect();
+      if (idle) { if (typeof window.cancelIdleCallback === 'function') window.cancelIdleCallback(idle); else window.clearTimeout(idle); }
+      prioritiseRef.current = () => {};
       media.revert();
       gsap.killTweensOf(progress.current);
       cancelQueued();
@@ -258,6 +349,7 @@ export function TransformationSection() {
       jump(0);
       alignScroll(0);
       switchingRef.current = false;
+      prioritiseRef.current(index); // the neighbours of the new ceremony are the likely next choices
     };
     if (loadedRef.current.has(index)) commit();
     else void decodePair(index).then(() => { loadedRef.current.add(index); commit(); });
@@ -345,7 +437,6 @@ export function TransformationSection() {
         id="ba-title"
         eyebrow="The Difference"
         title={<>With &amp; Without <em>Mister Mapillai</em></>}
-        lead="Drag the slider to see the transformation."
       />
       <div className="mm-ba-stage" ref={stageRef}>
         <div className="mm-ba-tabs" role="group" aria-label="Choose a ceremony">
@@ -369,10 +460,10 @@ export function TransformationSection() {
           >
             <div className="mm-ba__pair" data-ceremony={look.id} key={look.id} ref={pairRef}>
               <div className="mm-ba__layer mm-ba__layer--after">
-                <SourceImage asset={look.afterImage} alt={`${look.title} with Mister Mapillai`} draggable={false} />
+                <SourceImage asset={viewKey(look.afterImage)} alt={`${look.title} with Mister Mapillai`} draggable={false} loading="lazy" nativeLazy />
               </div>
               <div className="mm-ba__layer mm-ba__layer--before">
-                <SourceImage asset={look.beforeImage} alt={`${look.title} before`} draggable={false} />
+                <SourceImage asset={viewKey(look.beforeImage)} alt={`${look.title} before`} draggable={false} loading="lazy" nativeLazy />
               </div>
             </div>
             <span className="mm-ba__tag mm-ba__tag--after" ref={afterTagRef} aria-hidden="true">With Mister Mapillai</span>

@@ -87,7 +87,7 @@ Follow standard breakpoints established in `template.css`:
 ### Reduced Motion Compliance
 Always check `window.matchMedia('(prefers-reduced-motion: reduce)')` or configure CSS `@media (prefers-reduced-motion: reduce)`:
 - Avoid pinning sequences or heavy scroll hijacking.
-- Supply static poster image fallbacks (`frame-001.webp`).
+- Supply static poster image fallbacks (`frame-0001.webp`).
 - Set transitions and scale transforms to `none`.
 
 ### Hero Frame Renderer

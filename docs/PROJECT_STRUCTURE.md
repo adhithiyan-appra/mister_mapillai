@@ -18,7 +18,7 @@ mister_mappilai/
 │
 ├── src/                          # Application source code
 │   ├── assets/                   # Visual assets, organised by where the site uses them (see docs/ASSET_GUIDE.md)
-│   │   ├── animations/           # hero-frames/ (web/ runtime WebP, source/ master PNG) and lottie/ (loader)
+│   │   ├── animations/           # hero-frames/ (new_v1_webp/ runtime lossless WebP, new_v1/ master PNG) and lottie/ (loader)
 │   │   ├── brand/logos/          # Brand seal emblem (seal.svg)
 │   │   ├── fonts/                # Self-hosted WOFF2 web fonts (serif/, sans-serif/)
 │   │   └── images/               # collections/, home/, about/, real-grooms/, testimonials/, accessories/, shared/
@@ -92,7 +92,7 @@ mister_mappilai/
 │   └── screenshots/              # Automated verification captures
 │
 ├── scripts/                      # Developer tooling & build automation
-│   ├── build-hero-frames.py      # Encodes source frames to WebP with PSNR verification
+│   ├── build-hero-frames.py      # Encodes the hero master frames to lossless WebP, verified pixel-exact, with a manifest
 │   ├── convert-lossless-webp.py  # PNG originals -> verified lossless WebP (+ right-sized renditions)
 │   ├── extract-assets.ts         # Asset extraction and categorization tool
 │   ├── image-metadata.ts         # Automated intrinsic image dimension extractor
@@ -114,7 +114,7 @@ Contains static web files served at the root URL path (`/`). Used for search eng
 
 ### 2. `src/assets/`
 The primary visual asset repository, organised by where the website uses each file. The full tree, naming rules, how to add assets and the file-by-file inventory are in `docs/ASSET_GUIDE.md` and `docs/asset-inventory.csv`.
-- **`animations/hero-frames/web/`**: the 201 runtime hero frames (1920×1088 WebP), `frame-001.webp` … `frame-201.webp`; `source/` holds the master PNGs.
+- **`animations/hero-frames/new_v1_webp/`**: the 202 runtime hero frames (1920×1088 lossless WebP), `frame-0001.webp` … `frame-0202.webp`, with `manifest.json`; `new_v1/` holds the master PNGs. (`web/` and `source/` are the previous sequence, no longer loaded.)
 - **`animations/lottie/`**: the loader animation (`mm-loader.json`).
 - **`brand/logos/`**: vector brand emblem (`seal.svg`).
 - **`fonts/`**: `serif/` and `sans-serif/` subfolders of self-hosted `.woff2` files.

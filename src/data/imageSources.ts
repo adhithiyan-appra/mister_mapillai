@@ -14,7 +14,7 @@ export function imageSource(asset: ImageKey) {
   return {
     src: images[full],
     ...dimensions,
-    srcSet: isImageKey(small)
+    srcSet: isImageKey(small) && images[small] !== images[full]
       ? `${images[small]} ${imageMetadata[small].width}w, ${images[full]} ${dimensions.width}w`
       : undefined,
   };

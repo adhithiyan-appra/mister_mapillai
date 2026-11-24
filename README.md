@@ -122,13 +122,14 @@ VITE_CONTACT_HOURS=Mon – Sun · 10 AM – 9 PM
 
 ## 6. Hero Frame Sequence System
 
-The home page hero features a high-performance scroll-driven sequence of 201 frames (1920×1088):
+The home page hero features a high-performance scroll-driven sequence of 202 frames (1920×1088):
 
-1. **Source Frames**: 201 master PNG frames stored in `src/assets/animations/hero-frames/source/`.
-2. **Web Encoding**: `python scripts/build-hero-frames.py` generates full-resolution WebP frames in `src/assets/animations/hero-frames/web/` with verifiable PSNR (>41.5 dB).
-3. **OffscreenCanvas Worker**: `src/sections/Home/frameRenderer.worker.ts` handles fetching, off-thread `createImageBitmap` decoding, and 60fps canvas drawing without blocking the main React thread.
-4. **Vite HTML Transform**: `vite.config.ts` injects a dynamic `<link rel="preload" as="image" fetchpriority="high">` tag for `frame-001.webp` on the root route, eliminating render delays on initial visit.
-5. **Reduced Motion**: Respects `prefers-reduced-motion` by disabling pinning and sequence downloads, presenting a static hero poster.
+1. **Source Frames**: 202 master PNG frames stored in `src/assets/animations/hero-frames/new_v1/` (never modified).
+2. **Web Encoding**: `python scripts/build-hero-frames.py` generates genuine lossless WebP frames (`frame-0001.webp` … `frame-0202.webp`) and `manifest.json` (the exact frame order) in `src/assets/animations/hero-frames/new_v1_webp/`, and verifies every frame is pixel-identical to its PNG.
+3. **Progressive loading**: lossless frames are ~0.85 MB each (172 MB in all), so only the frames around the scroll position are fetched (plus a short idle warm-up); see `docs/HERO_FRAME_REPLACEMENT_AND_PERFORMANCE_REPORT.md`.
+4. **OffscreenCanvas Worker**: `src/sections/Home/frameRenderer.worker.ts` handles fetching, off-thread `createImageBitmap` decoding, and canvas drawing without blocking the main React thread.
+5. **Vite HTML Transform**: `vite.config.ts` injects a dynamic `<link rel="preload" as="image" fetchpriority="high">` tag for `frame-0001.webp` on the root route, eliminating render delays on initial visit.
+6. **Reduced Motion**: Respects `prefers-reduced-motion` by disabling pinning and sequence downloads, presenting a static hero poster.
 
 ---
 

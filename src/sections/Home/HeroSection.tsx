@@ -11,14 +11,25 @@ const lines: readonly (readonly [word: string, gold?: boolean][])[] = [
   [['Styled'], ['Head'], ['to'], ['Toe.']],
 ];
 
-/** Share of the pinned scroll that is animated; the rest holds the last frame before release. */
-const PLAY = 0.95;
+/**
+ * Share of the pinned scroll that is animated; the rest holds the last frame before release. The playhead trails the scroll by
+ * about half a second (its glide plus the decode of the frames still to come), so the hold is long enough (~0.7 of a screen of
+ * scrolling) for it to arrive at the final frame while the stage is still pinned, at scroll speeds up to ~1.5 screens a second.
+ */
+const PLAY = 0.91;
 /** Phase 2: the introduction lifts away (opacity, -50px, scale 0.96) as soon as scrolling starts… */
 const TEXT_OUT: readonly [number, number] = [0.004, 0.1];
 /** …while the cinematic frames fade in over the maroon… */
 const FRAMES_IN: readonly [number, number] = [0.03, 0.12];
 /** …and only then (phase 3) do the frames start to advance with the scroll. */
 const FRAMES_START = 0.12;
+/** Scroll progress at which the visitor is taken to be scrolling into the sequence: its frames start to be fetched. */
+const ENGAGE_AT = 0.004;
+/**
+ * The pinned scroll is as long as the frame count needs (template.css: frame steps × a pace in svh per frame, divided by the share
+ * of the scroll that plays frames), so a longer or shorter sequence keeps the same, slow pace instead of racing or crawling.
+ */
+const FRAME_SHARE = PLAY * (1 - FRAMES_START);
 /**
  * Glide (1/s) of the introduction's fade and lift: small scroll steps ease in over
  * ~150 ms. The frames do not use this: their playhead glides inside the renderer,
@@ -84,7 +95,10 @@ export function HeroSection() {
         if (!renderer) return;
         // Canvas backing store in device pixels, capped by DPR and an area budget.
         const width = stage.clientWidth, height = stageHeight;
-        const dpr = Math.min(window.devicePixelRatio || 1, profile.maxDpr, Math.sqrt(profile.maxArea / Math.max(1, width * height)));
+        // Never more canvas pixels than the source has: the frames hold no more detail, so a larger backing store (a 2560 px
+        // screen, or a high-DPR laptop) would only cost fill rate and memory; the compositor scales the canvas to the stage.
+        const sourceScale = frameScale(width, height, poster.naturalWidth || SOURCE_SIZE.width, poster.naturalHeight || SOURCE_SIZE.height);
+        const dpr = Math.min(window.devicePixelRatio || 1, profile.maxDpr, Math.sqrt(profile.maxArea / Math.max(1, width * height)), 1 / sourceScale);
         const canvasWidth = Math.round(width * dpr), canvasHeight = Math.round(height * dpr);
         const sourceWidth = poster.naturalWidth || SOURCE_SIZE.width, sourceHeight = poster.naturalHeight || SOURCE_SIZE.height;
         const scale = frameScale(width, height, sourceWidth, sourceHeight) * dpr;
@@ -126,6 +140,8 @@ export function HeroSection() {
         writeStyle(veil, 'opacity', (1 - 0.7 * reveal).toFixed(3));
 
         // Phase 3: frames follow the scroll. The renderer's playhead glides to this (fractional) frame itself.
+        // Fetching starts with the first scroll (phase 2), well before the playhead leaves frame 1.
+        if (goal > ENGAGE_AT) renderer?.engage();
         renderer?.seek(clamp((goal - FRAMES_START) / (1 - FRAMES_START)) * (count - 1));
         return progress !== goal;
       },
@@ -140,7 +156,7 @@ export function HeroSection() {
   });
 
   let index = 0;
-  return <section className="mm-hero-seq" ref={trackRef} aria-labelledby="hero-title">
+  return <section className="mm-hero-seq" ref={trackRef} aria-labelledby="hero-title" style={cssVars({ '--mm-hero-steps': Math.max(1, frameUrls.length - 1), '--mm-hero-share': FRAME_SHARE })}>
     <div className="mm-hero">
       <div className="mm-hero__media" aria-hidden="true">
         {/* Frame 1: the canvas's first frame, and the frame shown if the sequence cannot load. Hidden until scrolling starts. */}

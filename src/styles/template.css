@@ -140,11 +140,15 @@
     linear-gradient(to right,var(--mm-maroon-dark) var(--mm-gx),rgba(58,8,17,0) calc(var(--mm-gx) + var(--mm-fx)),rgba(58,8,17,0) calc(100% - var(--mm-gx) - var(--mm-fx)),var(--mm-maroon-dark) calc(100% - var(--mm-gx)))}
 .mm-hero__veil{position:absolute;inset:0;z-index:1;pointer-events:none;background:radial-gradient(ellipse at center,rgba(58,8,17,.45),rgba(58,8,17,.92))}
 /* Scroll-driven sequence: starts directly below the fixed navigation so the groom's head and stage are never covered. */
-.mm-hero-seq{position:relative;height:calc(100svh - var(--mm-nav-h) + var(--mm-hero-scroll,480svh));background:var(--mm-maroon-dark)}
+/* The pinned scroll is derived from the frame count: (frame steps) x (scroll per frame) / (share of the scroll that plays frames).
+   HeroSection.tsx sets --mm-hero-steps and --mm-hero-share; the pace is deliberately slow (about 29px of scroll per frame on a 900px-tall
+   desktop screen) so the footage plays like a film, not a flip-book. Phones and tablets take a little less per frame (swipes are long). */
+.mm-hero-seq{--mm-hero-pace:3.2svh;--mm-hero-scroll:calc(var(--mm-hero-steps,201) * var(--mm-hero-pace) / var(--mm-hero-share,.801));position:relative;height:calc(100svh - var(--mm-nav-h) + var(--mm-hero-scroll));background:var(--mm-maroon-dark)}
 /* Phase 1 shows only the maroon introduction: the frames fade in once scrolling starts. */
 .mm-hero-seq .mm-hero__media{opacity:0}
 .mm-hero-seq > .mm-hero{position:sticky;top:var(--mm-nav-h);height:calc(100svh - var(--mm-nav-h));min-height:0;background:var(--mm-maroon-dark)}
-@media (max-width:640px){.mm-hero-seq{--mm-hero-scroll:400svh}}
+@media (max-width:1023px){.mm-hero-seq{--mm-hero-pace:3svh}}
+@media (max-width:640px){.mm-hero-seq{--mm-hero-pace:2.6svh}}
 /* Phones and tablets. The footage is a 16:9 picture on a tall screen, so every frame is still shown whole (the sign, the poster
    and the groom are spread across its width and must not be cropped), but the space around it is the footage itself: a soft mirror
    image of the frame's edge (painted by the renderer, see frameRenderer.ts) that fades into the maroon, not an empty screen.
@@ -210,11 +214,19 @@
 .mm-face--back .mm-btn{margin-top:24px;align-self:flex-start}
 
 /* ---------- before / after ---------- */
-.mm-ba-stage{position:relative}
-.mm-ba-sec .mm-ba{width:min(100%,440px,45.33vh);max-height:none}
+/* The gap above the filter row is the stage's own padding, not the row's margin: a margin collapsed out of the stage while it scrolled and
+   was contained once it was pinned (position:fixed), so the filter row stepped down 34px the moment the pin engaged. */
+.mm-ba-stage{position:relative;padding-top:34px}
+/* The photograph never needs to be taller than what is left of the screen below the filter row while the stage is pinned:
+   --ba-pin is where the stage pins (template: 90px, phones 72px), --ba-top is the height of everything above the photograph
+   (set from the real layout by TransformationSection, since the filter row wraps to 1, 2 or 3 lines). 45.33vh stays the
+   upper bound, so this only makes the photograph smaller where it would otherwise be cut off (e.g. 1024x768). */
+.mm-ba-stage{--ba-pin:90px}
+@media (max-width:640px){.mm-ba-stage{--ba-pin:72px}}
+.mm-ba-sec .mm-ba{width:min(100%,440px,45.33vh,max(220px,calc((100svh - var(--ba-pin) - var(--ba-top,122px) - 24px) * 2 / 3)));max-height:none}
 .mm-ba-wrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,440px) minmax(0,1fr);gap:28px;align-items:center;margin-top:44px}
-.mm-ba-tabs{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:34px}
-.mm-ba{position:relative;aspect-ratio:2/3;max-height:660px;width:100%;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:pan-y;cursor:ew-resize;background:var(--mm-ph);box-shadow:0 30px 60px rgba(58,8,17,.18)}
+.mm-ba-tabs{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.mm-ba{container-type:inline-size;position:relative;aspect-ratio:2/3;max-height:660px;width:100%;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:pan-y;cursor:ew-resize;background:var(--mm-ph);box-shadow:0 30px 60px rgba(58,8,17,.18)}
 .mm-ba__pair{position:absolute;inset:0;will-change:opacity}
 .mm-ba__layer{position:absolute;inset:0}
 .mm-ba__layer img{display:block;width:100%;height:100%;object-fit:contain;object-position:center center;pointer-events:none}
@@ -225,7 +237,24 @@
 .mm-ba__layer--before{z-index:1;clip-path:inset(0 0 0 var(--p,0%))}
 .mm-ba__tag{position:absolute;top:16px;z-index:2;font-size:10px;letter-spacing:2px;text-transform:uppercase;padding:6px 10px;font-weight:600;transition:opacity .35s ease}
 .mm-ba__tag--before{right:16px;background:rgba(0,0,0,.6);color:#fff}
-.mm-ba__tag--after{left:16px;background:var(--mm-maroon);color:var(--mm-gold);opacity:0}
+/* "With Mister Mapillai": in the empty top-left corner of every photograph (curtain, garland, arch, pillar), never over the head.
+   In all six photographs the groom's head starts at 35% of the frame's width or further right, so the badge is sized from the
+   frame itself (cqw = 1% of its width) and its right edge stays at about 32%, at every frame size. A fixed 124px badge was 38% of a
+   326px frame and covered the left of the head. */
+.mm-ba__tag--after{
+  left:2.8cqw;
+  top:3cqw;
+  max-width:30cqw;
+  font-size:clamp(10.5px,3.25cqw,13.5px);
+  letter-spacing:.11em;
+  padding:.55em .72em;
+  line-height:1.3;
+  text-align:left;
+  text-wrap:balance;
+  background:var(--mm-maroon);
+  color:var(--mm-gold);
+  opacity:0;
+}
 .mm-ba__handle{position:absolute;top:0;bottom:0;left:var(--p,0%);width:2px;margin-left:-1px;background:var(--mm-gold);z-index:3;cursor:ew-resize}
 .mm-ba__handle::after{content:"⟷";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:54px;height:54px;border-radius:50%;background:var(--mm-gold);color:var(--mm-maroon-dark);display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 0 0 8px rgba(201,162,77,.25)}
 .mm-ba__handle:focus-visible{outline:none}
@@ -958,7 +987,8 @@ html.mm-menu-open body{position:fixed;left:0;right:0;width:100%}
    Mapillai", .mm-ba-tabs) is three rows of two; Collections ("Find Your Look", #looks .mm-tabs) is two columns with the
    odd last button centred. Scoped by section: the shared .mm-tab look (maroon active state, gold border) is unchanged. */
 @media (max-width:900px){
-  .mm-ba-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:1fr;gap:10px;width:100%;max-width:560px;margin:28px auto 0}
+  .mm-ba-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:1fr;gap:10px;width:100%;max-width:560px;margin:0 auto}
+  .mm-ba-stage{padding-top:28px}
   .mm-ba-tabs .mm-tab{display:flex;align-items:center;justify-content:center;min-width:0;min-height:48px;padding:10px 8px;text-align:center;line-height:1.25;font-size:clamp(10px,2.75vw,12px);letter-spacing:clamp(.4px,.3vw,1.4px)}
 }
 @media (max-width:767px){

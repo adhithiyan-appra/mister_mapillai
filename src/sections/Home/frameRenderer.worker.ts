@@ -11,6 +11,7 @@ export type WorkerMessage =
   | { type: 'first'; bitmap: ImageBitmap | null }
   | { type: 'layout'; layout: RenderLayout }
   | { type: 'seek'; goal: number }
+  | { type: 'engage' }
   | { type: 'rest' }
   | { type: 'dispose' };
 
@@ -45,6 +46,7 @@ scope.onmessage = ({ data }) => {
     case 'first': renderer?.provideFirst(data.bitmap); break;
     case 'layout': renderer?.resize(data.layout); break;
     case 'seek': renderer?.seek(data.goal); break;
+    case 'engage': renderer?.engage(); break;
     case 'rest': renderer?.rest(); break;
     case 'dispose':
       renderer?.dispose();

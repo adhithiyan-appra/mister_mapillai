@@ -88,6 +88,10 @@ export const images = {
   'reception-transform-after': transformationAssets.receptionTransformAfter,
   'muhurtham-before': transformationAssets.muhurthamBefore,
   'muhurtham-after': transformationAssets.muhurthamAfter,
+  // Lossless 1120x1400 renditions for the comparison frame (see data/assets/transformations.ts); `${key}-view` is looked up by TransformationSection.
+  'nichayathartham-after-view': transformationAssets.nichayatharthamAfterView,
+  'reception-transform-after-view': transformationAssets.receptionTransformAfterView,
+  'muhurtham-after-view': transformationAssets.muhurthamAfterView,
 
   // Happy Grooms Editorial Story
   'happy-grooms-hero': happyGroomsAssets.hero,

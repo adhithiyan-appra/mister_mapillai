@@ -1,10 +1,12 @@
 /**
  * Hero frame sequence: frame URLs, device budgets and the renderer factory.
  *
- * The frames are full-resolution web encodings (1920×1088) of the originals in
- * src/assets/animations/hero-frames/source, produced in the same order by
- * scripts/build-hero-frames.py. Rendering runs in a worker on an
- * OffscreenCanvas where supported, otherwise on the page (see frameRenderer.ts).
+ * The frames are lossless WebP encodings (1920×1088, pixel-identical) of the originals in
+ * src/assets/animations/hero-frames/new_v1, produced in the same order by
+ * scripts/build-hero-frames.py (new_v1_webp/manifest.json lists that order). Lossless frames are
+ * large (~0.85 MB each), so only the frames around the scroll position are fetched
+ * (see FrameStore in frameRenderer.ts). Rendering runs in a worker on an
+ * OffscreenCanvas where supported, otherwise on the page.
  */
 import { FrameRenderer } from './frameRenderer';
 import type { RenderLayout, RenderProfile } from './frameRenderer';
@@ -13,7 +15,7 @@ import type { WorkerMessage, WorkerReply } from './frameRenderer.worker';
 export type { RenderLayout } from './frameRenderer';
 
 export const frameUrls: readonly string[] = Object.entries(
-  import.meta.glob<string>('../../assets/animations/hero-frames/web/*.webp', { eager: true, query: '?url', import: 'default' }),
+  import.meta.glob<string>('../../assets/animations/hero-frames/new_v1_webp/*.webp', { eager: true, query: '?url', import: 'default' }),
 )
   .map(([path, url]) => ({ n: Number(path.match(/(\d+)\.webp$/)?.[1] ?? NaN), url: new URL(url, document.baseURI).href }))
   .filter(frame => Number.isFinite(frame.n))
@@ -25,13 +27,17 @@ export const SOURCE_SIZE = { width: 1920, height: 1088 } as const;
 
 interface DeviceHints extends Navigator {
   deviceMemory?: number;
-  connection?: { saveData?: boolean };
+  connection?: { saveData?: boolean; effectiveType?: string };
 }
 
 /** Budgets for decoded memory and work. Every device gets the full-resolution frames. */
 export function deviceProfile(): RenderProfile & { maxDpr: number; maxArea: number } {
   const nav = navigator as DeviceHints;
-  const lowPower = Boolean(nav.connection?.saveData) || (nav.deviceMemory ?? 8) <= 4 || (nav.hardwareConcurrency ?? 8) <= 4;
+  const saveData = Boolean(nav.connection?.saveData);
+  const lowPower = saveData || (nav.deviceMemory ?? 8) <= 4 || (nav.hardwareConcurrency ?? 8) <= 4;
+  // A slow link (2G/3G or Save-Data): lossless frames are ~0.85 MB each, so nothing is fetched before the visitor scrolls
+  // and not far ahead of the playhead once they do.
+  const slowLink = saveData || /^(slow-2g|2g|3g)$/.test(nav.connection?.effectiveType ?? '');
   // Phones and tablets: a swipe crosses the pinned range in a second or two, so the playhead must be able to keep up
   // (measured: at the desktop budget the hero started to leave with the sequence only a third of the way through).
   // The frames are decoded at the drawn size, so a phone's are small (~1.4 MB) and can be held further ahead; a tablet's
@@ -42,8 +48,15 @@ export function deviceProfile(): RenderProfile & { maxDpr: number; maxArea: numb
     maxDpr: lowPower ? 1.5 : 2,
     /** Canvas backing-store budget in device pixels. */
     maxArea: lowPower ? 2_300_000 : 4_200_000,
-    fetchConcurrency: 4,
-    decodeConcurrency: lowPower ? 2 : 4,
+    fetchConcurrency: slowLink ? 2 : 4,
+    // Encoded frames kept ready beyond the decoded window (fetched, not decoded: ~0.85 MB each), and the opening frames
+    // fetched while the page is idle, before any scrolling, so the first scroll finds them ready.
+    prefetch: slowLink ? 6 : lowPower ? 14 : phone ? 24 : 40,
+    warm: slowLink ? 0 : phone ? 10 : 24,
+    // Tablets and small desktop windows on a capable machine decode at full size too (same memory budget as a desktop).
+    fullDecode: !lowPower && !phone,
+    // Lossless frames cost ~40 ms of decoding each; throughput scales with the cores (measured: ~27 frames/s at 1, ~70 at 4).
+    decodeConcurrency: lowPower ? 2 : (nav.hardwareConcurrency ?? 8) >= 8 ? 6 : 4,
     // ~27 decoded frames on desktop (full resolution, ~225 MB); ~17 smaller ones on low-power devices.
     // The window ahead covers the renderer's lookahead plus the frames still in the decoder at the top playhead speed.
     ahead: lowPower ? (touchSized ? 14 : 10) : phone ? 22 : touchSized ? 16 : 14,
@@ -52,8 +65,8 @@ export function deviceProfile(): RenderProfile & { maxDpr: number; maxArea: numb
     // The footage never plays faster than ~3x its natural pace on desktop, however hard the page is flung; on phones and
     // tablets it may go to ~5x so the sequence can keep up with a swipe (it still never outruns the decoded frames).
     maxSpeed: lowPower ? (touchSized ? 72 : 48) : phone ? 130 : touchSized ? 110 : 72,
-    // ~0.22 s glide: starts and stops without a jolt, trails the scroll by about a fifth of a second.
-    glide: 0.22,
+    // ~0.32 s glide: the picture starts, eases and stops softly (cinematic), and trails the scroll by about a third of a second.
+    glide: 0.32,
   };
 }
 
@@ -71,6 +84,8 @@ export interface HeroRenderer {
   layout(layout: RenderLayout): void;
   /** Where the scroll position falls in the sequence (fractional frame number); the playhead glides there. */
   seek(goal: number): void;
+  /** The visitor has started to scroll: begin fetching the frames around the playhead (idempotent). */
+  engage(): void;
   /** The hero is off screen: release the decoded window; the next seek brings it back. */
   rest(): void;
   dispose(): void;
@@ -105,8 +120,14 @@ function startWorker(canvas: HTMLCanvasElement, poster: HTMLImageElement, profil
     .then(() => createImageBitmap(poster))
     .then(bitmap => post({ type: 'first', bitmap }, [bitmap]), () => post({ type: 'first', bitmap: null }));
   let last = { goal: Number.NaN, layout: '' };
+  let engaged = false;
   return {
     mode: 'worker',
+    engage() {
+      if (engaged) return;
+      engaged = true;
+      post({ type: 'engage' });
+    },
     layout(layout) {
       const key = JSON.stringify(layout);
       if (key === last.layout) return;
@@ -132,6 +153,7 @@ function startOnPage(canvas: HTMLCanvasElement, poster: HTMLImageElement, profil
     mode: 'page',
     layout: layout => renderer.resize(layout),
     seek: goal => renderer.seek(goal),
+    engage: () => renderer.engage(),
     rest: () => renderer.rest(),
     dispose: () => renderer.dispose(),
   };
@@ -155,6 +177,7 @@ export function createHeroRenderer(canvas: HTMLCanvasElement, poster: HTMLImageE
     mode: current.renderer.mode,
     layout: layout => current.renderer.layout(layout),
     seek: goal => current.renderer.seek(goal),
+    engage: () => current.renderer.engage(),
     rest: () => current.renderer.rest(),
     dispose() {
       if (released) return;

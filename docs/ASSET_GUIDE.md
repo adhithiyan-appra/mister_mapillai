@@ -13,8 +13,10 @@ src/assets/                                   540 files
 │
 ├── animations/
 │   ├── hero-frames/
-│   │   ├── web/                  201  frame-001.webp … frame-201.webp   Runtime hero sequence (1920×1088 WebP)
-│   │   └── source/               201  frames00001.png … frames00201.png Master PNG frames (read only by the build script)
+│   │   ├── new_v1_webp/          202  frame-0001.webp … frame-0202.webp + manifest.json   Runtime hero sequence (1920×1088 lossless WebP)
+│   │   ├── new_v1/               202  frames00001.png … frames00202.png Master PNG frames of the current sequence (read only by the build script)
+│   │   ├── web/                  201  frame-001.webp … frame-201.webp   Previous sequence (lossy WebP), no longer loaded by the site
+│   │   └── source/               201  frames00001.png … frames00201.png Previous sequence masters, no longer used
 │   └── lottie/                     1  mm-loader.json                     Site loader emblem animation
 │
 ├── brand/
@@ -54,7 +56,7 @@ There are no videos, standalone icon files or CSS background images in the proje
 
 | Website section | Assets | Registry module |
 |---|---|---|
-| Home — hero | `animations/hero-frames/web/` | loaded by `sections/Home/heroFrames.ts` (glob), not the registry |
+| Home — hero | `animations/hero-frames/new_v1_webp/` | loaded by `sections/Home/heroFrames.ts` (glob), not the registry |
 | Home — Before & After | `images/home/before-after/` (+ looks as the "after" side) | `transformationAssets` |
 | Home — Real Grooms gallery, its lightbox, testimonial avatars | `images/real-grooms/webp/` (+ `sm/`) | loaded by `sections/Home/ourWorksGallery.ts` (glob) |
 | Collections — signature looks, carousel, grid | `images/collections/looks/` | `collectionAssets` |
@@ -76,7 +78,7 @@ There are no videos, standalone icon files or CSS background images in the proje
 
 - Lowercase kebab-case, no spaces: `bandhgala-black.webp`.
 - Responsive suffixes: `name.webp` (full), `name-sm.webp` (thumbnail, 440×660), `name-wide.webp` (wide crop).
-- Sequences are zero-padded: `frame-001.webp`.
+- Sequences are zero-padded: `frame-0001.webp`.
 - Name by subject, not by camera or tool: `midnight-crystal-bandhgala.webp`, never `IMG_4821`, `image1`, `final`, `copy`, `temp`.
 - A file name is part of the image's identity in this project (see §6), so **rename a file only together with every place that refers to it**.
 
@@ -92,7 +94,7 @@ Existing names that do not follow the convention are listed here instead of bein
 
 ## 4. Image sequences
 
-**Hero frames.** `animations/hero-frames/web/frame-001.webp … frame-201.webp` are the frames the site plays, in order (1920×1088). `animations/hero-frames/source/frames00001.png … frames00201.png` are the master PNGs. The numbering is the order: the loader sorts by the number in the file name. Some neighbouring frames are byte-identical (the footage holds: frames 1–2 and 198–201); the loader fetches each distinct file once.
+**Hero frames.** `animations/hero-frames/new_v1_webp/frame-0001.webp … frame-0202.webp` are the frames the site plays, in order (1920×1088, lossless WebP; `manifest.json` lists the order and a pixel hash for each). `animations/hero-frames/new_v1/frames00001.png … frames00202.png` are the master PNGs. The previous sequence (`web/`, `source/`) is no longer loaded. The numbering is the order: the loader sorts by the number in the file name. Some neighbouring frames are byte-identical (the footage holds: frames 1–2 and 198–201); the loader fetches each distinct file once.
 
 Rebuild the web frames from the masters (never edits the masters):
 
@@ -137,9 +139,9 @@ The chain is: file in `src/assets/…` → imported in a domain module `src/data
 Things that depend on file names or folders:
 - `scripts/generate-seo.mjs` finds the social-preview image in `dist/assets/` by the name `happy-grooms-hero-<hash>.webp`. Do not rename `happy-grooms-hero.webp`.
 - `scripts/image-metadata.ts` builds `imageMetadata.ts` entries from the file names in the folders listed in `KEYED_IMAGE_FOLDERS`. Entries for the About, orbit and similar images are maintained by hand, so check `git diff` before committing a regenerated file.
-- `scripts/build-hero-frames.py` reads `animations/hero-frames/source/` and writes `animations/hero-frames/web/`.
+- `scripts/build-hero-frames.py` reads `animations/hero-frames/new_v1/` and writes lossless WebP and `manifest.json` to `animations/hero-frames/new_v1_webp/`, checking every frame is pixel-identical to its PNG.
 - `scripts/convert-lossless-webp.py` reads the PNG originals in `real-grooms/gallery/` and `accessories/orbit/` and writes lossless WebP into `real-grooms/webp/` (+ `sm/`) and `accessories/webp/`; `--check` only verifies (see §5 and `docs/ASSET_CONVERSION_REPORT.md`).
-- `sections/Home/heroFrames.ts` and `sections/Home/ourWorksGallery.ts` load their folders (`animations/hero-frames/web/`, and `images/real-grooms/webp/` with `webp/sm/`) with `import.meta.glob`.
+- `sections/Home/heroFrames.ts` and `sections/Home/ourWorksGallery.ts` load their folders (`animations/hero-frames/new_v1_webp/`, and `images/real-grooms/webp/` with `webp/sm/`) with `import.meta.glob`.
 - `scripts/extract-assets.ts` is the one-off script that created the first asset set from a downloaded HTML preview. It still writes to the old flat paths and is not part of the current workflow.
 
 ## 7. Fonts
@@ -153,7 +155,7 @@ Byte-identical files at different paths. Nothing was merged or removed:
 - `about/our-story/detail-0..4.webp` and `devatan-shirt.webp` are identical to `shared/devatan-shirt/detail-0..4.webp` and `devatan-shirt.webp` (the same embroidery photographs used by two different sections).
 - `accessories/originals/1.png` = `accessories/orbit/belt.png`; `accessories/originals/main_image.png` = `shoe.png`.
 - The 10 loose `fonts/*.woff2` files = the files in `fonts/serif/` and `fonts/sans-serif/`.
-- Inside the hero sequence: `frame-001 = frame-002` and `frame-198 = 199 = 200 = 201` (also in `source/`).
+- Inside the hero sequence: `frame-0199 = 0200 = 0201 = 0202` (the held end card; also in `new_v1/`). The loader fetches each distinct file once.
 
 ## 9. Images with no literal reference in code
 

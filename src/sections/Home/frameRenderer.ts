@@ -7,11 +7,12 @@
  * - drawImage(<img>) re-decoded each 1920×1088 frame synchronously on the
  *   main thread at draw time (~30 ms per frame): frames are now decoded ahead,
  *   off the main thread, at exactly the drawn size.
- * - createImageBitmap(blob) took ~72 ms per 1920×1088 WebP and topped out near
- *   50 frames/s however many decodes ran at once, below what ordinary wheel
- *   scrolling asks for, so the canvas froze and then jumped (up to 32 frames
- *   in one step). WebCodecs ImageDecoder decodes the same file in ~19 ms and
- *   scales to ~200 frames/s, so it is used wherever the browser has it.
+ * - decoding on the page's thread froze the picture whenever the page was busy. The frames
+ *   are lossless WebP (VP8L), for which createImageBitmap(blob) is the right decoder:
+ *   measured on a 12-core machine at 1920×1088 it manages ~27 frames/s on one decode at
+ *   a time and ~70 at four, whereas the WebCodecs ImageDecoder route that suited the old
+ *   lossy (YUV) frames costs twice as much per frame on lossless ones (13 and 62 frames/s).
+ *   Decodes run several at once, in the worker, so throughput scales with the cores.
  * - drawing a CPU bitmap into an accelerated canvas uploads it to the GPU at
  *   draw time (~11 ms per frame on the main thread): in the worker path that
  *   upload happens on the worker, so the page's main thread does no image work.
@@ -23,6 +24,19 @@
 
 export interface RenderProfile {
   fetchConcurrency: number;
+  /**
+   * Encoded frames fetched beyond the decoded window, in the scroll direction. The frames are lossless (~0.85 MB each), so
+   * only the frames around the scroll position are ever fetched, never the whole sequence.
+   */
+  prefetch: number;
+  /** Frames after the opening ones that are fetched while the page is idle, before the visitor has scrolled (0: none). */
+  warm: number;
+  /**
+   * Decode every frame at the source resolution and let the GPU scale it, even when it is drawn well below that. Decoding at the
+   * drawn size is what keeps a phone's memory small, but it costs about 2.5x the decode time of a lossless frame (measured:
+   * 19-28 frames/s against 48-61), so it is kept for phones and low-power devices only.
+   */
+  fullDecode: boolean;
   decodeConcurrency: number;
   /** Decoded window around the current frame, in the scroll direction and behind it. */
   ahead: number;
@@ -61,11 +75,17 @@ export interface RenderLayout {
 /** Frame 1 from the page (the poster): an element on the main thread, a bitmap in the worker. null = fetch it. */
 export type FirstFrame = ImageBitmap | HTMLImageElement | null;
 
+/** Frames decoded before the sequence counts as ready: frame 1 and the next few. Nothing else is needed until the visitor scrolls. */
+export const CRITICAL_FRAMES = 4;
+
 interface Frame {
   url: string;
-  /** Encoded file, kept for every frame once fetched (~160 KB each). */
+  /** Encoded file, kept only while the frame is near the playhead (or a keyframe): lossless frames are ~0.85 MB each. */
   blob?: Blob;
   fetching: boolean;
+  /** The request in flight, and whether it was cancelled because the playhead moved away (not a failure). */
+  controller?: AbortController;
+  cancelled?: boolean;
   failed: boolean;
   /** Decoded pixels at `bitmapSize`; only a bounded set is kept. */
   bitmap?: ImageBitmap;
@@ -74,17 +94,21 @@ interface Frame {
 }
 
 /**
- * Fetches every frame once (identical files share one request), keeps the
- * encoded files, and keeps a bounded set of frames decoded around the scroll
- * position. Decoding runs off the main thread; frames leaving the set are
- * released with ImageBitmap.close().
+ * Fetches the frames around the scroll position (identical files share one request) and keeps a bounded set of them:
+ * a few encoded files ahead of the playhead, a window of frames decoded around it and sparse keyframes across the
+ * sequence. Nothing is fetched until the visitor scrolls, apart from the opening frames and a short warm-up while idle;
+ * a request the playhead has moved away from is cancelled and an encoded file that leaves the set is dropped (the
+ * browser's cache serves it again if the visitor scrolls back). Decoding runs off the main thread; frames leaving the
+ * decoded set are released with ImageBitmap.close().
  */
 export class FrameStore {
   /** Position in the sequence → unique frame (the footage repeats a few frames). */
   private readonly unique: number[] = [];
   private readonly frames: Frame[] = [];
-  private readonly fetchOrder: number[] = [];
-  private readonly abort = new AbortController();
+  /** Sequence positions of the keyframes: the first and last frames and every `keyStride`th. */
+  private readonly keyPositions: number[] = [];
+  /** The visitor has scrolled into the sequence: fetch around the playhead, not just the opening frames. */
+  private engaged = false;
   private fetching = 0;
   private decoding = 0;
   private focusAt = 0;
@@ -97,8 +121,6 @@ export class FrameStore {
   private wanted = new Set<number>();
   /** undefined: not provided yet (wait); null: fetch frame 1 like the others. */
   private first: FirstFrame | undefined;
-  /** Decoder in use: WebCodecs ImageDecoder ('fast') once probed, otherwise createImageBitmap. */
-  private decoder: 'probing' | 'fast' | 'standard' = 'probing';
   /** The hero is off screen: only the keyframes are kept decoded. */
   private resting = false;
 
@@ -118,14 +140,11 @@ export class FrameStore {
       }
       this.unique.push(u);
     });
-    // Coarse to fine: the first and last frames, then every 32nd, 16th … every frame.
-    const seen = new Set<number>();
-    const add = (u: number | undefined) => { if (u !== undefined && !seen.has(u)) { seen.add(u); this.fetchOrder.push(u); } };
-    add(this.unique[0]);
-    add(this.unique[urls.length - 1]);
-    for (let stride = 32; stride >= 1; stride /= 2) for (let p = 0; p < urls.length; p += stride) add(this.unique[p]);
+    if (urls.length) {
+      this.keyPositions.push(0, urls.length - 1);
+      for (let p = profile.keyStride; p < urls.length - 1; p += profile.keyStride) this.keyPositions.push(p);
+    }
     this.updateWanted();
-    void this.probeDecoder();
   }
 
   /** Number of positions in the sequence. */
@@ -140,13 +159,6 @@ export class FrameStore {
     this.updateWanted();
   }
 
-  private async probeDecoder() {
-    let fast = false;
-    try { fast = typeof ImageDecoder === 'function' && await ImageDecoder.isTypeSupported('image/webp'); } catch { fast = false; }
-    this.decoder = fast ? 'fast' : 'standard';
-    this.pump();
-  }
-
   /** The visible poster is frame 1: decoded from it instead of being fetched twice. */
   provideFirst(first: FirstFrame) {
     this.first = first;
@@ -154,13 +166,14 @@ export class FrameStore {
   }
 
   /**
-   * Pixel size frames are drawn at. Resizing while decoding halves decode
+   * Pixel size frames are drawn at. Resizing while decoding more than halves decode
    * throughput (measured), so frames decode at full resolution and the GPU
    * scales them at draw time, unless the drawn area is under half the
-   * source's (phones), where decoding smaller saves most of the memory.
+   * source's (phones) and the profile does not ask for full decoding, where
+   * decoding smaller saves most of the memory.
    */
   setDrawSize(width: number, height: number, sourceWidth: number, sourceHeight: number) {
-    const resize = width * height < 0.5 * sourceWidth * sourceHeight;
+    const resize = !this.profile.fullDecode && width * height < 0.5 * sourceWidth * sourceHeight;
     const key = resize ? `${width}x${height}` : 'full';
     if (key === this.sizeKey) return;
     this.width = width;
@@ -214,10 +227,16 @@ export class FrameStore {
     return limit;
   }
 
+  /** The visitor has scrolled into the sequence: from now on the frames around the playhead are fetched. */
+  engage() {
+    if (this.engaged) return;
+    this.engaged = true;
+    this.pump();
+  }
+
   dispose() {
     this.disposed = true;
-    this.abort.abort();
-    this.frames.forEach(frame => { frame.bitmap?.close(); frame.bitmap = undefined; frame.blob = undefined; });
+    this.frames.forEach(frame => { frame.controller?.abort(); frame.bitmap?.close(); frame.bitmap = undefined; frame.blob = undefined; });
     if (this.first && 'close' in this.first) this.first.close();
   }
 
@@ -260,20 +279,60 @@ export class FrameStore {
     return this.frames[u].blob;
   }
 
+  /**
+   * The frames worth holding encoded, most urgent first, and how many of them are urgent. Before the visitor scrolls: the
+   * opening frames, then (idle, one request at a time) a short warm-up. Once they scroll: the decoded window, the
+   * keyframes nearest the playhead, then `prefetch` frames beyond the window in the direction of travel. Off screen
+   * (resting): the keyframes only.
+   */
+  private plan(): { order: number[]; urgent: number } {
+    const n = this.unique.length;
+    const order: number[] = [], seen = new Set<number>();
+    const add = (p: number) => {
+      if (p < 0 || p >= n) return;
+      const u = this.unique[p];
+      if (!seen.has(u)) { seen.add(u); order.push(u); }
+    };
+    if (!this.engaged) {
+      for (let p = 0; p < CRITICAL_FRAMES; p++) add(p);
+      const urgent = order.length;
+      for (let p = CRITICAL_FRAMES; p < CRITICAL_FRAMES + this.profile.warm; p++) add(p);
+      return { order, urgent };
+    }
+    for (const u of this.windowOrder()) if (!seen.has(u)) { seen.add(u); order.push(u); }
+    const urgent = order.length;
+    [...this.keyPositions].sort((a, b) => Math.abs(a - this.focusAt) - Math.abs(b - this.focusAt)).forEach(add);
+    if (!this.resting) {
+      const { ahead, prefetch } = this.profile;
+      for (let d = ahead + 1; d <= ahead + prefetch; d++) add(this.focusAt + d * this.direction);
+    }
+    return { order, urgent };
+  }
+
   private pump() {
     if (this.disposed) return;
     // Frame 1 (the poster) gets the network to itself first: on slow connections it
     // arrives seconds sooner, and it is the frame on screen when the sequence starts.
     if (this.first === undefined) return;
     const order = this.windowOrder();
-    // Fetch: the window first, then everything coarse-to-fine.
-    for (const u of [...order, ...this.fetchOrder]) {
-      if (this.fetching >= this.profile.fetchConcurrency) break;
+    const plan = this.plan();
+    // Frames outside the plan: cancel a request still in flight, drop an encoded file already held.
+    const keep = new Set(plan.order);
+    this.frames.forEach((frame, u) => {
+      if (keep.has(u)) return;
+      if (frame.fetching && frame.controller) { frame.cancelled = true; frame.controller.abort(); }
+      else if (frame.blob) frame.blob = undefined;
+    });
+    // Fetch in plan order. The idle warm-up runs one request at a time so it never competes with the page's own images.
+    for (let i = 0; i < plan.order.length; i++) {
+      const cap = this.engaged || i < plan.urgent ? this.profile.fetchConcurrency : 1;
+      if (this.fetching >= cap) break;
+      const u = plan.order[i];
       const frame = this.frames[u];
       if (frame.blob || frame.fetching || frame.failed || (u === 0 && this.first !== null)) continue;
       this.fetch(frame);
     }
-    if (!this.width || this.decoder === 'probing') return;
+    if (!this.width) return;
     // Decode: wanted frames missing or decoded at an old size; window first, then keyframes nearest first.
     const inWindow = new Set(order);
     const centre = this.unique[this.focusAt] ?? 0;
@@ -290,10 +349,11 @@ export class FrameStore {
   private fetch(frame: Frame) {
     this.fetching++;
     frame.fetching = true;
-    fetch(frame.url, { signal: this.abort.signal })
+    const controller = frame.controller = new AbortController();
+    fetch(frame.url, { signal: controller.signal })
       .then(response => { if (!response.ok) throw new Error(String(response.status)); return response.blob(); })
-      .then(blob => { frame.blob = blob; }, () => { frame.failed = !this.disposed; })
-      .finally(() => { this.fetching--; frame.fetching = false; this.pump(); });
+      .then(blob => { frame.blob = blob; }, () => { frame.failed = !this.disposed && !frame.cancelled; })
+      .finally(() => { this.fetching--; frame.fetching = false; frame.cancelled = false; frame.controller = undefined; this.pump(); });
   }
 
   private decode(u: number, frame: Frame, source: ImageBitmapSource) {
@@ -301,10 +361,7 @@ export class FrameStore {
     frame.decoding = true;
     const size = this.sizeKey;
     const resize = this.resize ? { width: this.width, height: this.height } : null;
-    const decoded = this.decoder === 'fast' && source instanceof Blob
-      ? this.decodeFast(source, resize)
-      : this.decodeStandard(source, resize);
-    decoded
+    this.decodeBitmap(source, resize)
       .then(bitmap => {
         if (this.disposed || !this.wanted.has(u)) { bitmap.close(); return; }
         frame.bitmap?.close();
@@ -315,42 +372,15 @@ export class FrameStore {
       .finally(() => { this.decoding--; frame.decoding = false; this.pump(); });
   }
 
-  private decodeStandard(source: ImageBitmapSource, resize: { width: number; height: number } | null): Promise<ImageBitmap> {
+  private decodeBitmap(source: ImageBitmapSource, resize: { width: number; height: number } | null): Promise<ImageBitmap> {
     return resize
       ? createImageBitmap(source, { resizeWidth: resize.width, resizeHeight: resize.height, resizeQuality: 'medium' })
         .catch(() => createImageBitmap(source)) // engines without resize options: drawn scaled instead
       : createImageBitmap(source);
   }
-
-  /**
-   * WebCodecs path: the encoded file is decoded to a YUV VideoFrame (~19 ms) and converted to an
-   * ImageBitmap (~3 ms), which then draws ~5x faster than a bitmap made by createImageBitmap(blob).
-   * Same resolution; pixels match the standard decoder to within 2/255 (PSNR ≈ 55 dB, YUV→RGB rounding).
-   */
-  private async decodeFast(blob: Blob, resize: { width: number; height: number } | null): Promise<ImageBitmap> {
-    try {
-      const decoder = new ImageDecoder({ data: await blob.arrayBuffer(), type: 'image/webp' });
-      try {
-        const { image } = await decoder.decode();
-        try {
-          return resize
-            ? await createImageBitmap(image, { resizeWidth: resize.width, resizeHeight: resize.height, resizeQuality: 'medium' })
-              .catch(() => createImageBitmap(image))
-            : await createImageBitmap(image);
-        } finally { image.close(); }
-      } finally { decoder.close(); }
-    } catch (error) {
-      if (this.disposed) throw error;
-      // This browser cannot decode a frame this way: use the standard decoder from now on.
-      this.decoder = 'standard';
-      return this.decodeStandard(blob, resize);
-    }
-  }
 }
 
 type Context2D = CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D;
-/** Frames decoded before the sequence counts as ready: frame 1 and the next few. */
-export const CRITICAL_FRAMES = 6;
 const LETTERBOX = '#3a0811';
 /** The letterbox colour as rgb, for the wash's fade into it. */
 const LETTERBOX_RGB = '58,8,17';
@@ -469,6 +499,9 @@ export class FrameRenderer {
 
   provideFirst(first: FirstFrame) { this.store.provideFirst(first); }
 
+  /** The visitor has started to scroll: begin fetching the frames the sequence will need (before the playhead moves). */
+  engage() { this.store.engage(); }
+
   resize(layout: RenderLayout) {
     this.layout = layout;
     if (this.canvas.width !== layout.canvasWidth || this.canvas.height !== layout.canvasHeight) {
@@ -485,6 +518,7 @@ export class FrameRenderer {
   /** Where the scroll position falls in the sequence, as a (fractional) frame number. The playhead glides there. */
   seek(goal: number) {
     const next = Math.min(Math.max(0, this.store.length - 1), Math.max(0, goal));
+    if (next > 0) this.store.engage();
     if (!this.seeded) {
       // The first position (page load, restored scroll) is where the playhead starts: no glide from frame 1.
       this.seeded = true;
