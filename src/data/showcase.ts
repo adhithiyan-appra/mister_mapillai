@@ -53,7 +53,7 @@ export const occasionCards: readonly OccasionCardItem[] = [
     key: 'reception',
     name: 'Reception',
     subtitle: 'Your grand evening',
-    image: 'grand-tamil-reception',
+    image: 'tuxedo',
     imagePosition: 'center top',
     included: [
       'Hand-work designer coat suit',
