@@ -22,6 +22,12 @@ const TOUCH_DRAG_SLOP = 6;
 /** How long (s) the divider takes to catch up with the scroll position. */
 const FOLLOW_SECONDS = 0.45;
 const BEFORE_LABEL_HIDE_AT = 0.6;
+const COCKTAIL_INDEX = ceremonyTransformations.findIndex(item => item.id === 'cocktail');
+const homeComparisons = ceremonyTransformations.map((item, index) => index === COCKTAIL_INDEX ? {
+  ...item,
+  beforeImage: 'cocktail-home-before' as const,
+  afterImage: 'cocktail-home-after' as const,
+} : item);
 
 /**
  * What the comparison frame shows for a photograph: its `-view` rendition when the registry has one (a lossless 1120x1400 copy of
@@ -33,13 +39,13 @@ const viewKey = (asset: ImageKey): ImageKey => {
 };
 
 function decodePair(index: number) {
-  const item = ceremonyTransformations[index];
+  const item = homeComparisons[index];
   return Promise.all([imageSource(viewKey(item.beforeImage)).src, imageSource(viewKey(item.afterImage)).src].map(source => {
     const image = new Image();
     image.decoding = 'async';
     image.src = source;
-    return image.decode().catch(() => undefined);
-  }));
+    return image.decode().then(() => true, () => false);
+  })).then(results => results.every(Boolean));
 }
 
 /**
@@ -108,6 +114,7 @@ export function TransformationSection() {
   const activeRef = useRef(0);
   const requestRef = useRef(0);
   const loadedRef = useRef(new Set<number>([0]));
+  const cocktailDecodeRef = useRef<Promise<boolean> | null>(null);
   /** Re-orders the idle preloading of the other ceremonies around the one just chosen (set by the effect below). */
   const prioritiseRef = useRef<(center: number) => void>(() => {});
   const mountedRef = useRef(false);
@@ -222,10 +229,8 @@ export function TransformationSection() {
     const tabsObserver = typeof ResizeObserver === 'function' ? new ResizeObserver(measureTop) : null;
     const tabsElement = stageRef.current?.querySelector('.mm-ba-tabs');
     if (tabsElement) tabsObserver?.observe(tabsElement);
-    // Images. The six pairs are ~8.7 MB (Muhurtham and Reception ~3 MB each), so none is fetched while the visitor is still in the
-    // hero, where the frames need the bandwidth: the chosen pair is fetched and decoded when the section is within two screens,
-    // then the others one at a time while the browser is idle, the nearest ceremony first. (Choosing one that has not arrived
-    // yet waits for its own decode in select(), so a wrong or empty image is never shown.) Save-Data keeps to the chosen pair.
+    // Warm the smaller pairs as the section approaches the viewport. Cocktail includes the original 40 MP After photo, so
+    // wait for an explicit selection before spending its transfer and decode budget.
     const saveData = Boolean((navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData);
     let queue: number[] = [];
     let idle = 0;
@@ -243,7 +248,8 @@ export function TransformationSection() {
     };
     const prioritise = (center: number) => {
       if (saveData || !observer && !loadedRef.current.size) return;
-      queue = ceremonyTransformations.map((_, index) => index).filter(index => index !== center && !loadedRef.current.has(index))
+      queue = homeComparisons.map((_, index) => index)
+        .filter(index => index !== center && index !== COCKTAIL_INDEX && !loadedRef.current.has(index))
         .sort((a, b) => Math.abs(a - center) - Math.abs(b - center) || a - b);
       schedule();
     };
@@ -253,6 +259,7 @@ export function TransformationSection() {
         if (!entries.some(entry => entry.isIntersecting)) return;
         observer?.disconnect();
         const here = activeRef.current;
+        if (here === COCKTAIL_INDEX) { prioritise(here); return; }
         void decodePair(here).then(() => { loadedRef.current.add(here); prioritise(here); });
       }, { rootMargin: '200% 0px' });
       if (stageRef.current) observer.observe(stageRef.current);
@@ -357,6 +364,20 @@ export function TransformationSection() {
       prioritiseRef.current(index); // the neighbours of the new ceremony are the likely next choices
     };
     if (loadedRef.current.has(index)) commit();
+    else if (index === COCKTAIL_INDEX) {
+      cocktailDecodeRef.current ??= decodePair(index).finally(() => { cocktailDecodeRef.current = null; });
+      void cocktailDecodeRef.current.then(ready => {
+        if (ready) {
+          loadedRef.current.add(index);
+          commit();
+        } else if (requestRef.current === token) {
+          // Keep the displayed pair usable and allow a retry instead of swapping in a failed photo.
+          activeRef.current = shown;
+          setActive(shown);
+          switchingRef.current = false;
+        }
+      });
+    }
     else void decodePair(index).then(() => { loadedRef.current.add(index); commit(); });
   };
 
@@ -434,7 +455,7 @@ export function TransformationSection() {
     alignScroll(clamp01(next));
   };
 
-  const look = ceremonyTransformations[shown];
+  const look = homeComparisons[shown];
 
   return <section className="mm-sec mm-sec--white mm-ba-sec" aria-labelledby="ba-title">
     <div className="mm-container">

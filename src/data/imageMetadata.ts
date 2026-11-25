@@ -29,6 +29,8 @@ export const imageMetadata = {
   'charcoal-suit': { width: 900, height: 1350 },
   'charcoal-wide': { width: 1600, height: 900 },
   'cocktail-before': { width: 627, height: 941 },
+  'cocktail-home-before': { width: 1024, height: 1536 },
+  'cocktail-home-after': { width: 5120, height: 7680 },
   'db-wide': { width: 1800, height: 1013 },
   'detail-0': { width: 154, height: 168 },
   'detail-1': { width: 153, height: 168 },

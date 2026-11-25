@@ -79,6 +79,8 @@ export const images = {
   'engagement-before': transformationAssets.engagement,
   'sangeet-before': transformationAssets.sangeet,
   'cocktail-before': transformationAssets.cocktail,
+  'cocktail-home-before': transformationAssets.cocktailHomeBefore,
+  'cocktail-home-after': transformationAssets.cocktailHomeAfter,
   'family-functions-before': transformationAssets.familyFunctions,
   'wedding-before': transformationAssets.wedding,
   'reception-before': transformationAssets.reception,

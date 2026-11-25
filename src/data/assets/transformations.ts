@@ -9,6 +9,8 @@ import familyFunctionsBefore from '../../assets/images/home/before-after/family-
 import weddingBefore from '../../assets/images/home/before-after/wedding-before.webp';
 import receptionBefore from '../../assets/images/home/before-after/reception-before.webp';
 
+import cocktailHomeBefore from '../../assets/images/collections/looks/before-after/cocktail-before.webp';
+import cocktailHomeAfter from '../../assets/images/collections/looks/before-after/cocktail-after.webp';
 import nichayatharthamBefore from '../../assets/images/collections/looks/before-after/nichayathartham-before.webp';
 import nichayatharthamAfter from '../../assets/images/collections/high_quality_webp/mister_mapillai_navy_groom_8k.webp';
 import receptionTransformBefore from '../../assets/images/collections/looks/before-after/reception-before.webp';
@@ -26,6 +28,8 @@ export const transformationAssets = {
   engagement: engagementBefore,
   sangeet: sangeetBefore,
   cocktail: cocktailBefore,
+  cocktailHomeBefore,
+  cocktailHomeAfter,
   familyFunctions: familyFunctionsBefore,
   wedding: weddingBefore,
   reception: receptionBefore,
