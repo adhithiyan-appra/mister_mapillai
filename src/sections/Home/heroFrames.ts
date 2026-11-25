@@ -1,10 +1,10 @@
 /**
  * Hero frame sequence: frame URLs, device budgets and the renderer factory.
  *
- * The frames are lossless WebP encodings (1920×1088, pixel-identical) of the original PNG frames, produced in the same order by
- * scripts/build-hero-frames.py (new_v1_webp/manifest.json lists that order). Every device gets these full-resolution frames.
- * Lossless frames are large (~0.85 MB each), so only the frames around the scroll position are fetched (see FrameStore in
- * frameRenderer.ts). Rendering runs in a worker on an OffscreenCanvas where supported, otherwise on the page.
+ * The frames are the V3 sequence (hero-frames/v3, 203 PNG frames) as lossless WebP (1920×1088, pixel-identical to the PNGs),
+ * produced in the same order by scripts/build-hero-frames.py (webp_v3/manifest.json lists that order). Every device gets these
+ * full-resolution frames. Lossless frames are large (~0.85 MB each), so only the frames around the playing stage are fetched (see
+ * FrameStore in frameRenderer.ts). Rendering runs in a worker on an OffscreenCanvas where supported, otherwise on the page.
  */
 import { FrameRenderer } from './frameRenderer';
 import type { RenderLayout, RenderProfile } from './frameRenderer';
@@ -13,7 +13,7 @@ import type { WorkerMessage, WorkerReply } from './frameRenderer.worker';
 export type { RenderLayout } from './frameRenderer';
 
 export const frameUrls: readonly string[] = Object.entries(
-  import.meta.glob<string>('../../assets/animations/hero-frames/new_v1_webp/*.webp', { eager: true, query: '?url', import: 'default' }),
+  import.meta.glob<string>('../../assets/animations/hero-frames/webp_v3/*.webp', { eager: true, query: '?url', import: 'default' }),
 )
   .map(([path, url]) => ({ n: Number(path.match(/(\d+)\.webp$/)?.[1] ?? NaN), url: new URL(url, document.baseURI).href }))
   .filter(frame => Number.isFinite(frame.n))
@@ -33,12 +33,12 @@ export function deviceProfile(): RenderProfile & { maxDpr: number; maxArea: numb
   const nav = navigator as DeviceHints;
   const saveData = Boolean(nav.connection?.saveData);
   const lowPower = saveData || (nav.deviceMemory ?? 8) <= 4 || (nav.hardwareConcurrency ?? 8) <= 4;
-  // A slow link (2G/3G or Save-Data): lossless frames are ~0.85 MB each, so nothing is fetched before the visitor scrolls
-  // and not far ahead of the playhead once they do.
+  // Use fewer simultaneous requests on a constrained link. Frame one always has priority over stage prefetching.
   const slowLink = saveData || /^(slow-2g|2g|3g)$/.test(nav.connection?.effectiveType ?? '');
-  // Phones decode each frame at the size it is drawn (a 3x phone: ~1170 px wide, ~3 MB); tablets and desktops at the source size.
-  const phone = matchMedia('(max-width: 600px)').matches;
-  const touchSized = matchMedia('(max-width: 1023px)').matches;
+  // A phone loaded in landscape is wider than the old width-only query. Short coarse-pointer viewports still use phone budgets,
+  // avoiding desktop-sized bitmap windows when a visitor enters the page after rotating their device.
+  const phone = matchMedia('(max-width: 600px), (max-height: 600px) and (pointer: coarse)').matches;
+  const touchSized = matchMedia('(max-width: 1023px), (max-height: 700px) and (pointer: coarse)').matches;
   return {
     // Sharpness first: the canvas has as many pixels as the screen shows (never more than the 1920 px source can fill, see
     // HeroSection's layout), so the frame is never drawn small and then stretched by the browser. The earlier caps (2x, 1.5x on
@@ -50,18 +50,15 @@ export function deviceProfile(): RenderProfile & { maxDpr: number; maxArea: numb
     fetchConcurrency: slowLink ? 2 : lowPower ? 4 : 6,
     // Encoded frames kept ready beyond the decoded window (ahead and behind the playhead) so forward
     // and reverse scrolling never stall waiting on cold network fetches, while capping RAM safely.
-    prefetch: slowLink ? 8 : lowPower ? 18 : phone ? 28 : 48,
-    prefetchBehind: slowLink ? 4 : lowPower ? 8 : phone ? 14 : 20,
-    warm: slowLink ? 0 : lowPower ? 12 : phone ? 18 : 36,
-    // Tablets and desktop windows on capable machines decode at full size; phones & low-power decode at drawn size to save RAM.
-    fullDecode: !lowPower && !phone,
-    // Lossless frames decode concurrently off the main thread in the worker, scaling with CPU cores.
-    decodeConcurrency: lowPower ? 2 : (nav.hardwareConcurrency ?? 8) >= 8 ? 6 : 4,
-    // Decoded window ahead of and behind the frame on screen: a stage starts with this much of it decoded, so a slower decoder
-    // never catches up with the playhead mid-stage. A phone's frames are decoded at its full screen resolution (~3 MB each on a
-    // 3x phone): 22 + 10 of them are ~100 MB on a capable phone; a low-power one keeps the smaller window (~60 MB).
-    ahead: lowPower ? (touchSized ? 14 : 12) : phone ? 22 : touchSized ? 16 : 18,
-    behind: lowPower ? 5 : phone ? 10 : 8,
+    prefetch: lowPower || phone ? 4 : 8,
+    prefetchBehind: 4,
+    // Low-priority opening frames begin only after frame 1 has arrived, so they build a runway without delaying the poster.
+    warm: 4,
+    // Keep full-resolution frames on every device. Bound memory by retaining fewer bitmaps on phones.
+    decodeConcurrency: lowPower || phone ? 2 : 3,
+    ahead: lowPower || phone ? 7 : 10,
+    behind: 4,
+    startBuffer: 5,
     // Smooth cinematic top speed during normal scroll; phones/tablets allow higher catch-up speed for fast swipes.
     maxSpeed: lowPower ? (touchSized ? 90 : 60) : phone ? 150 : touchSized ? 125 : 84,
     // Responsive cinematic glide: buttery start/stop without lagging noticeably behind the user's scroll.
@@ -111,28 +108,31 @@ export interface RendererEvents {
   onCritical: () => void;
   /** A stage has finished: its last frame (0-based) is on the canvas, whole. */
   onPlayed: (position: number) => void;
-  /** A playing stage has been held up waiting for frames (true), or moves again (false). */
-  onStall: (stalled: boolean) => void;
   /** The renderer could not start (no canvas context in the worker): the frames will not play. */
   onFailed: () => void;
 }
 
-function startWorker(canvas: HTMLCanvasElement, poster: HTMLImageElement, profile: RenderProfile, { onReady, onCritical, onPlayed, onStall, onFailed }: RendererEvents): HeroRenderer {
+function startWorker(canvas: HTMLCanvasElement, poster: HTMLImageElement, profile: RenderProfile, { onReady, onCritical, onPlayed, onFailed }: RendererEvents): HeroRenderer {
   const worker = new Worker(new URL('./frameRenderer.worker.ts', import.meta.url), { type: 'module' });
+  let disposed = false;
+  const fail = () => { if (!disposed) { onCritical(); onFailed(); } };
+  worker.onerror = fail;
   const post = (message: WorkerMessage, transfer: Transferable[] = []) => worker.postMessage(message, transfer);
   worker.onmessage = ({ data }: MessageEvent<WorkerReply>) => {
     if (data.type === 'ready') onReady();
     else if (data.type === 'critical') onCritical();
-    else if (data.type === 'failed') { onCritical(); onFailed(); }
+    else if (data.type === 'failed') fail();
     else if (data.type === 'played') onPlayed(data.at);
-    else if (data.type === 'stall') onStall(data.stalled);
   };
   const offscreen = canvas.transferControlToOffscreen();
   post({ type: 'init', canvas: offscreen, urls: frameUrls, profile }, [offscreen]);
   // Frame 1 is the poster the page already loaded: pass its pixels instead of fetching it again.
   poster.decode()
     .then(() => createImageBitmap(poster))
-    .then(bitmap => post({ type: 'first', bitmap }, [bitmap]), () => post({ type: 'first', bitmap: null }));
+    .then(bitmap => {
+      if (disposed) bitmap.close();
+      else post({ type: 'first', bitmap }, [bitmap]);
+    }, () => { if (!disposed) post({ type: 'first', bitmap: null }); });
   let last = { goal: Number.NaN, layout: '' };
   let engaged = false;
   let warmed = false;
@@ -163,14 +163,14 @@ function startWorker(canvas: HTMLCanvasElement, poster: HTMLImageElement, profil
       post({ type: 'seek', goal });
     },
     rest() { last.goal = Number.NaN; post({ type: 'rest' }); },
-    dispose() { worker.terminate(); last = { goal: Number.NaN, layout: '' }; },
+    dispose() { disposed = true; worker.terminate(); },
   };
 }
 
-function startOnPage(canvas: HTMLCanvasElement, poster: HTMLImageElement, profile: RenderProfile, { onReady, onCritical, onPlayed, onStall }: RendererEvents): HeroRenderer | null {
+function startOnPage(canvas: HTMLCanvasElement, poster: HTMLImageElement, profile: RenderProfile, { onReady, onCritical, onPlayed }: RendererEvents): HeroRenderer | null {
   const context = canvas.getContext('2d', { alpha: false });
   if (!context || typeof createImageBitmap !== 'function') return null;
-  const renderer = new FrameRenderer(canvas, context, frameUrls, profile, callback => requestAnimationFrame(callback), handle => cancelAnimationFrame(handle), onReady, onCritical, onPlayed, onStall);
+  const renderer = new FrameRenderer(canvas, context, frameUrls, { ...profile, decodeConcurrency: 1 }, callback => requestAnimationFrame(callback), handle => cancelAnimationFrame(handle), onReady, onCritical, onPlayed);
   poster.decode().then(() => renderer.provideFirst(poster), () => renderer.provideFirst(null));
   return {
     mode: 'page',
@@ -199,7 +199,6 @@ export function createHeroRenderer(canvas: HTMLCanvasElement, poster: HTMLImageE
       onReady: () => holder.current?.events.onReady(),
       onCritical: () => holder.current?.events.onCritical(),
       onPlayed: at => holder.current?.events.onPlayed(at),
-      onStall: stalled => holder.current?.events.onStall(stalled),
       onFailed: () => holder.current?.events.onFailed(),
     };
     const renderer = canUseWorker(canvas) ? startWorker(canvas, poster, profile, forward) : startOnPage(canvas, poster, profile, forward);

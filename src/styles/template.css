@@ -235,26 +235,25 @@
 .mm-ba__pair[data-ceremony="reception"] .mm-ba__layer img{object-fit:cover;object-position:50% center}
 .mm-ba__layer--after{z-index:0}
 .mm-ba__layer--before{z-index:1;clip-path:inset(0 0 0 var(--p,0%))}
-.mm-ba__tag{position:absolute;top:16px;z-index:2;font-size:10px;letter-spacing:2px;text-transform:uppercase;padding:6px 10px;font-weight:600;transition:opacity .35s ease}
-.mm-ba__tag--before{right:16px;background:rgba(0,0,0,.6);color:#fff}
-/* "With Mister Mapillai": in the empty top-left corner of every photograph (curtain, garland, arch, pillar), never over the head.
-   In all six photographs the groom's head starts at 35% of the frame's width or further right, so the badge is sized from the
-   frame itself (cqw = 1% of its width) and its right edge stays at about 32%, at every frame size. A fixed 124px badge was 38% of a
-   326px frame and covered the left of the head. */
+.mm-ba__tag{position:absolute;top:16px;z-index:2;font-size:10px;letter-spacing:2px;text-transform:uppercase;padding:6px 10px;font-weight:600;pointer-events:none;transition:opacity .35s ease}
+.mm-ba__tag--before{right:16px;background:rgba(0,0,0,.6);color:#fff;transition-duration:.18s}
+/* Keep the explicit two-line break and size the badge to its text in the upper-left of the photo. */
 .mm-ba__tag--after{
-  left:2.8cqw;
-  top:3cqw;
-  max-width:30cqw;
-  font-size:clamp(10.5px,3.25cqw,13.5px);
-  letter-spacing:.11em;
-  padding:.55em .72em;
-  line-height:1.3;
+  left:2cqw;
+  top:2.5cqw;
+  width:max-content;
+  font-size:clamp(11px,3.15cqw,14px);
+  letter-spacing:.025em;
+  padding:.45em .4em;
+  line-height:1.2;
   text-align:left;
-  text-wrap:balance;
+  white-space:nowrap;
   background:var(--mm-maroon);
   color:var(--mm-gold);
   opacity:0;
 }
+/* Preserve the upper-left placement while clearing the faces in narrower photos. */
+@container (max-width:250px){.mm-ba__tag--after{top:38cqw}}
 .mm-ba__handle{position:absolute;top:0;bottom:0;left:var(--p,0%);width:2px;margin-left:-1px;background:var(--mm-gold);z-index:3;cursor:ew-resize}
 .mm-ba__handle::after{content:"⟷";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:54px;height:54px;border-radius:50%;background:var(--mm-gold);color:var(--mm-maroon-dark);display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 0 0 8px rgba(201,162,77,.25)}
 .mm-ba__handle:focus-visible{outline:none}

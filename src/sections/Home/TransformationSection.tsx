@@ -20,6 +20,7 @@ const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
 const TOUCH_DRAG_SLOP = 6;
 /** How long (s) the divider takes to catch up with the scroll position. */
 const FOLLOW_SECONDS = 0.45;
+const BEFORE_LABEL_HIDE_AT = 0.6;
 
 /**
  * What the comparison frame shows for a photograph: its `-view` rendition when the registry has one (a lossless 1120x1400 copy of
@@ -129,7 +130,7 @@ export function TransformationSection() {
         : 14;
       afterTag.style.opacity = percent < revealThreshold ? '0' : '1';
     }
-    if (beforeTagRef.current) beforeTagRef.current.style.opacity = percent > 86 ? '0' : '1';
+    if (beforeTagRef.current) beforeTagRef.current.style.opacity = next < BEFORE_LABEL_HIDE_AT ? '1' : '0';
   };
 
   /** Ease towards a value (scroll input). */
@@ -466,7 +467,7 @@ export function TransformationSection() {
                 <SourceImage asset={viewKey(look.beforeImage)} alt={`${look.title} before`} draggable={false} loading="lazy" nativeLazy />
               </div>
             </div>
-            <span className="mm-ba__tag mm-ba__tag--after" ref={afterTagRef} aria-hidden="true">With Mister Mapillai</span>
+            <span className="mm-ba__tag mm-ba__tag--after" ref={afterTagRef} aria-hidden="true">WITH MISTER<br />{' '}MAPILLAI</span>
             <span className="mm-ba__tag mm-ba__tag--before" ref={beforeTagRef} aria-hidden="true">Before</span>
             <div
               className="mm-ba__handle"

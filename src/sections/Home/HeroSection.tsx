@@ -28,8 +28,6 @@ const GESTURE_GAP_MS = 220;
 const SWIPE_PX = 28;
 /** The hero takes scroll input only while it is fully in view, at the top of the page (px of tolerance). */
 const TOP_PX = 2;
-/** A stage held up this long (ms) beyond the renderer's stall report, waiting for frames that do not arrive, stops blocking the scroll. */
-const RELEASE_AFTER_STALL_MS = 4000;
 /** After a reload of a completed hero, its final frame fades in over this long (ms) once it is drawn. */
 const RESTORE_FADE_MS = 400;
 
@@ -42,14 +40,13 @@ const smoothstep = (value: number, from: number, to: number) => {
 const KEYS: Record<string, 1 | -1> = { ArrowDown: 1, PageDown: 1, ' ': 1, ArrowUp: -1, PageUp: -1 };
 
 /**
- * Staged cinematic hero. The page stays at the top while the eight stages play: one deliberate scroll starts the next stage, which
+ * Staged cinematic hero. The page stays at the top while the stages play: one deliberate scroll starts the next stage, which
  * plays on the renderer's own clock to its last frame and holds there until the next scroll; scrolling up plays the current stage
  * back. After the last stage the next scroll goes to the page as usual. The hero is one scene on the site's shared animation
  * scheduler (no second loop); the frames are drawn by the renderer (a worker where supported), never through React state.
  *
- * Input that is not a scroll gesture (the scrollbar, an anchor link, Home/End) is not intercepted, and a stage that cannot get its
- * frames (offline) stops blocking the scroll after a while, so the visitor is never trapped. With reduced motion there are no stages:
- * the introduction is the hero, as before.
+ * The scrollbar, anchor links and Home/End remain available while a stage is running. With reduced motion the introduction is
+ * the hero, as before.
  *
  * Reload: a hero played to the end stays complete (utils/heroState.ts): it comes back on its final frame, the page is restored to
  * where the visitor was (scrollRestore.ts) and scrolls on freely. A hero reloaded part-way through starts again from frame 1.
@@ -80,7 +77,7 @@ export function HeroSection() {
     /** A restored hero waits, text hidden, until its final frame is drawn (never flashing frame 1), then fades it in. */
     let restoring = restored, restoreReveal = restored ? 0 : 1;
     let textHidden = false;
-    let failed = false, stalledOut = false, stallTimer = 0;
+    let failed = false;
 
     // Reduced motion: no stages and no frame downloads; the maroon introduction is the hero.
     const renderer = !reducedAtStart && frameUrls.length > 1
@@ -88,9 +85,8 @@ export function HeroSection() {
         onReady: () => canvas.classList.add('is-ready'),
         // Frame 1 is decoded: the site loader may lift, and the frames after it may start to load.
         onCritical: () => { markHeroReady(); warm(); },
-        onPlayed: () => finish(),
-        onStall: stalled => stall(stalled),
-        onFailed: () => { failed = true; },
+        onPlayed: position => finish(position),
+        onFailed: () => { failed = true; controller.invalidate(); },
       })
       : null;
     if (!renderer) markHeroReady();
@@ -100,22 +96,24 @@ export function HeroSection() {
       renderer.play(STAGES.rest(total), STAGES.rest(total), 1, 0, false);
     } else renderer?.seek(STAGES.rest(0));
 
-    // The warm-up of the frames after frame 1 starts once frame 1 is drawn (the site loader lifts then) and the browser is idle:
-    // frame 1 has the network to itself until it has arrived, and the frames after it load while the visitor reads the introduction.
+    // Warm-up starts immediately after frame 1 is drawn: frame 1 has the network to itself until it arrives, then low-priority
+    // worker requests build a decoded runway while the visitor reads the introduction without blocking the page thread.
     let idle = 0, warmed = false;
     const warm = () => {
       if (warmed || !renderer) return;
       warmed = true;
-      idle = typeof window.requestIdleCallback === 'function' ? window.requestIdleCallback(() => renderer.allowWarm(), { timeout: 1500 }) : window.setTimeout(() => renderer.allowWarm(), 300);
+      idle = window.setTimeout(() => renderer.allowWarm(), 0);
     };
 
     /** Have the stages either side of the frame at rest ready to play. */
-    const prepare = () => {
+    const prepare = (at: number, direction: 1 | -1) => {
       const ranges: [number, number][] = [];
-      if (done < total) ranges.push([STAGES.rest(done), STAGES.rest(done + 1)]);
-      if (done > 0) ranges.push([STAGES.rest(done), STAGES.rest(done - 1)]);
+      for (const next of [at + direction, at - direction]) {
+        if (next >= 0 && next <= total) ranges.push([STAGES.rest(at), STAGES.rest(next)]);
+      }
       renderer?.prepare(ranges);
     };
+    prepare(restored ? total : 0, restored ? -1 : 1);
 
     /** Start the next stage (dir 1) or play the current one back (dir -1). A playing stage is never interrupted. */
     const start = (dir: 1 | -1) => {
@@ -126,32 +124,30 @@ export function HeroSection() {
       // Playing back from the end: the hero is no longer complete, so a reload from here starts it again.
       if (dir < 0) rememberHeroCompleted(false);
       renderer.play(dir > 0 ? first : last, dir > 0 ? last : first, ms, dir > 0 && k === 0 ? FIRST_STAGE_DELAY_MS : 0, CROSSFADE);
+      prepare(playing.done, dir);
       controller.invalidate();
     };
     /** The stage's last frame is on the canvas: hold it until the next scroll. */
-    const finish = () => {
-      if (!playing) return;
+    const finish = (position: number) => {
+      if (!playing || position !== STAGES.rest(playing.done)) return;
+      const direction = playing.dir;
       done = playing.done;
       playing = null;
       restoring = false;
       rememberHeroCompleted(done === total);
-      stall(false);
-      prepare();
+      prepare(done, direction);
+      if (track.getBoundingClientRect().bottom < -50) renderer?.rest();
       controller.invalidate();
-    };
-    /** Frames not arriving: after a while, stop holding the scroll (the stage keeps trying, and carries on when they come). */
-    const stall = (stalled: boolean) => {
-      window.clearTimeout(stallTimer);
-      stallTimer = stalled ? window.setTimeout(() => { stalledOut = true; }, RELEASE_AFTER_STALL_MS) : 0;
-      if (!stalled) stalledOut = false;
     };
 
     /**
      * Whether a scroll in this direction belongs to the hero rather than the page: the hero is fully in view at the top, and a
      * stage is playing (every scroll is held then) or there is a stage to play that way.
      */
-    const owns = (dir: 1 | -1) => !!renderer && !failed && !stalledOut && window.scrollY <= TOP_PX
+    const owns = (dir: 1 | -1) => !!renderer && !failed && window.scrollY <= TOP_PX
       && (playing !== null || (dir > 0 ? done < total : done > 0));
+    const atFinalHold = (dir: 1 | -1) => !!renderer && !failed && !playing
+      && dir === 1 && done === total && window.scrollY <= TOP_PX;
 
     // Wheel and trackpad.
     let wheelAt = -Infinity, wheelSize = 0, gestureSpent = false;
@@ -167,9 +163,16 @@ export function HeroSection() {
       wheelSize = size;
       const dir = dy > 0 ? 1 : -1;
       // Scrolling the page instead (e.g. coming back up from the sections below): its momentum must not start a stage on arrival.
-      if (!owns(dir)) { gestureSpent = true; return; }
+      if (!owns(dir)) {
+        // Momentum from the last stage cannot release the page. A fresh downward wheel gesture can.
+        if (gestureSpent && atFinalHold(dir)) event.preventDefault();
+        gestureSpent = true;
+        return;
+      }
       event.preventDefault();
-      if (playing || gestureSpent) return;
+      // A gesture that arrived during playback is spent, including its momentum after the endpoint.
+      if (playing) { gestureSpent = true; return; }
+      if (gestureSpent) return;
       gestureSpent = true;
       start(dir);
     };
@@ -178,7 +181,7 @@ export function HeroSection() {
     // starts scrolling under a stage; a tap (no movement) is left alone, so the buttons work.
     let touch: { y: number; owned: boolean | null; used: boolean } | null = null;
     const onTouchStart = (event: TouchEvent) => {
-      touch = event.touches.length === 1 ? { y: event.touches[0].clientY, owned: null, used: false } : null;
+      touch = event.touches.length === 1 ? { y: event.touches[0].clientY, owned: null, used: !!playing } : null;
     };
     const onTouchMove = (event: TouchEvent) => {
       if (!touch || event.touches.length !== 1) return;
@@ -203,7 +206,10 @@ export function HeroSection() {
       if (event.key === ' ' && event.shiftKey) dir = -1;
       const target = event.target as HTMLElement | null;
       if (target && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(target.tagName))) return;
-      if (!owns(dir)) return;
+      if (!owns(dir)) {
+        if (event.repeat && atFinalHold(dir)) event.preventDefault();
+        return;
+      }
       event.preventDefault();
       if (playing || event.repeat) return;
       start(dir);
@@ -231,24 +237,21 @@ export function HeroSection() {
         const width = stage.clientWidth, height = stage.offsetHeight;
         // Never more canvas pixels than the source has: the frames hold no more detail, so a larger backing store (a 2560 px
         // screen, or a high-DPR laptop) would only cost fill rate and memory; the compositor scales the canvas to the stage.
-        const sourceScale = frameScale(width, height, poster.naturalWidth || SOURCE_SIZE.width, poster.naturalHeight || SOURCE_SIZE.height);
+        if (!width || !height) return;
+        const { width: sourceWidth, height: sourceHeight } = SOURCE_SIZE;
+        const sourceScale = frameScale(width, height, sourceWidth, sourceHeight);
         const dpr = Math.min(window.devicePixelRatio || 1, profile.maxDpr, Math.sqrt(profile.maxArea / Math.max(1, width * height)), 1 / sourceScale);
         const canvasWidth = Math.round(width * dpr), canvasHeight = Math.round(height * dpr);
-        const sourceWidth = poster.naturalWidth || SOURCE_SIZE.width, sourceHeight = poster.naturalHeight || SOURCE_SIZE.height;
-        const scale = frameScale(width, height, sourceWidth, sourceHeight) * dpr;
+        const scale = sourceScale * dpr;
         const w = Math.round(sourceWidth * scale), h = Math.round(sourceHeight * scale);
         // The whole frame, centred; the letterbox around it is painted maroon.
         const x = Math.round((canvasWidth - w) / 2);
         const y = Math.round((canvasHeight - h) / 2);
-        // Frames are decoded at the drawn size, but never above the source resolution.
-        const fit = Math.min(1, sourceWidth / w);
         renderer.layout({
           canvasWidth, canvasHeight,
           x, y, w, h,
           cover: w >= canvasWidth && h >= canvasHeight,
           ambient,
-          decodeWidth: Math.round(w * fit), decodeHeight: Math.round(h * fit),
-          sourceWidth, sourceHeight,
         });
       },
       update(_, frame) {
@@ -286,8 +289,7 @@ export function HeroSection() {
         window.removeEventListener('touchend', onTouchEnd);
         window.removeEventListener('touchcancel', onTouchEnd);
         window.removeEventListener('keydown', onKeyDown);
-        window.clearTimeout(stallTimer);
-        if (idle) { if (typeof window.cancelIdleCallback === 'function') window.cancelIdleCallback(idle); else window.clearTimeout(idle); }
+        if (idle) window.clearTimeout(idle);
         renderer?.dispose();
       },
     };
@@ -298,7 +300,7 @@ export function HeroSection() {
     <div className="mm-hero">
       <div className="mm-hero__media" aria-hidden="true">
         {/* Frame 1: the canvas's first frame, and the frame shown if the sequence cannot load. Hidden until the first stage starts. */}
-        <img className="mm-hero__poster" src={frameUrls[0]} alt="" width={1920} height={1088} fetchPriority="high" decoding="async" data-frame-sequence="" />
+        <img className="mm-hero__poster" src={frameUrls[0]} alt="" width={1920} height={1088} loading="eager" fetchPriority="high" decoding="async" data-frame-sequence="" />
         <canvas className="mm-hero__canvas" />
       </div>
       <div className="mm-hero__veil" aria-hidden="true" />

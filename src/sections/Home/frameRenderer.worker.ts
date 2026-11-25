@@ -22,8 +22,7 @@ export type WorkerReply =
   | { type: 'ready' }
   | { type: 'critical' }
   | { type: 'failed' }
-  | { type: 'played'; at: number }
-  | { type: 'stall'; stalled: boolean };
+  | { type: 'played'; at: number };
 
 // Minimal worker-scope typing (the project's TS lib is DOM, not WebWorker).
 interface WorkerScope {
@@ -41,14 +40,19 @@ scope.onmessage = ({ data }) => {
   switch (data.type) {
     case 'init': {
       const context = data.canvas.getContext('2d', { alpha: false });
-      if (!context) { scope.postMessage({ type: 'failed' }); return; }
+      if (!context || typeof createImageBitmap !== 'function') { scope.postMessage({ type: 'failed' }); return; }
       // Worker rAF where available (Chrome, Firefox, Safari 16.4+), so the playhead steps once per display
       // frame; otherwise a 60 Hz timer.
       const schedule = scope.requestAnimationFrame
         ? (callback: (now: number) => void) => scope.requestAnimationFrame!(callback)
         : (callback: (now: number) => void) => setTimeout(() => callback(performance.now()), 16) as unknown as number;
       const cancel = scope.cancelAnimationFrame ? (handle: number) => scope.cancelAnimationFrame!(handle) : (handle: number) => clearTimeout(handle);
-      renderer = new FrameRenderer(data.canvas, context, data.urls, data.profile, schedule, cancel, () => scope.postMessage({ type: 'ready' }), () => scope.postMessage({ type: 'critical' }), at => scope.postMessage({ type: 'played', at }), stalled => scope.postMessage({ type: 'stall', stalled }));
+      renderer = new FrameRenderer(
+        data.canvas, context, data.urls, data.profile, schedule, cancel,
+        () => scope.postMessage({ type: 'ready' }),
+        () => scope.postMessage({ type: 'critical' }),
+        at => scope.postMessage({ type: 'played', at }),
+      );
       break;
     }
     case 'first': renderer?.provideFirst(data.bitmap); break;
