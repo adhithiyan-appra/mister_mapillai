@@ -11,6 +11,7 @@ import {
 } from '../../data/contact';
 import { saveOrder } from '../../data/orders';
 import { outfitById, outfits } from '../../data/outfits';
+import { findAvailableStudio, studioLocations } from '../../data/studios';
 import { cssVars } from '../../utils/style';
 
 const steps = ['Details', 'Occasion', 'Style', 'Appointment'] as const;
@@ -20,39 +21,6 @@ interface StudioSelection {
   name: string;
   address: string;
 }
-
-interface StudioOption extends StudioSelection {
-  status: string;
-  description: string;
-  available: boolean;
-}
-
-const studioOptions: readonly StudioOption[] = [
-  {
-    id: 'tiruppur-flagship',
-    name: 'Tiruppur Flagship',
-    address: '14, Kumaran Road, Tiruppur, Tamil Nadu 641601',
-    status: 'OPEN NOW',
-    description: '',
-    available: true,
-  },
-  {
-    id: 'coimbatore',
-    name: 'Coimbatore',
-    address: '',
-    status: 'COMING SOON',
-    description: 'Opening early 2027',
-    available: false,
-  },
-  {
-    id: 'erode',
-    name: 'Erode',
-    address: '',
-    status: 'COMING SOON',
-    description: 'Opening mid 2027',
-    available: false,
-  },
-];
 
 interface BookingValues {
   name: string;
@@ -119,7 +87,7 @@ export function BookingForm({ initialLook }: { initialLook?: string }) {
 
   const pickLooks = outfits.slice(0, 6);
   const selectedLookTitle = outfitById(values.look)?.title || 'To be designed';
-  const selectedStudio = studioOptions.find(studio => studio.available && studio.id === values.studio?.id);
+  const selectedStudio = findAvailableStudio(values.studio?.id);
 
   useEffect(() => {
     const resolved = outfitById(initialLook);
@@ -430,22 +398,28 @@ export function BookingForm({ initialLook }: { initialLook?: string }) {
         {values.mode === 'Studio Visit' ? <div className="mm-field">
           <div className="mm-field__label" id="studio-label">CHOOSE STUDIO <em>*</em></div>
           <div className="mm-studio-grid" role="group" aria-labelledby="studio-label" aria-describedby={errors.studio ? 'studioErr' : undefined} aria-invalid={Boolean(errors.studio)}>
-            {studioOptions.map(studio => {
+            {studioLocations.map(studio => {
               const selected = selectedStudio?.id === studio.id;
+              const detail = studio.status === 'open'
+                ? studio.address
+                : `${studio.address} · ${studio.opening}`;
               return <button
                 type="button"
                 className="mm-studio-card"
                 key={studio.id}
                 disabled={!studio.available}
                 aria-pressed={studio.available ? selected : undefined}
-                onClick={() => update('studio', { id: studio.id, name: studio.name, address: studio.address })}
+                onClick={() => {
+                  if (!studio.available) return;
+                  update('studio', { id: studio.id, name: studio.name, address: studio.address });
+                }}
               >
                 <span className="mm-studio-card__heading">
                   <strong>{studio.name}</strong>
                   {selected ? <span className="mm-studio-card__check" aria-hidden="true">✓</span> : null}
                 </span>
-                <span className={`mm-studio-card__status${studio.available ? ' is-open' : ''}`}>{studio.status}</span>
-                <span className="mm-studio-card__detail">{studio.address || studio.description}</span>
+                <span className={`mm-studio-card__status${studio.available ? ' is-open' : ''}`}>{studio.statusLabel}</span>
+                <span className="mm-studio-card__detail">{detail}</span>
               </button>;
             })}
           </div>
