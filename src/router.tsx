@@ -41,7 +41,21 @@ function readLocation(): RouterLocation {
   return { pathname: resolved, path, search: window.location.search, hash: window.location.hash };
 }
 
+let smoothNextTop = false;
+
+/** Use smooth scrolling for the next top-of-page scrollToHash('') call (e.g. clicking the brand logo from a Home hash). */
+export function requestSmoothTop() {
+  smoothNextTop = true;
+}
+
 export function scrollToHash(hash: string) {
+  const smoothTop = !hash && smoothNextTop;
+  smoothNextTop = false;
+  if (smoothTop) {
+    const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    window.scrollTo({ top: 0, left: 0, behavior: reduced ? 'auto' : 'smooth' });
+    return;
+  }
   const root = document.documentElement;
   const previous = root.style.scrollBehavior;
   root.style.scrollBehavior = 'auto';

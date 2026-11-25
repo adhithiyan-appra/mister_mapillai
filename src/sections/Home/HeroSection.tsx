@@ -4,7 +4,7 @@ import { fittingHref } from '../../data/navigation';
 import { clamp, writeStyle } from '../../utils/animation';
 import { cssVars } from '../../utils/style';
 import { markHeroReady } from '../../utils/heroReady';
-import { heroCompleted, rememberHeroCompleted } from '../../utils/heroState';
+import { heroCompleted, onHeroReset, rememberHeroCompleted } from '../../utils/heroState';
 import { SOURCE_SIZE, createHeroRenderer, deviceProfile, frameScale, frameUrls } from './heroFrames';
 import { CROSSFADE, HERO_STAGES, buildStageMap } from './heroStages';
 
@@ -78,6 +78,23 @@ export function HeroSection() {
     let restoring = restored, restoreReveal = restored ? 0 : 1;
     let textHidden = false;
     let failed = false;
+    /** Resetting while frames are visible waits until the frames fade out before rewinding the canvas to frame 1. */
+    let pendingResetFrame = false;
+    let rewinding = false;
+
+    const paintLayers = () => {
+      // The introduction lifts away; hidden (not removed) only once fully transparent.
+      const out = smoothstep(intro, 0, 0.75);
+      writeStyle(content, 'opacity', (1 - out).toFixed(3));
+      writeStyle(content, 'transform', out ? `translate3d(0,${(-50 * out).toFixed(1)}px,0) scale(${(1 - 0.04 * out).toFixed(4)})` : '');
+      writeStyle(hint, 'opacity', (1 - clamp(out * 3)).toFixed(3));
+      const hidden = out > 0.995;
+      if (hidden !== textHidden) { textHidden = hidden; writeStyle(content, 'visibility', hidden ? 'hidden' : 'visible'); }
+      // The frames fade in over the maroon; the veil eases to a light vignette.
+      const reveal = smoothstep(intro, 0.2, 1) * smoothstep(restoreReveal, 0, 1);
+      writeStyle(media, 'opacity', reveal.toFixed(3));
+      writeStyle(veil, 'opacity', (1 - 0.7 * reveal).toFixed(3));
+    };
 
     // Reduced motion: no stages and no frame downloads; the maroon introduction is the hero.
     const renderer = !reducedAtStart && frameUrls.length > 1
@@ -117,7 +134,7 @@ export function HeroSection() {
 
     /** Start the next stage (dir 1) or play the current one back (dir -1). A playing stage is never interrupted. */
     const start = (dir: 1 | -1) => {
-      if (!renderer || playing || (dir > 0 ? done >= total : done <= 0)) return;
+      if (!renderer || playing || pendingResetFrame || rewinding || (dir > 0 ? done >= total : done <= 0)) return;
       const k = dir > 0 ? done : done - 1;
       const { start: first, end: last, ms } = STAGES.stages[k];
       playing = { dir, done: done + dir };
@@ -129,6 +146,10 @@ export function HeroSection() {
     };
     /** The stage's last frame is on the canvas: hold it until the next scroll. */
     const finish = (position: number) => {
+      if (rewinding && position === STAGES.rest(0)) {
+        rewinding = false;
+        return;
+      }
       if (!playing || position !== STAGES.rest(playing.done)) return;
       const direction = playing.dir;
       done = playing.done;
@@ -145,6 +166,7 @@ export function HeroSection() {
      * stage is playing (every scroll is held then) or there is a stage to play that way.
      */
     const owns = (dir: 1 | -1) => !!renderer && !failed && window.scrollY <= TOP_PX
+      && !document.documentElement.classList.contains('mm-menu-open')
       && (playing !== null || (dir > 0 ? done < total : done > 0));
     const atFinalHold = (dir: 1 | -1) => !!renderer && !failed && !playing
       && dir === 1 && done === total && window.scrollY <= TOP_PX;
@@ -224,15 +246,43 @@ export function HeroSection() {
       window.addEventListener('keydown', onKeyDown);
     }
 
+    const rewindToFrameZero = () => {
+      pendingResetFrame = false;
+      if (!renderer) return;
+      rewinding = true;
+      renderer.play(STAGES.rest(0), STAGES.rest(0), 1, 0, false);
+      prepare(0, 1);
+    };
+
+    const stopHeroReset = onHeroReset(() => {
+      rememberHeroCompleted(false);
+      gestureSpent = false;
+      touch = null;
+      if (done === 0 && !playing && !restoring && intro === 0) {
+        controller.invalidate();
+        return;
+      }
+      done = 0;
+      playing = null;
+      restoring = false;
+      restoreReveal = 1;
+      const offscreen = track.getBoundingClientRect().bottom <= 0;
+      if (offscreen || intro <= 0.2) {
+        intro = 0;
+        paintLayers();
+        rewindToFrameZero();
+      } else {
+        // Hero frames are currently on screen: fade back to the intro first, then rewind the canvas once hidden.
+        pendingResetFrame = true;
+      }
+      controller.invalidate();
+    });
+
     return {
       id: 'hero-sequence',
       element: track,
       layout() {
         if (!renderer) return;
-        const stageStyle = getComputedStyle(stage);
-        // Phones and tablets (template.css) set --mm-hero-ambient: the space around the whole frame is then a soft wash
-        // of its own edge colours instead of flat maroon. Desktop leaves it unset (0).
-        const ambient = Math.min(1, Math.max(0, parseFloat(stageStyle.getPropertyValue('--mm-hero-ambient')) || 0));
         // Canvas backing store in device pixels, capped by DPR and an area budget.
         const width = stage.clientWidth, height = stage.offsetHeight;
         // Never more canvas pixels than the source has: the frames hold no more detail, so a larger backing store (a 2560 px
@@ -244,14 +294,13 @@ export function HeroSection() {
         const canvasWidth = Math.round(width * dpr), canvasHeight = Math.round(height * dpr);
         const scale = sourceScale * dpr;
         const w = Math.round(sourceWidth * scale), h = Math.round(sourceHeight * scale);
-        // The whole frame, centred; the letterbox around it is painted maroon.
+        // The whole frame, centred; the surrounding letterbox is solid maroon.
         const x = Math.round((canvasWidth - w) / 2);
         const y = Math.round((canvasHeight - h) / 2);
         renderer.layout({
           canvasWidth, canvasHeight,
           x, y, w, h,
           cover: w >= canvasWidth && h >= canvasHeight,
-          ambient,
         });
       },
       update(_, frame) {
@@ -261,28 +310,20 @@ export function HeroSection() {
         else intro = target > intro ? Math.min(target, intro + frame.deltaTime * 1000 / INTRO_MS) : Math.max(target, intro - frame.deltaTime * 1000 / INTRO_MS);
 
         if (!restoring && restoreReveal < 1) restoreReveal = frame.reducedMotion ? 1 : Math.min(1, restoreReveal + frame.deltaTime * 1000 / RESTORE_FADE_MS);
-        // The introduction lifts away; hidden (not removed) only once fully transparent.
-        const out = smoothstep(intro, 0, 0.75);
-        writeStyle(content, 'opacity', (1 - out).toFixed(3));
-        writeStyle(content, 'transform', out ? `translate3d(0,${(-50 * out).toFixed(1)}px,0) scale(${(1 - 0.04 * out).toFixed(4)})` : '');
-        writeStyle(hint, 'opacity', (1 - clamp(out * 3)).toFixed(3));
-        const hidden = out > 0.995;
-        if (hidden !== textHidden) { textHidden = hidden; writeStyle(content, 'visibility', hidden ? 'hidden' : 'visible'); }
-        // The frames fade in over the maroon; the veil eases to a light vignette.
-        const reveal = smoothstep(intro, 0.2, 1) * smoothstep(restoreReveal, 0, 1);
-        writeStyle(media, 'opacity', reveal.toFixed(3));
-        writeStyle(veil, 'opacity', (1 - 0.7 * reveal).toFixed(3));
+        paintLayers();
+        if (pendingResetFrame && intro <= 0.2) rewindToFrameZero();
         return intro !== target || (!restoring && restoreReveal < 1);
       },
       // Back in view: decode the frames around the one at rest again.
       enter() {
-        if (!playing) renderer?.seek(STAGES.rest(done));
+        if (!playing && !pendingResetFrame && !rewinding) renderer?.seek(STAGES.rest(done));
       },
       // Scrolled past the hero: free the decoded frames (the next visit to the hero decodes them again in ~0.1 s).
       leave() {
         renderer?.rest();
       },
       dispose() {
+        stopHeroReset();
         window.removeEventListener('wheel', onWheel);
         window.removeEventListener('touchstart', onTouchStart);
         window.removeEventListener('touchmove', onTouchMove);

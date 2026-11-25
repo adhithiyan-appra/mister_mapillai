@@ -30,6 +30,7 @@ export interface OccasionCardItem {
   name: string;
   subtitle: string;
   image: ImageKey;
+  imagePosition?: string;
   included: readonly string[];
 }
 
@@ -38,7 +39,8 @@ export const occasionCards: readonly OccasionCardItem[] = [
     key: 'muhurtham',
     name: 'Muhurtham',
     subtitle: 'The sacred moment',
-    image: 'silk-veshti',
+    image: 'traditional-muhurtham-collection',
+    imagePosition: 'center top',
     included: [
       'Pure silk shirt',
       'Gold-border pattu veshti',
@@ -51,7 +53,8 @@ export const occasionCards: readonly OccasionCardItem[] = [
     key: 'reception',
     name: 'Reception',
     subtitle: 'Your grand evening',
-    image: 'double-breasted',
+    image: 'grand-tamil-reception',
+    imagePosition: 'center top',
     included: [
       'Hand-work designer coat suit',
       'Tailored shirt & trousers',

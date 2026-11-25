@@ -10,6 +10,7 @@ import { images } from '../../data/images';
 import type { ImageKey } from '../../data/images';
 import { imageSource } from '../../data/imageSources';
 import { onHeroReady } from '../../utils/heroReady';
+import { onHeroReset } from '../../utils/heroState';
 import { comparisonPanels } from '../../data/showcase';
 
 gsap.registerPlugin(ScrollTrigger);
@@ -291,8 +292,11 @@ export function TransformationSection() {
     const refresh = () => ScrollTrigger.refresh();
     window.addEventListener('load', refresh);
     const refreshTimer = window.setTimeout(refresh, 300);
+    // An explicit return to the top of the home page must glide cleanly past this pin without a pending filter handoff hijacking the scroll.
+    const stopHeroReset = onHeroReset(() => { handoffRef.current = null; });
 
     return () => {
+      stopHeroReset();
       window.removeEventListener('load', refresh);
       window.clearTimeout(refreshTimer);
       stopWaiting();

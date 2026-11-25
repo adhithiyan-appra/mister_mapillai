@@ -155,6 +155,13 @@ export function leavingForNewLocation() {
   restoreMode = null;
 }
 
+/** Cancel any in-progress or armed scroll restoration (e.g. explicit scroll-to-top click). */
+export function cancelScrollRestore() {
+  active?.stop();
+  armed = false;
+  restoreMode = null;
+}
+
 /**
  * Called when a location has rendered. Puts the visitor back at the entry's saved position and returns true, or
  * returns false when there is nothing to restore (a new navigation, a first visit): the caller scrolls as usual.

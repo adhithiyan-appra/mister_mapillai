@@ -5,6 +5,7 @@
  * from the beginning. A hero reloaded part-way through starts again from frame 1.
  */
 const KEY = 'mmHero';
+const RESET_EVENT = 'mm:hero-reset';
 
 const entry = (): Record<string, unknown> => (typeof history.state === 'object' && history.state !== null ? history.state as Record<string, unknown> : {});
 
@@ -20,4 +21,15 @@ export function rememberHeroCompleted(completed: boolean) {
     else delete state[KEY];
     history.replaceState(state, '');
   } catch { /* history unavailable or rate-limited: after a reload the hero simply starts from the beginning */ }
+}
+
+/** Return any mounted home hero back to its initial intro state (stage 0, frame 1). */
+export function requestHeroReset() {
+  rememberHeroCompleted(false);
+  window.dispatchEvent(new CustomEvent(RESET_EVENT));
+}
+
+export function onHeroReset(listener: () => void) {
+  window.addEventListener(RESET_EVENT, listener);
+  return () => window.removeEventListener(RESET_EVENT, listener);
 }
