@@ -11,6 +11,7 @@ interface OpenStudioLocation {
   title: string;
   image: ImageKey;
   imageAlt: string;
+  imagePosition?: string;
   address: string;
   hours?: string;
   directionsHref?: string;
@@ -61,8 +62,9 @@ export function StudioSection() {
       id: 'avinashi',
       status: 'open',
       title: 'Avinashi',
-      image: 'double-breasted',
-      imageAlt: 'Bespoke groom styling at the Avinashi studio',
+      image: 'cocktail-home-after',
+      imageAlt: 'Groom in a black and gold embroidered bandhgala at the Avinashi studio',
+      imagePosition: 'center top',
       address: avinashiAddress || 'Avinashi, Tamil Nadu',
       hours: avinashiHours || undefined,
       directionsHref: avinashiDirectionsHref,
@@ -112,7 +114,14 @@ export function StudioSection() {
           return <li className="mm-studio-card mm-reveal" style={delayStyle} key={studio.id}>
             <div className="mm-studio-card__media">
               <span className="mm-studio-card__badge mm-studio-card__badge--open">Open Now</span>
-              <SourceImage asset={studio.image} alt={studio.imageAlt} loading="lazy" responsive sizes={CARD_IMAGE_SIZES} />
+              <SourceImage
+                asset={studio.image}
+                alt={studio.imageAlt}
+                loading="lazy"
+                responsive
+                sizes={CARD_IMAGE_SIZES}
+                style={studio.imagePosition ? { objectPosition: studio.imagePosition } : undefined}
+              />
             </div>
             <div className="mm-studio-card__body">
               <h3 className="mm-studio-card__title">{studio.title}</h3>

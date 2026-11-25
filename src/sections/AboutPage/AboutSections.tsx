@@ -24,17 +24,15 @@ interface CraftStep {
   asset?: ImageKey;
 }
 
-const REFERENCE_STEP_ONE_IMAGE = 'https://images.unsplash.com/photo-1606800052052-a08af7148866?w=900&q=70&auto=format&fit=crop';
-
 const craftSteps: readonly CraftStep[] = [
   {
     number: 1,
     label: 'Step One',
     title: 'Listen & Sketch',
     description: 'We learn about your events, family traditions and theme, then sketch looks for each ritual with a colour story that flows from Muhurtham to reception.',
-    externalSrc: REFERENCE_STEP_ONE_IMAGE,
-    alt: 'South Indian bride and groom smiling together before wedding rituals',
-    objectPosition: 'center 25%',
+    asset: 'step-one-listen-sketch',
+    alt: 'Two gold wedding rings resting on woven white fabric with a soft wedding backdrop',
+    objectPosition: 'center',
   },
   {
     number: 2,

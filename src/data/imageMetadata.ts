@@ -115,4 +115,5 @@ export const imageMetadata = {
   'groom-profile-4': { width: 320, height: 320 },
   'groom-profile-5': { width: 320, height: 320 },
   'chair_coat': { width: 1254, height: 1254 },
+  'step-one-listen-sketch': { width: 1600, height: 1067 },
 } satisfies Record<ImageKey, { width: number; height: number }>;

@@ -2,6 +2,7 @@
  * Ceremony & Craftsmanship Process Assets
  * Visual documentation of measuring, cutting, embroidery, and ceremony stages.
  */
+import stepOneImage from '../../assets/images/about/how-we-make/step-one-listen-sketch.webp';
 import chairCoat from '../../assets/images/about/how-we-make/chair_coat.webp';
 import stepThreeImage from '../../assets/images/about/how-we-make/sitch.webp';
 import stepFourImage from '../../assets/images/about/how-we-make/image.webp';
@@ -15,6 +16,7 @@ import detail3 from '../../assets/images/shared/devatan-shirt/detail-3.webp';
 import detail4 from '../../assets/images/shared/devatan-shirt/detail-4.webp';
 
 export const ceremonyAssets = {
+  stepOneImage,
   chairCoat,
   stepThreeImage,
   stepFourImage,

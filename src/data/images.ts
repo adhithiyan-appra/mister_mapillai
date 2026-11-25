@@ -63,6 +63,7 @@ export const images = {
   'motifs': collectionAssets.motifs,
 
   // Ceremony Process & Craft Highlights
+  'step-one-listen-sketch': ceremonyAssets.stepOneImage,
   'chair_coat': ceremonyAssets.chairCoat,
   'sitch': ceremonyAssets.stepThreeImage,
   'image': ceremonyAssets.stepFourImage,
