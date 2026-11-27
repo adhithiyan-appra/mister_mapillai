@@ -143,6 +143,9 @@
    screen tall. The page stays at the top while the eight stages play (HeroSection.tsx), so there is no pinned scroll to size.
    100dvh (with a 100svh fallback) follows mobile toolbars as they show and hide, so the frame never leaves a maroon gap below it. */
 .mm-hero-seq{position:relative;height:calc(100svh - var(--mm-nav-h));height:calc(100dvh - var(--mm-nav-h));background:var(--mm-maroon-dark);overflow-x:clip}
+/* Until the last stage has played, the page is held at the top (HeroSection.tsx), like the loader's lock; the scrollbar's space is
+   kept, so nothing moves when it lets go. */
+html.mm-hero-lock{overflow:hidden;scrollbar-gutter:stable}
 /* The maroon introduction comes first: the frames fade in as the first stage starts. */
 .mm-hero-seq .mm-hero__media{opacity:0}
 .mm-hero-seq > .mm-hero{height:calc(100svh - var(--mm-nav-h));height:calc(100dvh - var(--mm-nav-h));min-height:0;background:var(--mm-maroon-dark)}

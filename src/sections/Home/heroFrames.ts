@@ -40,12 +40,11 @@ export function deviceProfile(): RenderProfile & { maxDpr: number; maxArea: numb
   const phone = matchMedia('(max-width: 600px), (max-height: 600px) and (pointer: coarse)').matches;
   const touchSized = matchMedia('(max-width: 1023px), (max-height: 700px) and (pointer: coarse)').matches;
   return {
-    // Sharpness first: the canvas has as many pixels as the screen shows (never more than the 1920 px source can fill, see
-    // HeroSection's layout), so the frame is never drawn small and then stretched by the browser. The earlier caps (2x, 1.5x on
-    // "low-power" devices, and a 2.3-4.2 MP area budget) drew a 3x phone's frame at 1/2-2/3 of its screen resolution: visibly soft
-    // (measured: 40-50% of the edge detail of the ideal picture on phones, 78% on a 12.9" iPad; desktop 85%, the vignette's level).
+    // Sharpness first: the canvas has exactly as many pixels as the screen shows (see HeroSection's layout), so the frame is never
+    // drawn small and then stretched by the browser. The earlier caps (2x, 1.5x on "low-power" devices, and a 2.3-4.2 MP area
+    // budget) drew a 3x phone's frame at 1/2-2/3 of its screen resolution: visibly soft.
     maxDpr: 3,
-    /** Canvas backing-store ceiling in device pixels: a safety net only, above any real phone, tablet or 4K screen at the source cap. */
+    /** Canvas backing-store ceiling in device pixels: a safety net only, above any real phone, tablet, laptop or 4K screen at 150%. */
     maxArea: lowPower ? 6_000_000 : 8_300_000,
     fetchConcurrency: slowLink ? 2 : lowPower ? 4 : 6,
     // Encoded frames kept ready beyond the decoded window (ahead and behind the playhead) so forward
@@ -82,8 +81,8 @@ export interface HeroRenderer {
   seek(goal: number): void;
   /** The visitor has started to scroll: begin fetching the frames around the playhead (idempotent). */
   engage(): void;
-  /** Play a stage from frame `from` to `to` (0-based) over `ms`, after `delayMs` (see FrameRenderer.play). */
-  play(from: number, to: number, ms: number, delayMs: number, blend: boolean): void;
+  /** Play a stage from frame `from` to `to` (0-based) over `ms`, its nominal length (see FrameRenderer.play). */
+  play(from: number, to: number, ms: number): void;
   /** Stages that may be played next (0-based ranges): fetch their frames ahead of time. */
   prepare(ranges: [number, number][]): void;
   /** The page has loaded and gone idle: begin the background warm-up of the next frames (idempotent). */
@@ -110,9 +109,11 @@ export interface RendererEvents {
   onPlayed: (position: number) => void;
   /** The renderer could not start (no canvas context in the worker): the frames will not play. */
   onFailed: () => void;
+  /** A frame has downloaded or decoded (at most twice a second): the frames are still coming. */
+  onProgress: () => void;
 }
 
-function startWorker(canvas: HTMLCanvasElement, poster: HTMLImageElement, profile: RenderProfile, { onReady, onCritical, onPlayed, onFailed }: RendererEvents): HeroRenderer {
+function startWorker(canvas: HTMLCanvasElement, poster: HTMLImageElement, profile: RenderProfile, { onReady, onCritical, onPlayed, onFailed, onProgress }: RendererEvents): HeroRenderer {
   const worker = new Worker(new URL('./frameRenderer.worker.ts', import.meta.url), { type: 'module' });
   let disposed = false;
   const fail = () => { if (!disposed) { onCritical(); onFailed(); } };
@@ -123,6 +124,7 @@ function startWorker(canvas: HTMLCanvasElement, poster: HTMLImageElement, profil
     else if (data.type === 'critical') onCritical();
     else if (data.type === 'failed') fail();
     else if (data.type === 'played') onPlayed(data.at);
+    else if (data.type === 'progress') onProgress();
   };
   const offscreen = canvas.transferControlToOffscreen();
   post({ type: 'init', canvas: offscreen, urls: frameUrls, profile }, [offscreen]);
@@ -144,7 +146,7 @@ function startWorker(canvas: HTMLCanvasElement, poster: HTMLImageElement, profil
       post({ type: 'engage' });
     },
     // A stage moves the playhead in the worker, so the next seek must be sent even if it repeats the last one.
-    play(from, to, ms, delay, blend) { last.goal = Number.NaN; post({ type: 'play', from, to, ms, delay, blend }); },
+    play(from, to, ms) { last.goal = Number.NaN; post({ type: 'play', from, to, ms }); },
     prepare(ranges) { post({ type: 'prepare', ranges }); },
     allowWarm() {
       if (warmed) return;
@@ -167,17 +169,21 @@ function startWorker(canvas: HTMLCanvasElement, poster: HTMLImageElement, profil
   };
 }
 
-function startOnPage(canvas: HTMLCanvasElement, poster: HTMLImageElement, profile: RenderProfile, { onReady, onCritical, onPlayed }: RendererEvents): HeroRenderer | null {
-  const context = canvas.getContext('2d', { alpha: false });
-  if (!context || typeof createImageBitmap !== 'function') return null;
-  const renderer = new FrameRenderer(canvas, context, frameUrls, { ...profile, decodeConcurrency: 1 }, callback => requestAnimationFrame(callback), handle => cancelAnimationFrame(handle), onReady, onCritical, onPlayed);
+function startOnPage(canvas: HTMLCanvasElement, poster: HTMLImageElement, profile: RenderProfile, { onReady, onCritical, onPlayed, onProgress }: RendererEvents): HeroRenderer | null {
+  if (typeof createImageBitmap !== 'function') return null;
+  let renderer: FrameRenderer;
+  try {
+    renderer = new FrameRenderer(canvas, frameUrls, { ...profile, decodeConcurrency: 1 }, callback => requestAnimationFrame(callback), handle => cancelAnimationFrame(handle), onReady, onCritical, onPlayed, onProgress);
+  } catch {
+    return null;
+  }
   poster.decode().then(() => renderer.provideFirst(poster), () => renderer.provideFirst(null));
   return {
     mode: 'page',
     layout: layout => renderer.resize(layout),
     seek: goal => renderer.seek(goal),
     engage: () => renderer.engage(),
-    play: (from, to, ms, delayMs, blend) => renderer.play(from, to, ms, delayMs, blend),
+    play: (from, to, ms) => renderer.play(from, to, ms),
     prepare: ranges => renderer.prepare(ranges),
     allowWarm: () => renderer.allowWarm(),
     rest: () => renderer.rest(),
@@ -200,6 +206,7 @@ export function createHeroRenderer(canvas: HTMLCanvasElement, poster: HTMLImageE
       onCritical: () => holder.current?.events.onCritical(),
       onPlayed: at => holder.current?.events.onPlayed(at),
       onFailed: () => holder.current?.events.onFailed(),
+      onProgress: () => holder.current?.events.onProgress(),
     };
     const renderer = canUseWorker(canvas) ? startWorker(canvas, poster, profile, forward) : startOnPage(canvas, poster, profile, forward);
     if (!renderer) return null;
@@ -214,7 +221,7 @@ export function createHeroRenderer(canvas: HTMLCanvasElement, poster: HTMLImageE
     layout: layout => current.renderer.layout(layout),
     seek: goal => current.renderer.seek(goal),
     engage: () => current.renderer.engage(),
-    play: (from, to, ms, delayMs, blend) => current.renderer.play(from, to, ms, delayMs, blend),
+    play: (from, to, ms) => current.renderer.play(from, to, ms),
     prepare: ranges => current.renderer.prepare(ranges),
     allowWarm: () => current.renderer.allowWarm(),
     rest: () => current.renderer.rest(),

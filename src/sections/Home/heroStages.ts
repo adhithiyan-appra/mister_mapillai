@@ -34,14 +34,15 @@ export const HERO_STAGES: readonly HeroStage[] = [
 ];
 
 /**
- * Playing speed in frames per second, the same for every stage and both directions, constant from a stage's first frame to its last:
- * every frame is on screen for the same 125 ms. Slow and even, like the footage played at a third of its speed; the stages last
- * 3.4-4.9 s (25 s in all, about the pace the hero has always had).
+ * Playing speed in frames per second, the same for every stage and both directions, constant from a stage's first frame to its last.
+ * At 16 a frame is on screen for 62.5 ms and the stages last 1.7-2.4 s (12.6 s in all). (It was 8 until 2026-11-27: 125 ms a frame,
+ * which read as stepping rather than video.) The renderer shows every frame for a whole number of the screen's refreshes, so the
+ * beat is even on every display: exactly 16 on a 144 Hz screen, 15 on 60, 90 and 120 Hz ones (FrameRenderer.pace). A device that
+ * cannot decode frames this fast plays the stage evenly at the pace it can sustain instead of in fits and starts.
+ *
+ * Every frame is shown on its own, whole and sharp: there is no crossfading between frames.
  */
-export const HERO_FPS = 8;
-
-/** Crossfading between frames is off: every frame is shown on its own, whole and sharp. */
-export const CROSSFADE = false;
+export const HERO_FPS = 16;
 
 export interface StagePlan {
   /** Frames to play, 0-based: the frame on screen as the stage begins, and the frame it stops on. */

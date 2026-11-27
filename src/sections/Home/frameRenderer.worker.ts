@@ -11,7 +11,7 @@ export type WorkerMessage =
   | { type: 'first'; bitmap: ImageBitmap | null }
   | { type: 'layout'; layout: RenderLayout }
   | { type: 'seek'; goal: number }
-  | { type: 'play'; from: number; to: number; ms: number; delay: number; blend: boolean }
+  | { type: 'play'; from: number; to: number; ms: number }
   | { type: 'prepare'; ranges: [number, number][] }
   | { type: 'engage' }
   | { type: 'warm' }
@@ -19,10 +19,11 @@ export type WorkerMessage =
   | { type: 'dispose' };
 
 export type WorkerReply =
-  | { type: 'ready' }
+  | { type: 'ready'; painter: 'webgl2' | '2d' }
   | { type: 'critical' }
   | { type: 'failed' }
-  | { type: 'played'; at: number };
+  | { type: 'played'; at: number }
+  | { type: 'progress' };
 
 // Minimal worker-scope typing (the project's TS lib is DOM, not WebWorker).
 interface WorkerScope {
@@ -39,26 +40,32 @@ let renderer: FrameRenderer | null = null;
 scope.onmessage = ({ data }) => {
   switch (data.type) {
     case 'init': {
-      const context = data.canvas.getContext('2d', { alpha: false });
-      if (!context || typeof createImageBitmap !== 'function') { scope.postMessage({ type: 'failed' }); return; }
+      if (typeof createImageBitmap !== 'function') { scope.postMessage({ type: 'failed' }); return; }
       // Worker rAF where available (Chrome, Firefox, Safari 16.4+), so the playhead steps once per display
       // frame; otherwise a 60 Hz timer.
       const schedule = scope.requestAnimationFrame
         ? (callback: (now: number) => void) => scope.requestAnimationFrame!(callback)
         : (callback: (now: number) => void) => setTimeout(() => callback(performance.now()), 16) as unknown as number;
       const cancel = scope.cancelAnimationFrame ? (handle: number) => scope.cancelAnimationFrame!(handle) : (handle: number) => clearTimeout(handle);
-      renderer = new FrameRenderer(
-        data.canvas, context, data.urls, data.profile, schedule, cancel,
-        () => scope.postMessage({ type: 'ready' }),
-        () => scope.postMessage({ type: 'critical' }),
-        at => scope.postMessage({ type: 'played', at }),
-      );
+      try {
+        const created: FrameRenderer = new FrameRenderer(
+          data.canvas, data.urls, data.profile, schedule, cancel,
+          () => scope.postMessage({ type: 'ready', painter: created.painterKind }),
+          () => scope.postMessage({ type: 'critical' }),
+          at => scope.postMessage({ type: 'played', at }),
+          () => scope.postMessage({ type: 'progress' }),
+        );
+        renderer = created;
+      } catch {
+        // The canvas has no drawing context in this worker: the page keeps its poster.
+        scope.postMessage({ type: 'failed' });
+      }
       break;
     }
     case 'first': renderer?.provideFirst(data.bitmap); break;
     case 'layout': renderer?.resize(data.layout); break;
     case 'seek': renderer?.seek(data.goal); break;
-    case 'play': renderer?.play(data.from, data.to, data.ms, data.delay, data.blend); break;
+    case 'play': renderer?.play(data.from, data.to, data.ms); break;
     case 'prepare': renderer?.prepare(data.ranges); break;
     case 'engage': renderer?.engage(); break;
     case 'warm': renderer?.allowWarm(); break;

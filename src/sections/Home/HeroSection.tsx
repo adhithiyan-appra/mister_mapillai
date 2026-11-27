@@ -6,19 +6,24 @@ import { cssVars } from '../../utils/style';
 import { markHeroReady } from '../../utils/heroReady';
 import { heroCompleted, onHeroReset, rememberHeroCompleted } from '../../utils/heroState';
 import { SOURCE_SIZE, createHeroRenderer, deviceProfile, frameScale, frameUrls } from './heroFrames';
-import { CROSSFADE, HERO_STAGES, buildStageMap } from './heroStages';
+import { HERO_STAGES, buildStageMap } from './heroStages';
 
 const lines: readonly (readonly [word: string, gold?: boolean][])[] = [
   [['Crafted'], ['for'], ['the'], ['Groom.', true]],
   [['Styled'], ['Head'], ['to'], ['Toe.']],
 ];
 
-/** The eight stages (heroStages.ts): which frames each one plays and for how long. */
+/** The six stages (heroStages.ts): which frames each one plays and for how long. */
 const STAGES = buildStageMap(HERO_STAGES, frameUrls.length);
-/** The introduction lifts away and the frames fade in over this long (ms) as the first stage starts, and the reverse after the first stage is played back. */
+/** The introduction lifts away over this long (ms) as the first stage starts, and comes back after the first stage is played back. */
 const INTRO_MS = 1000;
-/** The first stage starts moving once its frame 1 has mostly faded in (ms after the scroll). */
-const FIRST_STAGE_DELAY_MS = 800;
+/**
+ * The first stage moves from the first scroll, with no pause; the frames fade in over the first 30% of INTRO_MS (300 ms) so its
+ * opening frames are seen, while the introduction lifts away over them.
+ */
+const FRAMES_IN = 0.3;
+/** Opacity of the frames while the introduction hides them (see paintLayers): imperceptible, but never 0. */
+const HIDDEN_FRAMES = 0.01;
 /**
  * Wheel and trackpad: events closer together than this (ms) are one gesture, which starts at most one stage. Trackpad momentum
  * and a wheel spun on through a stage are part of the gesture that started it, so they never start the next one.
@@ -30,6 +35,11 @@ const SWIPE_PX = 28;
 const TOP_PX = 2;
 /** After a reload of a completed hero, its final frame fades in over this long (ms) once it is drawn. */
 const RESTORE_FADE_MS = 400;
+/**
+ * A stage that has waited this long (ms) without a single frame downloading or decoding is on a dead connection: the page is let go
+ * (it scrolls as usual) until frames arrive again, so no visitor is ever stuck at the top.
+ */
+const STALL_MS = 10_000;
 
 const smoothstep = (value: number, from: number, to: number) => {
   const t = clamp((value - from) / (to - from));
@@ -45,8 +55,11 @@ const KEYS: Record<string, 1 | -1> = { ArrowDown: 1, PageDown: 1, ' ': 1, ArrowU
  * back. After the last stage the next scroll goes to the page as usual. The hero is one scene on the site's shared animation
  * scheduler (no second loop); the frames are drawn by the renderer (a worker where supported), never through React state.
  *
- * The scrollbar, anchor links and Home/End remain available while a stage is running. With reduced motion the introduction is
- * the hero, as before.
+ * Until the last stage has played, the page itself is held at the top (html.mm-hero-lock, the same overflow lock the loader uses), so
+ * no wheel, key (End, Ctrl+End), scrollbar drag or middle-click autoscroll can show the next section before the final frame. Following
+ * a link or moving keyboard focus further down still moves the page, so keyboard users are never trapped; the hold then lets go until
+ * the page is back at the top. It also lets go while a stage gets no frames at all (STALL_MS). With reduced motion the introduction is
+ * the hero, as before, and nothing is held.
  *
  * Reload: a hero played to the end stays complete (utils/heroState.ts): it comes back on its final frame, the page is restored to
  * where the visitor was (scrollRestore.ts) and scrolls on freely. A hero reloaded part-way through starts again from frame 1.
@@ -81,6 +94,25 @@ export function HeroSection() {
     /** Resetting while frames are visible waits until the frames fade out before rewinding the canvas to frame 1. */
     let pendingResetFrame = false;
     let rewinding = false;
+    /** A stage has had no frame download or decode for STALL_MS (see STALL_MS); the page is held at the top (see updateLock). */
+    let stalled = false, stallTimer = 0, locked = false;
+
+    /** Hold the page at the top while the hero is there and still has stages to play (see the component comment). */
+    const updateLock = () => {
+      const hold = !!renderer && !failed && !stalled && window.scrollY <= TOP_PX && (playing !== null || done < total);
+      if (hold === locked) return;
+      locked = hold;
+      document.documentElement.classList.toggle('mm-hero-lock', hold);
+    };
+    /** While a stage is playing (or waiting for its frames), watch that frames keep arriving. */
+    const armStall = () => {
+      window.clearTimeout(stallTimer);
+      stallTimer = playing ? window.setTimeout(() => { stalled = true; updateLock(); }, STALL_MS) : 0;
+    };
+    const progressed = () => {
+      if (stalled) { stalled = false; updateLock(); }
+      if (playing) armStall();
+    };
 
     const paintLayers = () => {
       // The introduction lifts away; hidden (not removed) only once fully transparent.
@@ -90,9 +122,12 @@ export function HeroSection() {
       writeStyle(hint, 'opacity', (1 - clamp(out * 3)).toFixed(3));
       const hidden = out > 0.995;
       if (hidden !== textHidden) { textHidden = hidden; writeStyle(content, 'visibility', hidden ? 'hidden' : 'visible'); }
-      // The frames fade in over the maroon; the veil eases to a light vignette.
-      const reveal = smoothstep(intro, 0.2, 1) * smoothstep(restoreReveal, 0, 1);
-      writeStyle(media, 'opacity', reveal.toFixed(3));
+      // The frames fade in over the maroon; the veil eases to a light vignette. While the frames are hidden they are not quite at 0:
+      // the browser stops presenting a canvas it does not draw at all, and needs 100-200 ms to start again, which the first stage's
+      // opening frames then lost (measured: their first gap 110-200 ms instead of 62). At 1%, under the introduction's 45-92% maroon
+      // veil, the frame is invisible (at most ~2 grey levels).
+      const reveal = smoothstep(intro, 0, FRAMES_IN) * smoothstep(restoreReveal, 0, 1);
+      writeStyle(media, 'opacity', (renderer && !failed ? Math.max(HIDDEN_FRAMES, reveal) : reveal).toFixed(3));
       writeStyle(veil, 'opacity', (1 - 0.7 * reveal).toFixed(3));
     };
 
@@ -103,15 +138,18 @@ export function HeroSection() {
         // Frame 1 is decoded: the site loader may lift, and the frames after it may start to load.
         onCritical: () => { markHeroReady(); warm(); },
         onPlayed: position => finish(position),
-        onFailed: () => { failed = true; controller.invalidate(); },
+        onFailed: () => { failed = true; updateLock(); controller.invalidate(); },
+        onProgress: () => progressed(),
       })
       : null;
     if (!renderer) markHeroReady();
     if (renderer && restored) {
       // Bring the final frame back (a stage of no length that ends on it): the hero is complete again once it is on the canvas.
       playing = { dir: 1, done: total };
-      renderer.play(STAGES.rest(total), STAGES.rest(total), 1, 0, false);
+      renderer.play(STAGES.rest(total), STAGES.rest(total), 1);
+      armStall();
     } else renderer?.seek(STAGES.rest(0));
+    updateLock();
 
     // Warm-up starts immediately after frame 1 is drawn: frame 1 has the network to itself until it arrives, then low-priority
     // worker requests build a decoded runway while the visitor reads the introduction without blocking the page thread.
@@ -140,8 +178,10 @@ export function HeroSection() {
       playing = { dir, done: done + dir };
       // Playing back from the end: the hero is no longer complete, so a reload from here starts it again.
       if (dir < 0) rememberHeroCompleted(false);
-      renderer.play(dir > 0 ? first : last, dir > 0 ? last : first, ms, dir > 0 && k === 0 ? FIRST_STAGE_DELAY_MS : 0, CROSSFADE);
+      renderer.play(dir > 0 ? first : last, dir > 0 ? last : first, ms);
       prepare(playing.done, dir);
+      armStall();
+      updateLock();
       controller.invalidate();
     };
     /** The stage's last frame is on the canvas: hold it until the next scroll. */
@@ -155,6 +195,10 @@ export function HeroSection() {
       done = playing.done;
       playing = null;
       restoring = false;
+      stalled = false;
+      armStall();
+      // The final frame is on screen: the next scroll moves on to the next section.
+      updateLock();
       rememberHeroCompleted(done === total);
       prepare(done, direction);
       if (track.getBoundingClientRect().bottom < -50) renderer?.rest();
@@ -165,7 +209,7 @@ export function HeroSection() {
      * Whether a scroll in this direction belongs to the hero rather than the page: the hero is fully in view at the top, and a
      * stage is playing (every scroll is held then) or there is a stage to play that way.
      */
-    const owns = (dir: 1 | -1) => !!renderer && !failed && window.scrollY <= TOP_PX
+    const owns = (dir: 1 | -1) => !!renderer && !failed && !stalled && window.scrollY <= TOP_PX
       && !document.documentElement.classList.contains('mm-menu-open')
       && (playing !== null || (dir > 0 ? done < total : done > 0));
     const atFinalHold = (dir: 1 | -1) => !!renderer && !failed && !playing
@@ -237,6 +281,25 @@ export function HeroSection() {
       start(dir);
     };
 
+    /**
+     * The canvas's size in device pixels as the browser lays it out. At a fractional scale (a Windows laptop at 125%) CSS size × DPR
+     * can round one pixel off the box the browser actually composites the canvas into (868 rows squeezed into 867), and the browser
+     * then resamples the whole frame a second time: measured 0.61 of the ideal sharpness at 125%, against 1.00 at the exact size.
+     * null = not known.
+     */
+    let devicePixels: { width: number; height: number } | null = null;
+    const sizer = renderer && typeof ResizeObserver === 'function'
+      ? new ResizeObserver(([entry]) => {
+        const box = entry.devicePixelContentBoxSize?.[0];
+        const next = box ? { width: box.inlineSize, height: box.blockSize } : null;
+        if (next?.width === devicePixels?.width && next?.height === devicePixels?.height) return;
+        devicePixels = next;
+        controller.invalidate();
+      })
+      : null;
+    // Browsers without the device-pixel box (Safari) throw on the option: they keep CSS size × DPR.
+    try { sizer?.observe(canvas, { box: 'device-pixel-content-box' }); } catch { sizer?.disconnect(); }
+
     if (renderer) {
       window.addEventListener('wheel', onWheel, { passive: false });
       window.addEventListener('touchstart', onTouchStart, { passive: true });
@@ -244,13 +307,15 @@ export function HeroSection() {
       window.addEventListener('touchend', onTouchEnd, { passive: true });
       window.addEventListener('touchcancel', onTouchEnd, { passive: true });
       window.addEventListener('keydown', onKeyDown);
+      // A link or keyboard focus moved the page: let it go; hold it again once it is back at the top.
+      window.addEventListener('scroll', updateLock, { passive: true });
     }
 
     const rewindToFrameZero = () => {
       pendingResetFrame = false;
       if (!renderer) return;
       rewinding = true;
-      renderer.play(STAGES.rest(0), STAGES.rest(0), 1, 0, false);
+      renderer.play(STAGES.rest(0), STAGES.rest(0), 1);
       prepare(0, 1);
     };
 
@@ -266,6 +331,9 @@ export function HeroSection() {
       playing = null;
       restoring = false;
       restoreReveal = 1;
+      stalled = false;
+      armStall();
+      updateLock();
       const offscreen = track.getBoundingClientRect().bottom <= 0;
       if (offscreen || intro <= 0.2) {
         intro = 0;
@@ -283,16 +351,24 @@ export function HeroSection() {
       element: track,
       layout() {
         if (!renderer) return;
-        // Canvas backing store in device pixels, capped by DPR and an area budget.
-        const width = stage.clientWidth, height = stage.offsetHeight;
-        // Never more canvas pixels than the source has: the frames hold no more detail, so a larger backing store (a 2560 px
-        // screen, or a high-DPR laptop) would only cost fill rate and memory; the compositor scales the canvas to the stage.
+        // The canvas has one pixel per device pixel, so the browser shows it as drawn and never resamples it again: the frame is
+        // resampled once, from the full-resolution original, by the renderer (GPU Lanczos where available). That includes screens
+        // with more pixels than the 1920 px source (2× laptops, 4K): the renderer's upscale is sharper than the compositor's stretch.
+        const { width, height } = canvas.getBoundingClientRect();
         if (!width || !height) return;
+        const dpr = window.devicePixelRatio || 1;
+        let canvasWidth = Math.round(width * dpr), canvasHeight = Math.round(height * dpr);
+        // The browser's own device-pixel box, when it is the same size give or take its rounding. (DevTools device emulation reports
+        // CSS pixels there; it is then ignored.)
+        if (devicePixels && Math.abs(devicePixels.width - width * dpr) <= 1.5 && Math.abs(devicePixels.height - height * dpr) <= 1.5) {
+          canvasWidth = devicePixels.width;
+          canvasHeight = devicePixels.height;
+        }
+        // Safety net for extreme screens only (a 5K display): above the device budget the canvas is drawn smaller and stretched.
+        const cap = Math.min(1, profile.maxDpr / dpr, Math.sqrt(profile.maxArea / Math.max(1, canvasWidth * canvasHeight)));
+        if (cap < 1) { canvasWidth = Math.round(canvasWidth * cap); canvasHeight = Math.round(canvasHeight * cap); }
         const { width: sourceWidth, height: sourceHeight } = SOURCE_SIZE;
-        const sourceScale = frameScale(width, height, sourceWidth, sourceHeight);
-        const dpr = Math.min(window.devicePixelRatio || 1, profile.maxDpr, Math.sqrt(profile.maxArea / Math.max(1, width * height)), 1 / sourceScale);
-        const canvasWidth = Math.round(width * dpr), canvasHeight = Math.round(height * dpr);
-        const scale = sourceScale * dpr;
+        const scale = frameScale(canvasWidth, canvasHeight, sourceWidth, sourceHeight);
         const w = Math.round(sourceWidth * scale), h = Math.round(sourceHeight * scale);
         // The whole frame, centred; the surrounding letterbox is solid maroon.
         const x = Math.round((canvasWidth - w) / 2);
@@ -324,6 +400,10 @@ export function HeroSection() {
       },
       dispose() {
         stopHeroReset();
+        sizer?.disconnect();
+        window.clearTimeout(stallTimer);
+        window.removeEventListener('scroll', updateLock);
+        if (locked) document.documentElement.classList.remove('mm-hero-lock');
         window.removeEventListener('wheel', onWheel);
         window.removeEventListener('touchstart', onTouchStart);
         window.removeEventListener('touchmove', onTouchMove);
